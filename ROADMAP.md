@@ -138,6 +138,104 @@ which covers the source repository going public.
   Kind: package.
   Source: user-request-2026-08-27.
 
+## Quality and tooling
+
+Keeping the stated requirements enforced rather than merely written down, and
+making a build reproducible.
+
+- 📋 [SLIP-0021] **Cover the API security invariants with tests.**
+  CLAUDE.md lists the download allowlist, credential scrubbing and the download
+  size cap as rules that must hold in every change. The test suite imports only
+  from core/, so api/ has no coverage at all: `_is_allowed_url`,
+  `_sanitize_message` and the MAX_DOWNLOAD_BYTES cut-off could each be removed
+  by a refactor and the suite would stay green.
+  These are pure functions with no network in them, so they are among the
+  cheapest tests in the project to write.
+  **Layman:** The safety rules are written down but nothing checks they are still there.
+  Kind: test.
+  Source: in-session-2026-08-27.
+  Lanes: api, tests.
+
+- 📋 [SLIP-0022] **Run the test suite in CI on push.**
+  The repository has no CI configuration. The project rule that all tests must
+  pass before a commit is enforced only by whoever remembers to run pytest.
+  This is also a prerequisite for two of the Distribution items rather than a
+  separate concern: a Windows build and a macOS build cannot be produced on
+  this machine, and hosted runners are the route to both.
+  **Layman:** Have the tests run automatically whenever code is pushed.
+  Kind: chore.
+  Source: in-session-2026-08-27.
+  Lanes: ci.
+
+- 📋 [SLIP-0023] **Pin dependencies so a build is reproducible.**
+  requirements.txt declares minimum versions only. That is fine for developing
+  against, but it means two builds of the same Slipcase version can bundle
+  different PyQt6, Pillow or NumPy releases, and a rendering change arriving
+  from a dependency would be untraceable to any commit here.
+  Blocks nothing today; matters once the Distribution items start shipping
+  binaries with the libraries baked in.
+  **Layman:** Lock the exact library versions so two builds of one release are identical.
+  Kind: package.
+  Source: in-session-2026-08-27.
+  Lanes: packaging.
+
+- 📋 [SLIP-0024] **Scaffold a CHANGELOG.**
+  There is no CHANGELOG.md. The bump recipe in .claude/bump.json already
+  expects one and carries a todo to scaffold it in Keep a Changelog format on
+  the first version bump.
+  Worth doing before the repository is public, so the first release has notes
+  rather than a bare tag.
+  **Layman:** A file listing what changed in each release.
+  Kind: doc.
+  Source: in-session-2026-08-27.
+  Lanes: docs.
+
+- 📋 [SLIP-0025] **Break up the MainWindow class.**
+  MainWindow is by some distance the largest unit in the tree, and owns the
+  menu bar, both panels, image loading, PNG and split-cover export, batch
+  processing, animation export, online search, themes and the recent-files
+  list. Panel construction alone accounts for much of it.
+  The practical cost is testability: behaviour reachable only through this
+  class is why ui/ has no tests. Splitting the export and batch paths out into
+  their own modules would make them testable without a running Qt window.
+  Low urgency and worth doing incrementally rather than as one rewrite.
+  **Layman:** Split the biggest file so each piece does one job.
+  Kind: refactor.
+  Source: in-session-2026-08-27.
+  Lanes: ui.
+
+## Feature ideas
+
+Suggested rather than requested. Each is worth a decision before it is worth
+building.
+
+- 💭 [SLIP-0026] **Offer a command-line mode for batch conversion.**
+  Batch conversion already exists in BatchWorker, including a parallel path,
+  but it is reachable only by opening the app and using the menu. main.py does
+  nothing but launch the GUI.
+  The audience is the argument: someone filling a RetroArch or LaunchBox
+  thumbnail library is working across a whole ROM set, on a machine that may
+  have no desktop session at all. The rendering core takes no Qt dependency,
+  so a CLI entry point would mostly be argument parsing over code that is
+  already there.
+  Decide first whether that audience is one this project wants to serve.
+  **Layman:** Convert a whole folder of covers from a script, without opening the window.
+  Kind: feature.
+  Source: in-session-2026-08-27.
+  Lanes: cli, core.
+
+- 💭 [SLIP-0027] **Let users define their own case types.**
+  CASE_TYPES is a dictionary in core/case_types.py, so covering a system that
+  is not already listed means editing Python. Case colours are already loaded
+  from resources/case_colors.json, so the precedent for data-driven case
+  definitions exists in the project.
+  A case type is dimensions plus a colour, which is exactly the shape that
+  survives being moved into a config file. The open question is whether user
+  definitions live alongside the built-ins or override them by name.
+  **Layman:** Let people add a case for a console the app does not know about yet.
+  Kind: feature.
+  Source: in-session-2026-08-27.
+
 ## Project record
 
 - ✅ [SLIP-0007] **Migrate the roadmap to the roadmap store.**
@@ -216,3 +314,26 @@ which covers the source repository going public.
   **Layman:** An automatic check that runs after each code edit is pointed at a drive that no longer exists
   Kind: fix.
   Source: in-session-2026-08-27.
+
+- 📋 [SLIP-0028] **The About dialog carries its own copy of the version string.**
+  __init__.py holds __version__ as the source of truth, and .claude/bump.json
+  rewrites that file and only that file. The About dialog in ui/main_window.py
+  spells its version into a literal string instead of reading __version__, so
+  the next bump updates one and leaves the other behind.
+  The two also disagree in form already: one is a three-part version, the
+  other is written to two parts.
+  Fix by reading __version__ in the dialog. The bump recipe's own todo list
+  anticipates this, asking that the version be stamped wherever it is shown.
+  **Layman:** The version shown in About will go stale the next time the version changes.
+  Kind: fix.
+  Source: in-session-2026-08-27.
+  Lanes: ui.
+
+- 📋 [SLIP-0029] **The bump recipe still says the project is not version-controlled.**
+  The tag todo in .claude/bump.json reads "once this becomes a git repo
+  (currently not version-controlled)". The project is a git repository now, so
+  the caveat is stale and the tagging step is simply live.
+  **Layman:** A note in the release config is out of date now that git is set up.
+  Kind: doc-fix.
+  Source: in-session-2026-08-27.
+  Lanes: docs.
