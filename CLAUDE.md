@@ -26,6 +26,22 @@ things were deliberately NOT renamed. Do not "finish" the rename:
   `_download_3d_boxart`, "Use 3D Boxart"). It is the domain term, not the
   product name.
 
+## Absolute paths — deliberate exceptions
+
+The repository is public. Some `/mnt/` paths are kept on purpose; a scan for
+personal paths will find them, and stripping them would be wrong:
+
+- **`slipcase.desktop` keeps absolute `Exec=` and `Icon=` paths.** The
+  freedesktop desktop-entry spec requires them — a relative path does not
+  launch.
+- **`ROADMAP.md` records retired `/mnt/Storage` and `/mnt/Emulators` paths**
+  inside shipped items. Those are a truthful history of what was fixed, not
+  live configuration. SLIP-0005 reviewed the tree before publication and
+  accepted them.
+
+Claude Code hook paths are the opposite case: they use `$CLAUDE_PROJECT_DIR`
+and must stay portable.
+
 ## Conventions
 - All dimensions in millimeters (real-world case measurements)
 - Output: PNG with transparency, max 512px wide for RetroArch, 800-1200px for LaunchBox

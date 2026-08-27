@@ -205,7 +205,7 @@ making a build reproducible.
   pass before a commit is enforced only by whoever remembers to run pytest.
   This is also a prerequisite for two of the Distribution items rather than a
   separate concern: a Windows build and a macOS build cannot be produced on
-  this machine, and hosted runners are the route to both.
+  this machine, and hosted runners are the route to both. The repository is public, so Linux runner minutes cost nothing. Note that the push gate is wired but idle: the pre-push hook runs and reports it has no pipeline to gate, so landing CI means giving it a local gate script to run.
   **Layman:** Have the tests run automatically whenever code is pushed.
   Kind: chore.
   Source: in-session-2026-08-27.
