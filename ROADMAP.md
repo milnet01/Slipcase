@@ -63,10 +63,11 @@ and memory rules every item must comply with.
   Kind: security.
   Source: user-request-2026-08-27.
 
-- 📋 [SLIP-0006] **Initialise a git repository and publish to GitHub.**
+- ✅ [SLIP-0006] **Initialise a git repository and publish to GitHub.**
   The project is not under version control. Blocked by SLIP-0005; publication
   is irreversible in practice once indexed.
   Progress (2026-08-27): repository initialised, branch main, one commit on it, working tree clean. Every blocker is closed and gh is authenticated as milnet01. Deliberately stopped before creating the remote and pushing: publication is the one step here that cannot be undone, and the user asked to see the state first. Remaining is the user's go-ahead, then gh repo create Slipcase --public --source . --push.
+  Resolved (2026-08-27): published to github.com/milnet01/Slipcase as a public repository. Five commits pushed; main tracks origin/main.
   **Layman:** Put the project on GitHub once it has been checked over
   Kind: release.
   Source: user-request-2026-08-27.
