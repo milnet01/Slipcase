@@ -1,0 +1,18 @@
+{
+  "$comment": "Recipe consumed by ~/.claude/skills/bump/SKILL.md. Source of truth is __version__ in __init__.py. No CHANGELOG yet — first /bump should scaffold one as part of the todos. Test suite is the gate: post_check runs pytest.",
+  "version_source": "__init__.py",
+  "version_pattern": "__version__\\s*=\\s*\"([0-9]+\\.[0-9]+\\.[0-9]+)\"",
+  "files": [
+    {
+      "path": "__init__.py",
+      "pattern": "__version__ = \"{OLD}\"",
+      "replace": "__version__ = \"{NEW}\""
+    }
+  ],
+  "post_check": "python3 -m pytest tests/ -v --tb=short",
+  "todos": [
+    "If CHANGELOG.md doesn't exist yet, scaffold one with the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format and add `## [{NEW}] — {TODAY}` as the first section. Per the project's STANDARDS.md `All tests must pass before any commit`, the post_check pytest gate has already run.",
+    "Stamp the version in any user-facing place that shows it (e.g. About dialog, --version flag if added).",
+    "Tag the release: `git tag v{NEW}` once this becomes a git repo (currently not version-controlled)."
+  ]
+}

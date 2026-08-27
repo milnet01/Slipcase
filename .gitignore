@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Test / tool caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Local machine settings — contains absolute paths specific to one machine
+.claude/settings.local.json
+
+# OS
+.DS_Store
+Thumbs.db
