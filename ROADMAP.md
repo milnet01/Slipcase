@@ -138,6 +138,50 @@ which covers the source repository going public.
   Kind: package.
   Source: user-request-2026-08-27.
 
+- 📋 [SLIP-0030] **Sign release assets so an update can be verified.**
+  Prerequisite for the in-app updater, and separate work: it changes how a
+  release is published rather than what the app does.
+  Generate an Ed25519 keypair, embed the public half in the app, and have the
+  release step sign every downloadable artifact and upload the signature
+  alongside it under the artifact's own name plus .sig. finbreak's updater
+  refuses any download whose signature does not verify, which is what stops a
+  compromised or spoofed release host from installing arbitrary code.
+  Key custody is the part to decide deliberately: the private key must never
+  be committed, and finbreak backs that with a test that scans the tree for
+  private-key material. Signing needs an Ed25519 implementation, which means a
+  cryptography dependency this project does not have yet.
+  Blocked-by: SLIP-0018 (nothing to sign until a build artifact exists).
+  **Layman:** Put a tamper-proof seal on each download so the app can tell a real release from a fake one.
+  Kind: security.
+  Source: user-request-2026-08-27.
+  Lanes: packaging, security.
+
+- 📋 [SLIP-0031] **Offer an opt-in in-app auto-update, modelled on finbreak.**
+  Port the design at /mnt/Games/Scripts/Linux/finbreak, whose contract is
+  documented in tests/features/auto_update/spec.md there.
+  Shape of it: off by default and enabled in Settings; a background check asks
+  the release host for the newest tag; on a newer, signed, non-skipped version
+  the user is offered Later, Skip this version, or Update now; Update now
+  downloads, verifies the signature, installs and relaunches.
+  Five properties are what make it safe rather than merely working, and each
+  is worth carrying over. Install sits behind an Installer seam, because the
+  platforms differ in kind: Linux can replace the running AppImage in place,
+  while Windows cannot overwrite its own locked executable and needs a
+  detached helper to swap it after the app exits. The feature is inert off a
+  packaged build, so running from source is unaffected. Network access is
+  confined to one module, which suits this project since api/base.py already
+  restricts downloads to an allowlist and a release host would be a new
+  egress. A failed check is silent, so being offline is not an error. Skip
+  persists across restarts and Later does not.
+  macOS is the open question: finbreak implements Linux and Windows only, so
+  there is no design to copy for a .app bundle.
+  Blocked-by: SLIP-0018 (a build to update into), SLIP-0030 (signatures to
+  verify), SLIP-0006 (a release host to check).
+  **Layman:** The app can notice a new version, ask if you want it, and install it for you.
+  Kind: feature.
+  Source: user-request-2026-08-27.
+  Lanes: core, ui, security.
+
 ## Quality and tooling
 
 Keeping the stated requirements enforced rather than merely written down, and
