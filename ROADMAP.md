@@ -100,6 +100,44 @@ and memory rules every item must comply with.
   Kind: release.
   Source: in-session-2026-08-27.
 
+## Distribution
+
+Getting a runnable Slipcase into a user's hands. Separate from Publication,
+which covers the source repository going public.
+
+- 📋 [SLIP-0018] **Publish an AppImage for Linux.**
+  Bundle the interpreter, PyQt6 and the imaging dependencies into a single
+  self-contained executable so the app runs without a Python environment.
+  Builds on the same machine family it targets, so this is the cheapest of
+  the three platforms to reach from here.
+  **Layman:** One file a Linux user downloads and runs — nothing to install.
+  Kind: package.
+  Source: user-request-2026-08-27.
+
+- 📋 [SLIP-0019] **Publish a Windows build.**
+  Two things must be settled before packaging. The config layer writes to
+  ~/.config/slipcase and sets POSIX permission bits (0o700 on the directory,
+  600 on the file), which have no Windows equivalent. And slipcase.desktop is
+  a freedesktop launcher entry that Windows does not read, so the installed
+  shortcut needs a separate mechanism.
+  Building needs a Windows machine or a Windows CI runner.
+  **Layman:** A Windows download people can run without installing Python.
+  Kind: package.
+  Source: user-request-2026-08-27.
+
+- 📋 [SLIP-0020] **Publish a macOS build.**
+  Ship an .app bundle. macOS is POSIX, so the config layer's permission bits
+  carry over, but the desktop entry does not — a bundle declares its own
+  launcher metadata.
+  Building needs a Mac or a macOS CI runner; it cannot be cross-built from
+  Linux. Running without a Gatekeeper warning additionally needs signing and
+  notarisation, which requires a paid Apple developer account — decide whether
+  that cost is worth paying or whether an unsigned build with install
+  instructions is acceptable.
+  **Layman:** A Mac download that opens like any other Mac app.
+  Kind: package.
+  Source: user-request-2026-08-27.
+
 ## Project record
 
 - ✅ [SLIP-0007] **Migrate the roadmap to the roadmap store.**
