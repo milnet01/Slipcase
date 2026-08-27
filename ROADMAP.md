@@ -157,8 +157,7 @@ which covers the source repository going public.
   Lanes: packaging, security.
 
 - 📋 [SLIP-0031] **Offer an opt-in in-app auto-update, modelled on finbreak.**
-  Port the design at /mnt/Games/Scripts/Linux/finbreak, whose contract is
-  documented in tests/features/auto_update/spec.md there.
+  Port the design used by the finbreak app, whose contract is documented in tests/features/auto_update/spec.md within that project.
   Shape of it: off by default and enabled in Settings; a background check asks
   the release host for the newest tag; on a newer, signed, non-skipped version
   the user is offered Later, Skip this version, or Update now; Update now
