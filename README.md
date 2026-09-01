@@ -34,9 +34,10 @@ You don't need either one to use it. The images are ordinary PNG files.
 
 ## Case types it knows
 
-DVD Case · CD Jewel Case · NES Cartridge Box · SNES Cartridge Box ·
-N64 Cartridge Box · Genesis Clamshell · Game Boy Box · GBA Box · DS Case ·
-3DS Case · PSP Case · PS Vita Case · Switch Case · Universal Cart Case
+DVD Case · Blu-ray Case · CD Jewel Case · NES Cartridge Box ·
+SNES Cartridge Box · N64 Cartridge Box · Genesis Clamshell · Game Boy Box ·
+GBA Box · DS Case · 3DS Case · PSP Case · PS Vita Case · Switch Case ·
+Universal Cart Case
 
 ## Getting it running
 
