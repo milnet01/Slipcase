@@ -1,15 +1,33 @@
 """Base API client with rate limiting and shared HTTP session."""
 
 import re
+import threading
 import time
 from io import BytesIO
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import requests
 from PIL import Image
 
 # Maximum image download size (50 MB) to prevent memory exhaustion
 MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024
+
+# Decompression-bomb ceiling, in pixels. Well above any real cover scan
+# (~4000 x 10000) and far below a decode that would exhaust memory.
+#
+# This is the ONE definition; main.py imports it rather than repeating the
+# number. It is applied at import here so the download path -- the only one
+# that ingests untrusted bytes -- is protected even when main.py was never
+# executed, as in a test, a spawned batch child, or library use.
+#
+# NOTE: Pillow only *warns* at this value and raises above 2x it, so
+# download_image() also checks the pixel count explicitly before decoding.
+MAX_IMAGE_PIXELS = 40_000_000
+Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
+
+# Maximum redirect hops to follow. Each hop is re-validated against the
+# allowlist, so this bounds the work rather than the trust.
+MAX_REDIRECTS = 5
 
 # Allowed root domains for image downloads (subdomains are also allowed)
 ALLOWED_IMAGE_DOMAINS: set[str] = {
@@ -22,6 +40,15 @@ ALLOWED_IMAGE_DOMAINS: set[str] = {
 _ALLOWED_IMAGE_FORMATS: frozenset[str] = frozenset({
     "PNG", "JPEG", "WEBP", "BMP", "GIF",
 })
+
+# Last request time per API host, shared across client INSTANCES.
+#
+# Each worker constructs its own client, so per-instance state reset the
+# interval to zero every time and the limit only ever held within one worker.
+# Sharing the state here keeps rate limiting correct while leaving each client
+# free to close its own session, as STANDARDS.md § 12 requires.
+_last_request_lock = threading.Lock()
+_last_request_by_host: dict[str, float] = {}
 
 # Pattern to strip credential values from error messages / URLs
 _CREDENTIAL_RE = re.compile(
@@ -57,22 +84,35 @@ class APIClient:
     def __init__(self, base_url: str = "", min_request_interval: float = 1.0):
         self.base_url = base_url.rstrip("/")
         self.min_request_interval = min_request_interval
-        self._last_request_time = 0.0
         self._session = requests.Session()
-        self._session.max_redirects = 5
+        self._session.max_redirects = MAX_REDIRECTS
         self._session.headers.update({
             "User-Agent": "Slipcase/1.0 (Desktop cover art renderer)",
         })
 
     def _rate_limit(self) -> None:
-        """Enforce minimum interval between requests."""
-        now = time.time()
-        elapsed = now - self._last_request_time
-        if elapsed < self.min_request_interval:
-            time.sleep(self.min_request_interval - elapsed)
-        self._last_request_time = time.time()
+        """Enforce minimum interval between requests.
 
-    def get(self, url: str, params: dict | None = None, **kwargs) -> requests.Response:
+        Uses a monotonic clock: a wall-clock step (NTP correction, DST) could
+        otherwise make `elapsed` negative and park the caller for the skew.
+        """
+        key = self.base_url or self.__class__.__name__
+        with _last_request_lock:
+            last = _last_request_by_host.get(key, float("-inf"))
+            now = time.monotonic()
+            wait = self.min_request_interval - (now - last)
+            # Claim the slot before releasing the lock, so two threads cannot
+            # both decide they may go now.
+            _last_request_by_host[key] = now + max(0.0, wait)
+        if wait > 0:
+            time.sleep(wait)
+
+    def get(
+        self,
+        url: str,
+        params: dict | list[tuple[str, str]] | None = None,
+        **kwargs,
+    ) -> requests.Response:
         """Make a rate-limited GET request.
 
         Errors are sanitized to strip credential values before propagating.
@@ -88,25 +128,52 @@ class APIClient:
             raise requests.RequestException(_sanitize_message(str(e))) from None
         return response
 
-    def get_json(self, url: str, params: dict | None = None) -> dict:
+    def get_json(
+        self, url: str, params: dict | list[tuple[str, str]] | None = None
+    ) -> dict:
         """GET request returning parsed JSON."""
         return self.get(url, params=params).json()
+
+    def _get_validated(self, url: str) -> requests.Response:
+        """Stream a GET, re-validating the allowlist on every redirect hop.
+
+        `requests` follows redirects itself, which would let a 302 from an
+        allowed host fetch the body from an arbitrary one -- and an
+        https -> http hop would silently drop TLS. Both are checked here, so
+        the URL that is actually fetched is always an allowed HTTPS URL.
+        """
+        current = url
+        for _ in range(MAX_REDIRECTS + 1):
+            if not _is_allowed_url(current):
+                raise requests.RequestException("URL not permitted by allowlist")
+            self._rate_limit()
+            response = self._session.get(
+                current, timeout=(10, 30), verify=True, stream=True,
+                allow_redirects=False,
+            )
+            if response.is_redirect or response.is_permanent_redirect:
+                location = response.headers.get("Location", "")
+                response.close()
+                if not location:
+                    raise requests.RequestException("Redirect with no Location")
+                current = urljoin(current, location)
+                continue
+            return response
+        raise requests.RequestException("Too many redirects")
 
     def download_image(self, url: str) -> Image.Image | None:
         """Download an image from a URL and return as PIL Image.
 
-        Validates the URL against allowed domains, enforces a size limit via
-        streaming (never buffers more than the limit), restricts accepted
-        image formats, and calls load() to release the BytesIO reference.
+        Validates the URL against allowed domains on every redirect hop,
+        enforces a size limit via streaming (never buffers more than the
+        limit), rejects an oversized pixel count before decoding, restricts
+        accepted image formats, and calls load() to release the BytesIO
+        reference.
         """
         if not _is_allowed_url(url):
             return None
         try:
-            self._rate_limit()
-            full_url = url if url.startswith("http") else f"{self.base_url}/{url.lstrip('/')}"
-            response = self._session.get(
-                full_url, timeout=(10, 30), verify=True, stream=True,
-            )
+            response = self._get_validated(url)
             response.raise_for_status()
 
             # Fast reject via Content-Length header
@@ -127,6 +194,11 @@ class APIClient:
 
             img = Image.open(BytesIO(b"".join(chunks)))
             if img.format not in _ALLOWED_IMAGE_FORMATS:
+                return None
+            # Reject a decompression bomb BEFORE decoding. Pillow only warns
+            # at MAX_IMAGE_PIXELS and raises above 2x it, so a header
+            # declaring a huge canvas would otherwise allocate on load().
+            if img.size[0] * img.size[1] > MAX_IMAGE_PIXELS:
                 return None
             img.load()  # Decode pixels, release BytesIO reference
             return img

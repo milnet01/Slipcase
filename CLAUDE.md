@@ -66,12 +66,18 @@ These MUST be maintained in all code changes:
 - **Download limit**: 50MB max per image download (`MAX_DOWNLOAD_BYTES`)
 - **TLS only**: All API requests use HTTPS with `verify=True`
 - **Config permissions**: `~/.config/slipcase/` dir gets `0o700`, config file gets `chmod 600`
-- **Decompression bomb**: `Image.MAX_IMAGE_PIXELS` set in `main.py`
+- **Decompression bomb**: `MAX_IMAGE_PIXELS` (40M) defined and applied in
+  `api/base.py`, so the download path is protected without depending on
+  `main.py` having run; `download_image()` also checks the pixel count
+  explicitly, because Pillow only warns at that value
 - **No code execution**: User text (titles, serials) is rendered as image text only, never eval'd
 
 ## Performance Requirements
 These optimisations MUST be preserved in all code changes:
-- **PNG export**: Use `_save_optimized_png()` for all PNG saves — LSB strip, alpha quantization, opaque RGB conversion, compress_level=9
+- **PNG export**: Use `save_optimized_png()` for all PNG saves — LSB strip, alpha quantization, opaque RGB conversion, and a zlib level from the
+  `rendering.compress_level` config key (default 6; 9 is ~5% smaller and 2-4x
+  slower). The animated-export path is exempt: a multi-frame APNG/GIF cannot
+  route through a single-image saver.
 - **Shadow blur**: Blur alpha channel only (L mode), not full RGBA (~4x faster)
 - **Perspective transform**: `_perspective_quad` transforms padded source directly to canvas (no intermediate canvas allocation)
 - **Combined faces**: Top and bottom box faces rendered on single canvas layer

@@ -308,6 +308,9 @@ def generate_stylesheet(theme: Theme) -> str:
             color: {t.text_primary};
             border: 1px solid {t.border};
         }}
+        QMenu::item:disabled {{
+            color: {t.text_dim};
+        }}
         QMenu::item:selected {{
             background-color: {t.accent};
             color: {t.accent_text};

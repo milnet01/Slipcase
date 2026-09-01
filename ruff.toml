@@ -1,0 +1,14 @@
+# Lint configuration for Slipcase.
+#
+# line-length mirrors STANDARDS.md § 3 "Code Style / Language & Formatting",
+# which sets 100 characters (soft) and 120 (hard). Without this file ruff
+# measures against its own default of 88, which this project never adopted.
+line-length = 100
+target-version = "py312"
+
+[lint]
+select = ["E", "F", "B", "S"]
+
+[lint.per-file-ignores]
+# Tests legitimately use bare asserts (ruff S101).
+"tests/*" = ["S101"]

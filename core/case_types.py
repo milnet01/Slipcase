@@ -36,8 +36,12 @@ CASE_TYPES: dict[str, CaseType] = {
     ),
     "CD Jewel Case": CaseType(
         name="CD Jewel Case",
+        # "PC" is deliberately NOT listed here: it is claimed by DVD Case
+        # above, and PLATFORM_CASE_MAP is built by overwriting, so listing it
+        # twice silently gave the later entry the platform and made the
+        # mapping depend on CASE_TYPES' insertion order.
         width=125, height=142, depth=10.4,
-        platforms=("PS1", "Saturn", "Dreamcast", "PC"),
+        platforms=("PS1", "Saturn", "Dreamcast"),
     ),
     "NES Cartridge Box": CaseType(
         name="NES Cartridge Box",

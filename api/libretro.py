@@ -1,7 +1,10 @@
 """libretro-thumbnails direct access for cover art."""
 
 import re
+from urllib.parse import quote
+
 from PIL import Image
+
 from api.base import APIClient
 
 
@@ -37,7 +40,13 @@ class LibretroThumbnails(APIClient):
             Full URL to the thumbnail image.
         """
         safe_name = self.sanitize_name(game_name)
-        return f"{self.BASE_URL}/{system}/Named_Boxarts/{safe_name}.png"
+        # libretro's rule is about the FILENAME; the result still has to be
+        # URL-safe. '#' would start a fragment and '%' would be re-quoted,
+        # so both would silently 404 without this.
+        return (
+            f"{self.BASE_URL}/{quote(system, safe='')}"
+            f"/Named_Boxarts/{quote(safe_name, safe='')}.png"
+        )
 
     def download_boxart(self, system: str, game_name: str) -> Image.Image | None:
         """Download a game's boxart from libretro-thumbnails.

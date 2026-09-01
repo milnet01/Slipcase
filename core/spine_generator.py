@@ -59,6 +59,22 @@ def _hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
 _font_path_cache: dict[bool, str | None] = {}
 
 
+def _relative_luminance(c: tuple[int, int, int]) -> float:
+    """WCAG relative luminance of an sRGB colour."""
+    def _lin(v: float) -> float:
+        v /= 255.0
+        return v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4
+    r, g, b = (_lin(x) for x in c)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def _contrast_ok(fg: tuple[int, int, int], bg: tuple[int, int, int]) -> bool:
+    """Whether fg is legible on bg (WCAG contrast ratio of at least 3:1)."""
+    l1, l2 = _relative_luminance(fg), _relative_luminance(bg)
+    lo, hi = sorted((l1, l2))
+    return (hi + 0.05) / (lo + 0.05) >= 3.0
+
+
 def _get_font(size: int, bold: bool = True) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     """Get a suitable font, falling back to default if needed."""
     if bold not in _font_path_cache:
@@ -87,10 +103,15 @@ def _get_font(size: int, bold: bool = True) -> ImageFont.FreeTypeFont | ImageFon
     path = _font_path_cache[bold]
     if path:
         return ImageFont.truetype(path, size)
-    return ImageFont.load_default()
+    # Pass the size: load_default() with no argument returns a fixed ~10px
+    # bitmap font, which makes _fit_text's binary search meaningless and
+    # renders every spine unreadably small on a system without the fonts above.
+    return ImageFont.load_default(size)
 
 
-def _fit_text(text: str, max_width: int, max_height: int, bold: bool = True) -> tuple[ImageFont.FreeTypeFont | ImageFont.ImageFont, int, int]:
+def _fit_text(
+    text: str, max_width: int, max_height: int, bold: bool = True
+) -> tuple[ImageFont.FreeTypeFont | ImageFont.ImageFont, int, int]:
     """Find the largest font size that fits text within bounds.
 
     Returns (font, text_width, text_height).
@@ -112,7 +133,7 @@ def _fit_text(text: str, max_width: int, max_height: int, bold: bool = True) -> 
         else:
             hi = mid - 1
 
-    return best_font, best_tw, best_th
+    return best_font, int(best_tw), int(best_th)
 
 
 def _render_rotated_text(
@@ -126,8 +147,8 @@ def _render_rotated_text(
     head to the right to read the spine.
     """
     bbox = font.getbbox(text)
-    tw = bbox[2] - bbox[0]
-    th = bbox[3] - bbox[1]
+    tw = int(bbox[2] - bbox[0])
+    th = int(bbox[3] - bbox[1])
     text_img = Image.new("RGBA", (tw + 4, th + 4), (0, 0, 0, 0))
     draw = ImageDraw.Draw(text_img)
     draw.text((-bbox[0] + 2, -bbox[1] + 2), text, fill=color, font=font)
@@ -256,11 +277,17 @@ def generate_spine(
         body_color = bg_color
 
     if text_color is None:
+        brightness = (
+            body_color[0] * 299 + body_color[1] * 587 + body_color[2] * 114
+        ) / 1000
         accent_hex = platform_colors.get("accent")
-        if accent_hex:
-            text_color = _hex_to_rgb(accent_hex)
+        accent = _hex_to_rgb(accent_hex) if accent_hex else None
+        if accent is not None and _contrast_ok(accent, body_color):
+            text_color = accent
         else:
-            brightness = (body_color[0] * 299 + body_color[1] * 587 + body_color[2] * 114) / 1000
+            # The platform accent is unreadable against this spine colour --
+            # which a user-picked spine colour makes reachable, e.g. the white
+            # accent of PS3/PSP/N64 on a light spine.
             text_color = (0, 0, 0) if brightness > 128 else (255, 255, 255)
 
     # Auto-contrast for brand strip text

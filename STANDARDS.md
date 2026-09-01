@@ -56,16 +56,23 @@ main.py
 ### Threading Model
 
 All heavy work runs in `QThread` subclasses. The main thread is **never blocked**
-by rendering, batch processing, animation export, or network requests.
+by rendering, batch processing, animation export, or network requests. The one
+exception is shutdown: `closeEvent` waits, bounded, for a running worker to
+notice its interruption request (see § 12).
+
+`BatchWorker` additionally fans out across a `ProcessPoolExecutor` (spawn
+context), falling back to sequential rendering if the pool cannot start.
+
+Every worker declares `error(str)`.
 
 | Worker | Purpose | Signals |
 |--------|---------|---------|
 | `RenderWorker` | Single 3D render | `rendered(Image)`, `error(str)` |
-| `BatchWorker` | Multi-file processing | `progress(int,int,str)`, `finished_signal(int)` |
-| `AnimationWorker` | Multi-angle animation | `progress(int,int)`, `finished_signal(str)` |
-| `SearchWorker` | API game search | `results_ready(list)`, `finished_signal()` |
-| `PreviewWorker` | Thumbnail download | `preview_ready(Image,int)` |
-| `DownloadWorker` | Full image download | `image_ready(Image,Image)` |
+| `BatchWorker` | Multi-file processing | `progress(int,int,str)`, `finished_signal(int)`, `error(str)` |
+| `AnimationWorker` | Multi-angle animation | `progress(int,int)`, `finished_signal(str)`, `error(str)` |
+| `SearchWorker` | API game search | `results_ready(list)`, `finished_signal()`, `error(str)` |
+| `PreviewWorker` | Thumbnail download | `preview_ready(Image,int)`, `error(str)` |
+| `DownloadWorker` | Full image download | `image_ready(Image,Image)`, `error(str)` |
 
 ---
 
@@ -258,7 +265,8 @@ api/
   screenscraper/{username, password, devid, devpassword}
   thegamesdb/{api_key}
 rendering/
-  {angle, output_width, background, reflection, shadow, texture, supersample}
+  {angle, output_width, background, reflection, shadow, texture, supersample,
+   compress_level}
 ui/
   {last_platform, last_case_type, last_image_directory, window_geometry,
    recent_files, theme}
@@ -352,7 +360,10 @@ All security measures are **mandatory** and must be preserved in any code change
 - **No logging of secrets**: Never print, log, or emit API keys or passwords in status bar or error dialogs.
 
 ### Input Safety
-- **Decompression bomb protection**: `Image.MAX_IMAGE_PIXELS = 178_956_970` set in `main.py`
+- **Decompression bomb protection**: `Image.MAX_IMAGE_PIXELS = 40_000_000` set in `main.py`.
+  Pillow only *warns* at this value and raises above 2x it, so `api/base.py`
+  additionally checks `width * height` against it before decoding a
+  downloaded image.
 - **No code execution**: User-provided text (titles, serials, filenames) is only rendered as image text via PIL, never passed to `eval`, `exec`, `subprocess`, or shell commands.
 - **File dialogs**: Filter by image extensions to prevent accidental loading of non-image files.
 - **Network**: HTTPS only; 30-second timeout; rate limiting via `APIClient._rate_limit()`
@@ -363,12 +374,13 @@ All security measures are **mandatory** and must be preserved in any code change
 
 All optimisations listed here are **mandatory** and must be preserved in any code changes.
 
-### PNG Export (`_save_optimized_png`)
+### PNG Export (`save_optimized_png`)
 Used for all PNG saves (single export, batch, animation). Applies three imperceptible optimisations:
 1. **LSB strip**: `arr[:, :, :3] &= 0xFE` — zeroes lowest bit of RGB (~15% smaller)
 2. **Alpha quantization**: Semi-transparent alpha rounded to multiples of 4 (preserves 0 and 255 exactly)
 3. **RGB conversion**: Drops alpha channel when all pixels are fully opaque (~15% smaller)
-4. **Max compression**: `compress_level=9` for zlib
+4. **Compression**: zlib level from the `rendering.compress_level` config key.
+   Default 6 (balances speed and size); 9 is ~5% smaller and 2-4x slower.
 
 ### Rendering Engine
 - **No intermediate canvas in `_perspective_quad`**: Transform padded source directly to canvas-sized output via `fillcolor=(0,0,0,0)`. Never allocate an intermediate `src_canvas`.
@@ -401,7 +413,15 @@ All memory patterns listed here are **mandatory** and must be followed in any co
 
 ### QThread Lifecycle
 - **All workers** must connect `finished.connect(worker.deleteLater)` at creation time.
-- **`closeEvent`** must wait for running workers (`worker.quit()` + `worker.wait(2000)`) and clear all image references.
+- **`closeEvent`** must ask running workers to stop, wait for them, and clear all image references.
+  Use `worker.requestInterruption()` and check `isInterruptionRequested()` in
+  each worker's loop. **`quit()` alone does nothing here**: every worker
+  overrides `run()` without calling `exec()`, so there is no event loop for
+  `quit()` to reach and `wait()` would simply time out.
+- **Never clear a worker reference while its thread is still running.**
+  Dropping the last Python reference to a parentless live `QThread` destroys
+  the C++ object mid-run and aborts the process. If `wait()` times out, keep
+  the reference.
 
 ### File Handles
 - Always call `img.load()` after `Image.open(path)` to read data into memory and release the file handle. PIL keeps file handles open for lazy loading otherwise.

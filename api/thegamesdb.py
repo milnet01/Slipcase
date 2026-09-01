@@ -51,9 +51,8 @@ class TheGamesDBAPI(APIClient):
         if platform_id is not None:
             params["filter[platform]"] = str(platform_id)
 
-        try:
-            data = self.get_json("Games/ByGameName", params=params)
-        except Exception:
+        data = self.get_json("Games/ByGameName", params=params)
+        if not isinstance(data, dict):
             return []
 
         results = []

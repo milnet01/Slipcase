@@ -12,6 +12,19 @@ try:
 except ImportError:
     _HAS_CV2 = False
 
+from core.case_types import CaseType
+from core.case_texture import generate_front_texture, generate_spine_texture
+from core.image_utils import (
+    apply_directional_shading,
+    apply_uniform_shading,
+    extract_dominant_edge_color,
+    generate_reflection,
+    generate_shadow,
+    is_full_cover,
+    split_full_cover,
+)
+from core.spine_generator import generate_spine
+
 # Perspective projection parameters
 _TOP_ANGLE_RATIO = 0.3       # Top face angle as fraction of viewing angle
 _MAX_TOP_ANGLE = 8.0          # Maximum top face angle in degrees
@@ -37,19 +50,6 @@ _FRONT_DIRECTIONAL_SHADE = 0.08
 # Edge highlight opacities
 _HIGHLIGHT_ALPHA = 0.3
 _DARK_EDGE_ALPHA = 0.15
-
-from core.case_types import CaseType
-from core.case_texture import generate_front_texture, generate_spine_texture
-from core.image_utils import (
-    apply_directional_shading,
-    apply_uniform_shading,
-    extract_dominant_edge_color,
-    generate_reflection,
-    generate_shadow,
-    is_full_cover,
-    split_full_cover,
-)
-from core.spine_generator import generate_spine
 
 
 class BoxRenderer:
@@ -215,7 +215,9 @@ class BoxRenderer:
             front_future = pool.submit(self._perspective_quad, **front_args)
             spine_dst = spine_future.result()
             front_dst = front_future.result()
-        del spine_shaded, front_shaded
+        # The arg dicts hold the only other references to the two shaded
+        # images, so deleting the names alone frees nothing.
+        del spine_shaded, front_shaded, spine_args, front_args
 
         # Composites must be sequential (layer ordering)
         canvas = Image.alpha_composite(canvas, spine_dst)
@@ -252,7 +254,10 @@ class BoxRenderer:
         if self.show_shadow:
             shadow = self._render_shadow(canvas, scale)
             shadow_canvas = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
-            shadow_canvas.paste(shadow, (_SHADOW_PASTE_OFFSET[0] * scale, _SHADOW_PASTE_OFFSET[1] * scale))
+            shadow_canvas.paste(
+                shadow,
+                (_SHADOW_PASTE_OFFSET[0] * scale, _SHADOW_PASTE_OFFSET[1] * scale),
+            )
             del shadow
             canvas = Image.alpha_composite(shadow_canvas, canvas)
             del shadow_canvas
@@ -260,7 +265,14 @@ class BoxRenderer:
         # --- Reflection ---
         if self.show_reflection:
             box_bottom = oy + front_h + proj_top_h
-            reflection = generate_reflection(canvas, height_fraction=0.25, start_opacity=0.25)
+            # Reflect the box, not the whole canvas: the canvas carries
+            # reflection_space blank rows below box_bottom, so mirroring it
+            # whole would reflect empty space.
+            box_region = canvas.crop((0, 0, canvas.size[0], box_bottom))
+            reflection = generate_reflection(
+                box_region, height_fraction=0.25, start_opacity=0.25,
+            )
+            del box_region
             refl_canvas = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
             refl_canvas.paste(reflection, (0, box_bottom + 2 * scale))
             del reflection
@@ -274,9 +286,15 @@ class BoxRenderer:
             canvas = Image.alpha_composite(bg, canvas)
             del bg
 
-        # Downscale from supersampled size
+        # Downscale from supersampled size.
+        # Both axes MUST use the same factor. The canvas is not
+        # output_width * scale wide -- _compute_box_dimensions frames the box
+        # at 85% of the target -- so dividing height by `scale` while pinning
+        # width to output_width stretched every render horizontally by 12-14%,
+        # against the real-world millimetre proportions CaseType exists to
+        # preserve. Height is derived from the width instead.
         final_w = self.output_width
-        final_h = int(canvas.size[1] / scale)
+        final_h = max(1, round(canvas.size[1] * final_w / canvas.size[0]))
         canvas = canvas.resize((final_w, final_h), Image.Resampling.LANCZOS)
 
         # Crop out excess transparency
@@ -361,7 +379,7 @@ class BoxRenderer:
         is not available.
         """
         matrix = []
-        for (dx, dy), (sx, sy) in zip(dst_points, src_points):
+        for (dx, dy), (sx, sy) in zip(dst_points, src_points, strict=True):
             matrix.append([dx, dy, 1, 0, 0, 0, -sx * dx, -sx * dy])
             matrix.append([0, 0, 0, dx, dy, 1, -sy * dx, -sy * dy])
 
@@ -488,8 +506,13 @@ class BoxRenderer:
         if bg == "black":
             return (0, 0, 0, 255)
         if bg.startswith("#") and len(bg) == 7:
-            r = int(bg[1:3], 16)
-            g = int(bg[3:5], 16)
-            b = int(bg[5:7], 16)
+            try:
+                r = int(bg[1:3], 16)
+                g = int(bg[3:5], 16)
+                b = int(bg[5:7], 16)
+            except ValueError:
+                # A hand-edited config can carry '#zzzzzz'; fall through to
+                # transparent rather than raising out of render().
+                return (0, 0, 0, 0)
             return (r, g, b, 255)
         return (0, 0, 0, 0)

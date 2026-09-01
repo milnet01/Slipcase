@@ -1,5 +1,6 @@
 """Main application window for Slipcase."""
 
+import re
 from functools import partial
 from pathlib import Path
 
@@ -24,7 +25,7 @@ from ui.settings_dialog import SettingsDialog
 from ui.search_dialog import SearchDialog
 from ui.themes import (
     THEMES, generate_stylesheet, get_active_theme, set_active_theme,
-    themed_dim_text_style, themed_generate_btn_style, themed_preview_style,
+    themed_generate_btn_style, themed_preview_style,
     themed_secondary_text_style, themed_split_thumb_style, themed_thumbnail_style,
 )
 from ui.workers import RenderWorker, BatchWorker, AnimationWorker
@@ -277,10 +278,12 @@ class MainWindow(QMainWindow):
 
         # Generate / Export buttons
         action_row = QHBoxLayout()
-        generate_btn = QPushButton("Generate")
-        generate_btn.setStyleSheet(themed_generate_btn_style())
-        generate_btn.clicked.connect(self._generate)
-        action_row.addWidget(generate_btn)
+        # Kept on self so _apply_themed_styles can restyle it: as a local it
+        # was unreachable and kept the previous theme's colours after a switch.
+        self.generate_btn = QPushButton("Generate")
+        self.generate_btn.setStyleSheet(themed_generate_btn_style())
+        self.generate_btn.clicked.connect(self._generate)
+        action_row.addWidget(self.generate_btn)
         export_btn = QPushButton("Export")
         export_btn.clicked.connect(self._export_png)
         action_row.addWidget(export_btn)
@@ -398,14 +401,14 @@ class MainWindow(QMainWindow):
         compare_layout.setContentsMargins(0, 0, 0, 0)
 
         compare_labels = QHBoxLayout()
-        orig_label = QLabel("Original")
-        orig_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        orig_label.setStyleSheet(themed_secondary_text_style())
-        compare_labels.addWidget(orig_label)
-        render_label = QLabel("3D Render")
-        render_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        render_label.setStyleSheet(themed_secondary_text_style())
-        compare_labels.addWidget(render_label)
+        self.compare_orig_label = QLabel("Original")
+        self.compare_orig_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.compare_orig_label.setStyleSheet(themed_secondary_text_style())
+        compare_labels.addWidget(self.compare_orig_label)
+        self.compare_render_label = QLabel("3D Render")
+        self.compare_render_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.compare_render_label.setStyleSheet(themed_secondary_text_style())
+        compare_labels.addWidget(self.compare_render_label)
         compare_layout.addLayout(compare_labels)
 
         compare_splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -513,6 +516,19 @@ class MainWindow(QMainWindow):
         self.setStatusBar(self.status)
         self.status.showMessage("Ready")
 
+    def _cfg(self, section: str, key: str, default, kind):
+        """Read a config value, falling back to `default` on a bad type.
+
+        A hand-edited config could otherwise put a string or null straight
+        into a Qt setter and raise inside __init__ -- before show(), so the
+        app would not start and the only route back was deleting the file.
+        """
+        try:
+            value = self.config.get(section, key, default=default)
+            return kind(value) if value is not None else default
+        except (TypeError, ValueError):
+            return default
+
     def _restore_state(self) -> None:
         """Restore saved UI state from config."""
         platform = self.config.get("ui", "last_platform", default="PS2")
@@ -525,22 +541,38 @@ class MainWindow(QMainWindow):
         if idx >= 0:
             self.case_combo.setCurrentIndex(idx)
 
-        self.angle_slider.setValue(int(self.config.get("rendering", "angle", default=30)))
-        self.width_spin.setValue(self.config.get("rendering", "output_width", default=512))
-        self.reflection_check.setChecked(self.config.get("rendering", "reflection", default=True))
-        self.shadow_check.setChecked(self.config.get("rendering", "shadow", default=True))
-        self.texture_check.setChecked(self.config.get("rendering", "texture", default=True))
-        self.auto_filename_check.setChecked(self.config.get("ui", "auto_filename", default=False))
+        self.angle_slider.setValue(self._cfg("rendering", "angle", 30, int))
+        self.width_spin.setValue(self._cfg("rendering", "output_width", 512, int))
+        self.reflection_check.setChecked(self._cfg("rendering", "reflection", True, bool))
+        self.shadow_check.setChecked(self._cfg("rendering", "shadow", True, bool))
+        self.texture_check.setChecked(self._cfg("rendering", "texture", True, bool))
+        self.auto_filename_check.setChecked(self._cfg("ui", "auto_filename", False, bool))
 
-        bg = self.config.get("rendering", "background", default="transparent")
+        bg = self._cfg("rendering", "background", "transparent", str)
         bg_idx = self.bg_combo.findText(bg.capitalize())
         if bg_idx >= 0:
             self.bg_combo.setCurrentIndex(bg_idx)
 
         # Restore window position and size
         geo = self.config.get("ui", "window_geometry")
-        if geo and isinstance(geo, list) and len(geo) == 4:
+        if (
+            isinstance(geo, list) and len(geo) == 4
+            and all(isinstance(v, int) for v in geo)
+            and geo[2] > 0 and geo[3] > 0
+        ):
             self.setGeometry(geo[0], geo[1], geo[2], geo[3])
+
+    def _save_config(self) -> None:
+        """Persist config, reporting a write failure instead of aborting.
+
+        Config.save() raises OSError on a full disk, a read-only home, or a
+        config that failed to load. An unhandled exception in a Qt slot is
+        fatal, so every call site goes through here.
+        """
+        try:
+            self.config.save()
+        except OSError as e:
+            self.status.showMessage(f"Could not save settings: {e}")
 
     def _save_state(self) -> None:
         """Save current UI state to config."""
@@ -555,22 +587,58 @@ class MainWindow(QMainWindow):
         self.config.set("ui", "auto_filename", self.auto_filename_check.isChecked())
         geo = self.geometry()
         self.config.set("ui", "window_geometry", [geo.x(), geo.y(), geo.width(), geo.height()])
-        self.config.save()
+        self._save_config()
+
+    def _reject_if_busy(self) -> bool:
+        """Refuse to start a second worker while one is running.
+
+        Without this, a second Ctrl+G rebinds the worker attribute: the older
+        render can land last and overwrite the newer one, and the rebind drops
+        the last Python reference to a live QThread.
+        """
+        if self._busy_worker() is not None:
+            self.status.showMessage("Already working — wait for the current job to finish")
+            return True
+        return False
+
+    def _busy_worker(self):
+        """Return a running worker, or None. Tolerates a deleted C++ object."""
+        for attr in ("_render_worker", "_batch_worker", "_anim_worker"):
+            worker = getattr(self, attr, None)
+            if worker is None:
+                continue
+            try:
+                if worker.isRunning():
+                    return worker
+            except RuntimeError:
+                pass  # C++ object already deleted by deleteLater
+        return None
 
     def closeEvent(self, event) -> None:
         self._save_state()
-        # Wait for any running workers to finish.
-        # Workers may already be deleted by deleteLater — guard against that.
+        # Ask every running worker to stop and wait for it.
+        #
+        # quit() is NOT usable here: all three workers override run() without
+        # calling exec(), so they have no event loop for quit() to reach and
+        # wait() would simply time out. requestInterruption() sets a flag the
+        # run() loops check.
+        #
+        # The reference is deliberately NOT cleared while a thread is still
+        # running: dropping the last Python reference to a parentless live
+        # QThread destroys the C++ object mid-run, which aborts the process.
         for attr in ("_render_worker", "_batch_worker", "_anim_worker"):
             worker = getattr(self, attr, None)
-            if worker is not None:
-                try:
-                    if worker.isRunning():
-                        worker.quit()
-                        worker.wait(2000)
-                except RuntimeError:
-                    pass  # C++ object already deleted by deleteLater
+            if worker is None:
+                continue
+            try:
+                if worker.isRunning():
+                    worker.requestInterruption()
+                    worker.quit()  # harmless, and correct for any future
+                    if not worker.wait(5000):
+                        continue  # still running: keep the reference alive
                 setattr(self, attr, None)
+            except RuntimeError:
+                setattr(self, attr, None)  # already deleted by deleteLater
         # Release image references
         self._front_image = None
         self._front_image_path = None
@@ -592,7 +660,9 @@ class MainWindow(QMainWindow):
 
     # --- Image loading ---
 
-    def _load_image_dialog(self, title: str = "Open Image") -> tuple[Image.Image | None, str | None]:
+    def _load_image_dialog(
+        self, title: str = "Open Image"
+    ) -> tuple[Image.Image | None, str | None]:
         last_dir = self.config.get("ui", "last_image_directory", default="")
         path, _ = QFileDialog.getOpenFileName(
             self, title, last_dir,
@@ -600,7 +670,7 @@ class MainWindow(QMainWindow):
         )
         if path:
             self.config.set("ui", "last_image_directory", str(Path(path).parent))
-            self.config.save()
+            self._save_config()
             try:
                 img = Image.open(path)
                 img.load()  # Read into memory, release file handle
@@ -639,7 +709,9 @@ class MainWindow(QMainWindow):
         case_name = self.case_combo.currentText()
         case_type = CASE_TYPES[case_name]
         if is_full_cover(img, case_type):
-            self.status.showMessage("Full cover detected (back + spine + front) — spine will be extracted")
+            self.status.showMessage(
+                "Full cover detected (back + spine + front) — spine will be extracted"
+            )
             max_offset = max(40, min(150, int(img.size[0] * 0.03)))
             self.spine_left_slider.setRange(-max_offset, max_offset)
             self.spine_left_slider.setValue(0)
@@ -720,8 +792,8 @@ class MainWindow(QMainWindow):
             self._set_thumbnail(self.split_back_thumb, back)
             self._set_thumbnail(self.split_spine_thumb, spine)
             self._set_thumbnail(self.split_front_thumb, front)
-        except Exception:
-            pass
+        except Exception as e:
+            self.status.showMessage(f"Spine split preview failed: {e}")
 
     def _on_spine_left_changed(self, value: int) -> None:
         self.spine_left_label.setText(f"{value:+d} px")
@@ -749,6 +821,26 @@ class MainWindow(QMainWindow):
 
     # --- Rendering ---
 
+    def _supersample(self) -> int:
+        """Supersample factor from config, clamped to a sane range.
+
+        STANDARDS.md § 7 documents this key, so it has to be read somewhere;
+        it was previously hardcoded at every call site.
+        """
+        try:
+            return max(1, min(4, int(self.config.get("rendering", "supersample", default=2))))
+        except (TypeError, ValueError):
+            return 2
+
+    def _compress_level(self) -> int:
+        """PNG zlib level from config, clamped to 0-9."""
+        try:
+            return max(0, min(9, int(
+                self.config.get("rendering", "compress_level", default=6)
+            )))
+        except (TypeError, ValueError):
+            return 6
+
     def _get_renderer(self) -> BoxRenderer:
         case_name = self.case_combo.currentText()
         case_type = CASE_TYPES[case_name]
@@ -759,13 +851,15 @@ class MainWindow(QMainWindow):
             show_reflection=self.reflection_check.isChecked(),
             show_shadow=self.shadow_check.isChecked(),
             show_texture=self.texture_check.isChecked(),
-            supersample=2,
+            supersample=self._supersample(),
             background=self.bg_combo.currentText().lower(),
         )
 
     def _generate(self) -> None:
         if self._front_image is None:
             QMessageBox.information(self, "No Image", "Please load a front cover image first.")
+            return
+        if self._reject_if_busy():
             return
 
         self.status.showMessage("Rendering...")
@@ -803,6 +897,17 @@ class MainWindow(QMainWindow):
 
     # --- Export ---
 
+    @staticmethod
+    def _safe_filename(name: str) -> str:
+        """Reduce a title to a single safe path component.
+
+        The title can come from a cover-art API (see _on_search_images), so it
+        is untrusted: a name containing '../..' would otherwise escape the
+        directory the user chose, and a '/' would raise out of a Qt slot.
+        """
+        cleaned = re.sub(r"[^\w \-.()\[\]]", "_", name).strip(" .")
+        return cleaned[:120] or "Untitled"
+
     def _export_png(self) -> None:
         image = self.preview.get_rendered_image()
         if image is None:
@@ -827,16 +932,20 @@ class MainWindow(QMainWindow):
             name = Path(self._front_image_path).stem
         else:
             name = "Untitled"
-        suggested = str(Path(default_dir) / f"{name} 3D Boxart.png")
+        suggested = str(Path(default_dir) / f"{self._safe_filename(name)} 3D Boxart.png")
         path, _ = QFileDialog.getSaveFileName(
             self, "Export PNG", suggested, "PNG Images (*.png)"
         )
         if path:
             if not path.lower().endswith(".png"):
                 path += ".png"
-            save_optimized_png(image, path)
+            try:
+                save_optimized_png(image, path, compress_level=self._compress_level())
+            except OSError as e:
+                QMessageBox.warning(self, "Export Failed", f"Could not write the PNG:\n{e}")
+                return
             self.config.set("ui", "last_export_directory", str(Path(path).parent))
-            self.config.save()
+            self._save_config()
             self.status.showMessage(f"Exported: {path}")
 
     def _export_split_covers(self) -> None:
@@ -877,12 +986,20 @@ class MainWindow(QMainWindow):
         else:
             base = "cover"
 
-        for part, suffix in [(back, "Back Cover"), (spine, "Spine"), (front, "Front Cover")]:
-            out_path = str(Path(output_dir) / f"{base} {suffix}.png")
-            save_optimized_png(part, out_path)
+        safe_base = self._safe_filename(base)
+        try:
+            for part, suffix in [
+                (back, "Back Cover"), (spine, "Spine"), (front, "Front Cover"),
+            ]:
+                out_path = str(Path(output_dir) / f"{safe_base} {suffix}.png")
+                save_optimized_png(part, out_path, compress_level=self._compress_level())
+        except OSError as e:
+            del back, spine, front
+            QMessageBox.warning(self, "Export Failed", f"Could not write the covers:\n{e}")
+            return
         del back, spine, front
         self.config.set("ui", "last_export_directory", output_dir)
-        self.config.save()
+        self._save_config()
         self.status.showMessage(f"Exported split covers to: {output_dir}")
 
     def _copy_to_clipboard(self) -> None:
@@ -894,12 +1011,17 @@ class MainWindow(QMainWindow):
         img = image.convert("RGBA")
         data = img.tobytes("raw", "RGBA")
         qimg = QImage(data, img.width, img.height, img.width * 4, QImage.Format.Format_RGBA8888)
-        QApplication.clipboard().setImage(qimg)
+        # .copy() is required: QImage's raw-data constructor does not copy,
+        # so the clipboard would be left pointing at `data`, a local bytes
+        # object freed on return.
+        QApplication.clipboard().setImage(qimg.copy())
         self.status.showMessage("Copied to clipboard")
 
     # --- Batch processing ---
 
     def _batch_process(self) -> None:
+        if self._reject_if_busy():
+            return
         last_dir = self.config.get("ui", "last_image_directory", default="")
         files, _ = QFileDialog.getOpenFileNames(
             self, "Select Cover Images", last_dir,
@@ -917,10 +1039,16 @@ class MainWindow(QMainWindow):
         self.progress_bar.setMaximum(len(files))
         self.progress_bar.setValue(0)
 
+        # Collect failures rather than showing them: the status bar is
+        # overwritten by the very next progress message, so a batch where
+        # every file failed reported "Processed 0 images." with no cause.
+        self._batch_errors: list[str] = []
+        self._batch_total = len(files)
+
         self._batch_worker = BatchWorker(files, output_dir, renderer)
         self._batch_worker.progress.connect(self._on_batch_progress)
         self._batch_worker.finished_signal.connect(self._on_batch_done)
-        self._batch_worker.error.connect(lambda msg: self.status.showMessage(f"Batch error: {msg}"))
+        self._batch_worker.error.connect(self._on_batch_error)
         self._batch_worker.finished.connect(self._batch_worker.deleteLater)
         self._batch_worker.start()
 
@@ -928,10 +1056,27 @@ class MainWindow(QMainWindow):
         self.progress_bar.setValue(current)
         self.status.showMessage(f"Processing {current}/{total}: {name}")
 
+    def _on_batch_error(self, msg: str) -> None:
+        self._batch_errors.append(msg)
+
     def _on_batch_done(self, count: int) -> None:
         self.progress_bar.hide()
-        self.status.showMessage(f"Batch complete: {count} images rendered")
-        QMessageBox.information(self, "Batch Complete", f"Processed {count} images.")
+        errors = getattr(self, "_batch_errors", [])
+        total = getattr(self, "_batch_total", count)
+        if errors:
+            self.status.showMessage(
+                f"Batch complete: {count} of {total} rendered, {len(errors)} failed"
+            )
+            shown = "\n".join(errors[:10])
+            if len(errors) > 10:
+                shown += f"\n... and {len(errors) - 10} more"
+            QMessageBox.warning(
+                self, "Batch Finished With Errors",
+                f"Processed {count} of {total} images.\n\n{len(errors)} failed:\n{shown}",
+            )
+        else:
+            self.status.showMessage(f"Batch complete: {count} images rendered")
+            QMessageBox.information(self, "Batch Complete", f"Processed {count} images.")
 
     # --- Online search ---
 
@@ -973,6 +1118,8 @@ class MainWindow(QMainWindow):
     def _export_animation(self) -> None:
         if self._front_image is None:
             QMessageBox.information(self, "No Image", "Please load a front cover image first.")
+            return
+        if self._reject_if_busy():
             return
 
         dialog = AnimationDialog(current_width=self.width_spin.value(), parent=self)
@@ -1024,6 +1171,8 @@ class MainWindow(QMainWindow):
             fmt=fmt,
             show_reflection=self.reflection_check.isChecked(),
             show_shadow=self.shadow_check.isChecked(),
+            show_texture=self.texture_check.isChecked(),
+            supersample=self._supersample(),
             background=self.bg_combo.currentText().lower(),
         )
         self._anim_worker.progress.connect(self._on_anim_progress)
@@ -1059,7 +1208,7 @@ class MainWindow(QMainWindow):
         recent.insert(0, path)
         recent = recent[:10]
         self.config.set("ui", "recent_files", recent)
-        self.config.save()
+        self._save_config()
         self._rebuild_recent_menu()
 
     def _rebuild_recent_menu(self) -> None:
@@ -1093,7 +1242,7 @@ class MainWindow(QMainWindow):
             if isinstance(recent, list):
                 recent = [r for r in recent if r != path]
                 self.config.set("ui", "recent_files", recent)
-                self.config.save()
+                self._save_config()
                 self._rebuild_recent_menu()
             return
 
@@ -1104,7 +1253,7 @@ class MainWindow(QMainWindow):
             self._set_front_image(img)
             self._add_to_recent(path)
             self.config.set("ui", "last_image_directory", str(p.parent))
-            self.config.save()
+            self._save_config()
             # Auto-populate title from parent folder name or filename
             if not self.title_input.text().strip():
                 folder_name = p.parent.name
@@ -1115,7 +1264,7 @@ class MainWindow(QMainWindow):
     def _clear_recent(self) -> None:
         """Clear the recent files list."""
         self.config.set("ui", "recent_files", [])
-        self.config.save()
+        self._save_config()
         self._rebuild_recent_menu()
 
     # --- Theme ---
@@ -1129,7 +1278,7 @@ class MainWindow(QMainWindow):
         # Re-apply inline themed styles
         self._apply_themed_styles()
         self.config.set("ui", "theme", name)
-        self.config.save()
+        self._save_config()
         self._update_theme_checks()
 
     def _update_theme_checks(self) -> None:
@@ -1149,6 +1298,9 @@ class MainWindow(QMainWindow):
         self.preview.setStyleSheet(themed_preview_style())
         self.compare_original.setStyleSheet(themed_preview_style())
         self.compare_render.setStyleSheet(themed_preview_style())
+        self.generate_btn.setStyleSheet(themed_generate_btn_style())
+        self.compare_orig_label.setStyleSheet(themed_secondary_text_style())
+        self.compare_render_label.setStyleSheet(themed_secondary_text_style())
 
     # --- Dialogs ---
 

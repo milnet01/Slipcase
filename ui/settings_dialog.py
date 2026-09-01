@@ -2,7 +2,7 @@
 
 from PyQt6.QtWidgets import (
     QDialog, QDialogButtonBox, QFormLayout, QGroupBox,
-    QLabel, QLineEdit, QTabWidget, QVBoxLayout, QWidget,
+    QLabel, QLineEdit, QMessageBox, QTabWidget, QVBoxLayout, QWidget,
 )
 
 from core.config import Config
@@ -43,6 +43,7 @@ class SettingsDialog(QDialog):
         form = QFormLayout()
 
         self.ss_devid = QLineEdit()
+        self.ss_devid.setEchoMode(QLineEdit.EchoMode.Password)
         self.ss_devpassword = QLineEdit()
         self.ss_devpassword.setEchoMode(QLineEdit.EchoMode.Password)
         self.ss_username = QLineEdit()
@@ -76,6 +77,9 @@ class SettingsDialog(QDialog):
         form = QFormLayout()
 
         self.tgdb_api_key = QLineEdit()
+        # An API key is a secret: STANDARDS.md § 10 lists api_key in the very
+        # pattern used to scrub it from error messages.
+        self.tgdb_api_key.setEchoMode(QLineEdit.EchoMode.Password)
         form.addRow("API Key:", self.tgdb_api_key)
 
         group.setLayout(form)
@@ -94,17 +98,30 @@ class SettingsDialog(QDialog):
     def _load_values(self) -> None:
         """Load saved values into fields."""
         self.ss_devid.setText(self.config.get("api", "screenscraper", "devid", default=""))
-        self.ss_devpassword.setText(self.config.get("api", "screenscraper", "devpassword", default=""))
+        self.ss_devpassword.setText(
+            self.config.get("api", "screenscraper", "devpassword", default="")
+        )
         self.ss_username.setText(self.config.get("api", "screenscraper", "username", default=""))
         self.ss_password.setText(self.config.get("api", "screenscraper", "password", default=""))
         self.tgdb_api_key.setText(self.config.get("api", "thegamesdb", "api_key", default=""))
 
     def _save_and_accept(self) -> None:
         """Save values to config and close."""
-        self.config.set("api", "screenscraper", "devid", self.ss_devid.text())
-        self.config.set("api", "screenscraper", "devpassword", self.ss_devpassword.text())
-        self.config.set("api", "screenscraper", "username", self.ss_username.text())
-        self.config.set("api", "screenscraper", "password", self.ss_password.text())
-        self.config.set("api", "thegamesdb", "api_key", self.tgdb_api_key.text())
-        self.config.save()
+        # .strip() throughout: a pasted key with a trailing newline otherwise
+        # saves cleanly and then fails auth with an opaque upstream message.
+        self.config.set("api", "screenscraper", "devid", self.ss_devid.text().strip())
+        self.config.set(
+            "api", "screenscraper", "devpassword", self.ss_devpassword.text().strip()
+        )
+        self.config.set("api", "screenscraper", "username", self.ss_username.text().strip())
+        self.config.set("api", "screenscraper", "password", self.ss_password.text().strip())
+        self.config.set("api", "thegamesdb", "api_key", self.tgdb_api_key.text().strip())
+        try:
+            self.config.save()
+        except OSError as e:
+            QMessageBox.warning(
+                self, "Settings Not Saved",
+                f"Your settings could not be written to disk:\n{e}",
+            )
+            return
         self.accept()

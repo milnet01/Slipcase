@@ -62,7 +62,7 @@ def generate_spine_texture(case_type: CaseType, width: int, height: int) -> Imag
 
 # --- DVD Case ---
 
-def _draw_dvd_front(draw: ImageDraw.Draw, w: int, h: int) -> None:
+def _draw_dvd_front(draw: ImageDraw.ImageDraw, w: int, h: int) -> None:
     """DVD case: border indent + subtle horizontal ridges."""
     # Border indent lines (~3% from edges)
     margin_x = int(w * 0.03)
@@ -85,7 +85,7 @@ def _draw_dvd_front(draw: ImageDraw.Draw, w: int, h: int) -> None:
     _draw_circle_indent(draw, cx, cy, r, lw)
 
 
-def _draw_dvd_spine(draw: ImageDraw.Draw, w: int, h: int) -> None:
+def _draw_dvd_spine(draw: ImageDraw.ImageDraw, w: int, h: int) -> None:
     """DVD spine: vertical groove lines along edges."""
     lw = max(1, w // 10)
     # Left groove
@@ -98,7 +98,7 @@ def _draw_dvd_spine(draw: ImageDraw.Draw, w: int, h: int) -> None:
 
 # --- Blu-ray Case ---
 
-def _draw_bluray_front(draw: ImageDraw.Draw, w: int, h: int) -> None:
+def _draw_bluray_front(draw: ImageDraw.ImageDraw, w: int, h: int) -> None:
     """Blu-ray case: border indent + curved spine-edge groove."""
     margin_x = int(w * 0.025)
     margin_y = int(h * 0.018)
@@ -122,7 +122,7 @@ def _draw_bluray_front(draw: ImageDraw.Draw, w: int, h: int) -> None:
     _draw_hline_emboss(draw, margin_x + lw, w - margin_x - lw, ridge_y, lw)
 
 
-def _draw_bluray_spine(draw: ImageDraw.Draw, w: int, h: int) -> None:
+def _draw_bluray_spine(draw: ImageDraw.ImageDraw, w: int, h: int) -> None:
     """Blu-ray spine: subtle vertical grooves."""
     lw = max(1, w // 8)
     draw.line([(lw, 0), (lw, h)], fill=(0, 0, 0, 10), width=lw)
@@ -131,7 +131,7 @@ def _draw_bluray_spine(draw: ImageDraw.Draw, w: int, h: int) -> None:
 
 # --- CD Jewel Case ---
 
-def _draw_jewel_front(draw: ImageDraw.Draw, w: int, h: int) -> None:
+def _draw_jewel_front(draw: ImageDraw.ImageDraw, w: int, h: int) -> None:
     """Jewel case: clear plastic edge and center hub."""
     lw = max(1, w // 200)
     margin = int(w * 0.02)
@@ -148,7 +148,7 @@ def _draw_jewel_front(draw: ImageDraw.Draw, w: int, h: int) -> None:
 
 # --- Cartridge/Cardboard boxes ---
 
-def _draw_cardboard_front(draw: ImageDraw.Draw, w: int, h: int) -> None:
+def _draw_cardboard_front(draw: ImageDraw.ImageDraw, w: int, h: int) -> None:
     """Cardboard box: fold lines and slight texture grain."""
     lw = max(1, w // 200)
 
@@ -167,7 +167,7 @@ def _draw_cardboard_front(draw: ImageDraw.Draw, w: int, h: int) -> None:
     draw.line([(fold_x2, 0), (fold_x2, h)], fill=(0, 0, 0, 8), width=lw)
 
 
-def _draw_cardboard_spine(draw: ImageDraw.Draw, w: int, h: int) -> None:
+def _draw_cardboard_spine(draw: ImageDraw.ImageDraw, w: int, h: int) -> None:
     """Cardboard spine: fold crease lines."""
     lw = max(1, w // 8)
     # Fold creases along both edges
@@ -177,7 +177,7 @@ def _draw_cardboard_spine(draw: ImageDraw.Draw, w: int, h: int) -> None:
 
 # --- Switch Case ---
 
-def _draw_switch_front(draw: ImageDraw.Draw, w: int, h: int) -> None:
+def _draw_switch_front(draw: ImageDraw.ImageDraw, w: int, h: int) -> None:
     """Switch case: border indent + game card slot outline."""
     margin_x = int(w * 0.025)
     margin_y = int(h * 0.02)
@@ -197,7 +197,7 @@ def _draw_switch_front(draw: ImageDraw.Draw, w: int, h: int) -> None:
 
 # --- DS / 3DS Case ---
 
-def _draw_ds_front(draw: ImageDraw.Draw, w: int, h: int) -> None:
+def _draw_ds_front(draw: ImageDraw.ImageDraw, w: int, h: int) -> None:
     """DS/3DS case: border indent."""
     margin_x = int(w * 0.025)
     margin_y = int(h * 0.02)
@@ -212,7 +212,7 @@ def _draw_ds_front(draw: ImageDraw.Draw, w: int, h: int) -> None:
 
 # --- PSP / Vita ---
 
-def _draw_psp_front(draw: ImageDraw.Draw, w: int, h: int) -> None:
+def _draw_psp_front(draw: ImageDraw.ImageDraw, w: int, h: int) -> None:
     """PSP/Vita case: border indent + UMD/card slot."""
     margin_x = int(w * 0.03)
     margin_y = int(h * 0.02)
@@ -223,7 +223,7 @@ def _draw_psp_front(draw: ImageDraw.Draw, w: int, h: int) -> None:
 
 # --- Drawing primitives ---
 
-def _draw_indent_rect(draw: ImageDraw.Draw,
+def _draw_indent_rect(draw: ImageDraw.ImageDraw,
                       x1: int, y1: int, x2: int, y2: int,
                       lw: int) -> None:
     """Draw a rectangular indent (shadow on top-left, highlight on bottom-right)."""
@@ -237,14 +237,14 @@ def _draw_indent_rect(draw: ImageDraw.Draw,
     draw.line([(x2, y1), (x2, y2)], fill=highlight, width=lw)
 
 
-def _draw_hline_emboss(draw: ImageDraw.Draw,
+def _draw_hline_emboss(draw: ImageDraw.ImageDraw,
                        x1: int, x2: int, y: int, lw: int) -> None:
     """Draw a horizontal embossed line (shadow + highlight pair)."""
     draw.line([(x1, y), (x2, y)], fill=(0, 0, 0, 15), width=lw)
     draw.line([(x1, y + lw), (x2, y + lw)], fill=(255, 255, 255, 10), width=lw)
 
 
-def _draw_circle_indent(draw: ImageDraw.Draw,
+def _draw_circle_indent(draw: ImageDraw.ImageDraw,
                         cx: int, cy: int, r: int, lw: int) -> None:
     """Draw a circular indent (ellipse with shadow/highlight effect)."""
     # Shadow arc (upper half)

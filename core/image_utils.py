@@ -92,10 +92,13 @@ def generate_shadow(
     shadow_arr[paste_y:paste_y + ah, paste_x:paste_x + aw] = alpha_arr
 
     if _HAS_CV2:
+        # ksize is 2r+1 and therefore always odd.
         ksize = blur_radius * 2 + 1
-        if ksize % 2 == 0:
-            ksize += 1
-        shadow_arr = cv2.GaussianBlur(shadow_arr, (ksize, ksize), 0)
+        # Pass sigma explicitly. With sigmaX=0 OpenCV derives sigma from the
+        # kernel (~9.5 at r=30) where PIL's GaussianBlur(radius) uses the
+        # radius AS sigma -- so the same render produced a visibly different
+        # shadow depending on whether OpenCV was importable.
+        shadow_arr = cv2.GaussianBlur(shadow_arr, (ksize, ksize), blur_radius)
     else:
         shadow_alpha = Image.fromarray(shadow_arr, "L")
         shadow_alpha = shadow_alpha.filter(ImageFilter.GaussianBlur(blur_radius))
@@ -127,9 +130,12 @@ def generate_reflection(
     if reflect_h <= 0:
         return Image.new("RGBA", (w, 1), (0, 0, 0, 0))
 
-    # Flip vertically and crop to reflection height
+    # Flip vertically, then take the TOP of the flipped image -- which is the
+    # BOTTOM of the source, the edge the reflection sits under. Cropping the
+    # flipped image's bottom instead returns source rows reflect_h-1..0, i.e.
+    # a mirror of the top of the artwork.
     flipped = image.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-    reflection = flipped.crop((0, h - reflect_h, w, h))
+    reflection = flipped.crop((0, 0, w, reflect_h))
 
     # Apply gradient alpha fade
     r, g, b, a = reflection.split()
@@ -173,8 +179,8 @@ def extract_dominant_edge_color(
 
     # Quantize to find dominant color
     small = region.resize((1, 1), Image.Resampling.LANCZOS)
-    color = small.getpixel((0, 0))
-    return color
+    r, g, b = small.getpixel((0, 0))
+    return (int(r), int(g), int(b))
 
 
 def is_full_cover(image: Image.Image, case_type: CaseType, tolerance: float = 0.15) -> bool:
@@ -293,7 +299,7 @@ def _refine_spine_bounds(
 
     half = strip_w // 2
 
-    def _boundary_scores(center: int, radius: int) -> np.ndarray:
+    def _boundary_scores(center: int, radius: int) -> tuple[int, np.ndarray]:
         """Return boundary score for each x in [center-radius, center+radius]."""
         lo = max(half + 1, center - radius)
         hi = min(w - half - 1, center + radius + 1)

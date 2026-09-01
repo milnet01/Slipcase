@@ -101,8 +101,14 @@ class ScreenScraperAPI(APIClient):
 
     @property
     def is_configured(self) -> bool:
-        """Check if API credentials are set."""
-        return bool(self.username)
+        """Check if API credentials are set.
+
+        ScreenScraper requires the developer pair as well as the user
+        account; without all four it rejects the request, so reporting
+        'configured' on the username alone turns a setup mistake into an
+        empty result list.
+        """
+        return bool(self.username and self.devid and self.devpassword)
 
     def search_game(self, name: str, system_id: int | None = None) -> list[ScreenScraperResult]:
         """Search for a game by name.
@@ -119,9 +125,10 @@ class ScreenScraperAPI(APIClient):
         if system_id is not None:
             params.append(("systemeid", str(system_id)))
 
-        try:
-            data = self.get_json("jeuRecherche.php", params=params)
-        except Exception:
+        data = self.get_json("jeuRecherche.php", params=params)
+        if not isinstance(data, dict):
+            # Quota exhaustion and outages are answered with non-JSON or a
+            # bare list; treat that as no results rather than an AttributeError.
             return []
 
         results = []
@@ -189,7 +196,7 @@ class ScreenScraperAPI(APIClient):
                 box3d_url=media_urls.get("box3d"),
                 wheel_url=media_urls.get("wheel"),
             )
-        except (KeyError, ValueError, TypeError):
+        except (AttributeError, KeyError, ValueError, TypeError):
             return None
 
 

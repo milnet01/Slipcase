@@ -1,10 +1,12 @@
 """Unified online cover art search dialog across all configured APIs."""
 
+import html
+
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtWidgets import (
-    QComboBox, QDialog, QHBoxLayout, QLabel, QLineEdit,
+    QDialog, QHBoxLayout, QLabel, QLineEdit,
     QListWidget, QListWidgetItem, QPushButton, QVBoxLayout,
-    QProgressBar, QMessageBox, QGroupBox,
+    QProgressBar, QGroupBox,
 )
 from PIL import Image
 
@@ -85,8 +87,8 @@ class SearchWorker(QThread):
                     img = lr.download_boxart(lr_system, self.query)
                     if img:
                         all_results.append(("libretro", self.query, self.platform, img))
-                except Exception:
-                    pass
+                except Exception as e:
+                    self.error.emit(f"libretro: {e}")
         finally:
             lr.close()
 
@@ -264,12 +266,22 @@ class SearchDialog(QDialog):
         query = self.search_input.text().strip()
         if not query:
             return
+        # returnPressed is not gated by search_btn, so holding Enter would
+        # start concurrent workers whose results overwrite rather than merge.
+        existing = getattr(self, "_worker", None)
+        if existing is not None:
+            try:
+                if existing.isRunning():
+                    return
+            except RuntimeError:
+                pass
 
         self.results_list.clear()
         self._results.clear()
         self._preview_cache.clear()
         self.preview_label.setText("Select a result to preview")
         self.search_btn.setEnabled(False)
+        self.search_input.setEnabled(False)
         self.progress.show()
         self.status_label.setText("Searching...")
 
@@ -282,7 +294,7 @@ class SearchDialog(QDialog):
 
     def _on_results(self, results: list) -> None:
         self._results = results
-        for source, name, platform, obj in results:
+        for source, name, platform, _obj in results:
             item = QListWidgetItem(f"[{source}] {name} ({platform})")
             self.results_list.addItem(item)
 
@@ -292,10 +304,11 @@ class SearchDialog(QDialog):
             self.status_label.setText(f"Found {len(results)} result(s)")
 
     def _on_error(self, msg: str) -> None:
-        self.status_label.setText(f"Error: {msg}")
+        self.status_label.setText(f"Error: {html.escape(str(msg))}")
 
     def _on_search_done(self) -> None:
         self.search_btn.setEnabled(True)
+        self.search_input.setEnabled(True)
         self.progress.hide()
 
     def _on_result_selected(self, row: int) -> None:
@@ -306,13 +319,22 @@ class SearchDialog(QDialog):
             return
 
         source, name, platform, obj = self._results[row]
-        info = f"<b>{name}</b><br>Source: {source}<br>Platform: {platform}"
+        # Escape: name and platform come from a community-edited cover-art
+        # database, and QLabel's default AutoText renders HTML.
+        info = (
+            f"<b>{html.escape(str(name))}</b><br>"
+            f"Source: {html.escape(str(source))}<br>"
+            f"Platform: {html.escape(str(platform))}"
+        )
 
         # Check if 3D boxart is available
         has_3d = (source == "ScreenScraper"
                   and hasattr(obj, "box3d_url") and obj.box3d_url)
         if has_3d:
-            info += f"<br><span style='color: {get_active_theme().accent};'>3D Boxart available</span>"
+            info += (
+                f"<br><span style='color: {get_active_theme().accent};'>"
+                "3D Boxart available</span>"
+            )
             self.use3d_btn.setEnabled(True)
 
         self.info_label.setText(info)
@@ -328,7 +350,18 @@ class SearchDialog(QDialog):
             self._show_preview(obj)
             return
 
-        # Fetch preview in background for ScreenScraper / TheGamesDB
+        # Fetch preview in background for ScreenScraper / TheGamesDB.
+        # One at a time: arrow-keying the list would otherwise start a thread
+        # per row, each assignment dropping the previous running one.
+        existing = getattr(self, "_preview_worker", None)
+        if existing is not None:
+            try:
+                if existing.isRunning():
+                    existing.requestInterruption()
+                    existing.quit()
+                    existing.wait(1000)
+            except RuntimeError:
+                pass
         self.preview_label.setText("Loading...")
         self._preview_worker = PreviewWorker(source, obj, self.config, row)
         self._preview_worker.preview_ready.connect(self._on_preview_ready)
@@ -416,11 +449,32 @@ class SearchDialog(QDialog):
         self.boxart3d_selected.emit(image, name)
         self.accept()
 
+    def accept(self) -> None:
+        # STANDARDS.md § 12 requires the cache cleared on BOTH the accept and
+        # reject paths, and every success path here calls accept().
+        self._cleanup()
+        super().accept()
+
     def reject(self) -> None:
         self._cleanup()
         super().reject()
 
     def _cleanup(self) -> None:
-        """Release cached images and results to free memory."""
+        """Stop workers, then release cached images and results.
+
+        The workers are stopped FIRST: a late results_ready or preview_ready
+        would otherwise re-populate the containers just cleared.
+        """
+        for attr in ("_worker", "_preview_worker", "_dl_worker"):
+            worker = getattr(self, attr, None)
+            if worker is None:
+                continue
+            try:
+                if worker.isRunning():
+                    worker.requestInterruption()
+                    worker.quit()
+                    worker.wait(2000)
+            except RuntimeError:
+                pass  # already deleted by deleteLater
         self._preview_cache.clear()
         self._results.clear()

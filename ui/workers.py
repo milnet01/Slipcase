@@ -17,6 +17,23 @@ from core.renderer import BoxRenderer
 # Top-level helper for ProcessPoolExecutor (must be picklable)
 # ---------------------------------------------------------------------------
 
+def unique_output_path(output_dir: str, name: str, source_path: str) -> str:
+    """Return a non-colliding output path for a batch render.
+
+    Two defects this closes. Covers are generically named, so `A/cover.png`
+    and `B/cover.png` both mapped to `<out>/cover.png` and the second silently
+    won. And if the user picked the source folder as the output folder, a
+    `.png` source was overwritten by its own render.
+    """
+    src = os.path.abspath(source_path)
+    candidate = os.path.join(output_dir, f"{name}.png")
+    n = 1
+    while os.path.exists(candidate) or os.path.abspath(candidate) == src:
+        candidate = os.path.join(output_dir, f"{name} ({n}).png")
+        n += 1
+    return candidate
+
+
 def _render_single_image(args: tuple) -> str:
     """Render one image in a worker process.  Returns the output filename stem."""
     fp, output_dir, case_type, renderer_kwargs = args
@@ -31,7 +48,7 @@ def _render_single_image(args: tuple) -> str:
     img.load()
     result = renderer.render(front_image=img, title=name)
     del img
-    out_path = os.path.join(output_dir, f"{name}.png")
+    out_path = unique_output_path(output_dir, name, fp)
     _save(result, out_path)
     del result
     return name
@@ -102,23 +119,33 @@ class BatchWorker(QThread):
         }
 
     def run(self):
-        total = len(self.file_paths)
-        args_list = [
-            (fp, self.output_dir, self._case_type, self._renderer_kwargs)
-            for fp in self.file_paths
-        ]
-        workers = max(1, min((os.cpu_count() or 2) - 1, 4))
+        """Render every selected file, emitting progress and per-file errors.
 
-        if total >= 4 and workers > 1:
-            count = self._run_parallel(args_list, total, workers)
-        else:
-            count = self._run_sequential(total)
+        The whole body is guarded: an unhandled exception here would leave
+        finished_signal unsent, and the UI's progress bar visible forever.
+        """
+        count = 0
+        try:
+            total = len(self.file_paths)
+            args_list = [
+                (fp, self.output_dir, self._case_type, self._renderer_kwargs)
+                for fp in self.file_paths
+            ]
+            workers = max(1, min((os.cpu_count() or 2) - 1, 4))
 
-        self.finished_signal.emit(count)
+            if total >= 4 and workers > 1:
+                count = self._run_parallel(args_list, total, workers)
+            else:
+                count = self._run_sequential(total)
+        except Exception as e:
+            self.error.emit(f"Batch failed: {e}")
+        finally:
+            self.finished_signal.emit(count)
 
     def _run_parallel(self, args_list: list, total: int, workers: int) -> int:
         count = 0
         completed = 0
+        done: set[int] = set()
         try:
             mp_ctx = multiprocessing.get_context("spawn")
             with ProcessPoolExecutor(max_workers=workers,
@@ -130,6 +157,7 @@ class BatchWorker(QThread):
                 for future in as_completed(future_to_idx):
                     idx = future_to_idx[future]
                     completed += 1
+                    done.add(idx)
                     try:
                         name = future.result()
                         count += 1
@@ -137,14 +165,25 @@ class BatchWorker(QThread):
                         name = Path(self.file_paths[idx]).stem
                         self.error.emit(f"{name}: {e}")
                     self.progress.emit(completed, total, name)
-        except Exception:
-            # Fallback to sequential if pool creation fails
-            count += self._run_sequential(total, start=completed)
+                    if self.isInterruptionRequested():
+                        pool.shutdown(cancel_futures=True)
+                        break
+        except Exception as e:
+            # Fall back to sequential if the pool itself failed. Skip the
+            # indices that actually finished -- `completed` counts finished
+            # FUTURES, which in completion order says nothing about position.
+            self.error.emit(f"Parallel rendering unavailable: {e}")
+            count += self._run_sequential(total, skip=done)
         return count
 
-    def _run_sequential(self, total: int, start: int = 0) -> int:
+    def _run_sequential(self, total: int, skip: set[int] | None = None) -> int:
         count = 0
-        for i in range(start, total):
+        skip = skip or set()
+        for i in range(total):
+            if i in skip:
+                continue
+            if self.isInterruptionRequested():
+                break
             fp = self.file_paths[i]
             name = Path(fp).stem
             self.progress.emit(i + 1, total, name)
@@ -156,7 +195,7 @@ class BatchWorker(QThread):
                 )
                 result = renderer.render(front_image=img, title=name)
                 del img
-                out_path = os.path.join(self.output_dir, f"{name}.png")
+                out_path = unique_output_path(self.output_dir, name, fp)
                 save_optimized_png(result, out_path)
                 del result
                 count += 1
@@ -194,6 +233,8 @@ class AnimationWorker(QThread):
         show_reflection: bool,
         show_shadow: bool,
         background: str,
+        show_texture: bool = True,
+        supersample: int = 2,
     ):
         super().__init__()
         self.case_type = case_type
@@ -217,6 +258,8 @@ class AnimationWorker(QThread):
         self.show_reflection = show_reflection
         self.show_shadow = show_shadow
         self.background = background
+        self.show_texture = show_texture
+        self.supersample = supersample
 
     def run(self):
         try:
@@ -233,6 +276,9 @@ class AnimationWorker(QThread):
             max_w, max_h = 0, 0
 
             for i, angle in enumerate(angles):
+                if self.isInterruptionRequested():
+                    self.error.emit("Animation export cancelled")
+                    return
                 self.progress.emit(i + 1, total)
                 renderer = BoxRenderer(
                     case_type=self.case_type,
@@ -240,7 +286,8 @@ class AnimationWorker(QThread):
                     output_width=self.output_width,
                     show_reflection=self.show_reflection,
                     show_shadow=self.show_shadow,
-                    supersample=2,
+                    show_texture=self.show_texture,
+                    supersample=self.supersample,
                     background=self.background,
                 )
                 frame = renderer.render(

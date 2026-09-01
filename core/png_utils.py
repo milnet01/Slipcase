@@ -1,5 +1,9 @@
 """PNG export utilities with optimised compression."""
 
+import os
+import tempfile
+from pathlib import Path
+
 import numpy as np
 from PIL import Image
 
@@ -32,4 +36,17 @@ def save_optimized_png(image: Image.Image, path: str, compress_level: int = 6) -
         save_img = Image.fromarray(arr, "RGB")
     else:
         save_img = image
-    save_img.save(path, "PNG", compress_level=compress_level)
+    # Write to a sibling temp file and rename over the target, so an
+    # interrupted save cannot replace a good PNG with a truncated one.
+    target = Path(path)
+    fd, tmp_name = tempfile.mkstemp(dir=str(target.parent), prefix=".", suffix=".png.tmp")
+    os.close(fd)
+    try:
+        save_img.save(tmp_name, "PNG", compress_level=compress_level)
+        os.replace(tmp_name, target)
+    except BaseException:
+        try:
+            os.unlink(tmp_name)
+        except OSError:
+            pass
+        raise

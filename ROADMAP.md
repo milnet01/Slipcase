@@ -187,7 +187,7 @@ which covers the source repository going public.
 Keeping the stated requirements enforced rather than merely written down, and
 making a build reproducible.
 
-- 📋 [SLIP-0021] **Cover the API security invariants with tests.**
+- ✅ [SLIP-0021] **Cover the API security invariants with tests.**
   CLAUDE.md lists the download allowlist, credential scrubbing and the download
   size cap as rules that must hold in every change. The test suite imports only
   from core/, so api/ has no coverage at all: `_is_allowed_url`,
@@ -195,6 +195,13 @@ making a build reproducible.
   by a refactor and the suite would stay green.
   These are pure functions with no network in them, so they are among the
   cheapest tests in the project to write.
+  Resolved (2026-09-01): tests/test_security.py locks the URL allowlist
+  (including the userinfo, suffix and scheme spoofing vectors), redirect
+  revalidation, credential scrubbing for all seven key names, the 50 MB
+  download cap enforced during streaming, the decompression-bomb ceiling and
+  the image-format restriction -- 22 tests, no network. Written alongside the
+  code review that found the allowlist was checked on the requested URL rather
+  than the fetched one.
   **Layman:** The safety rules are written down but nothing checks they are still there.
   Kind: test.
   Source: in-session-2026-08-27.
@@ -223,12 +230,15 @@ making a build reproducible.
   Source: in-session-2026-08-27.
   Lanes: packaging.
 
-- 📋 [SLIP-0024] **Scaffold a CHANGELOG.**
+- ✅ [SLIP-0024] **Scaffold a CHANGELOG.**
   There is no CHANGELOG.md. The bump recipe in .claude/bump.json already
   expects one and carries a todo to scaffold it in Keep a Changelog format on
   the first version bump.
   Worth doing before the repository is public, so the first release has notes
   rather than a bare tag.
+  Resolved (2026-09-01): CHANGELOG.md scaffolded in Keep a Changelog format
+  with a [1.0.0] section for the initial release and an [Unreleased] section
+  carrying this review's fixes. The bump recipe's todo is satisfied.
   **Layman:** A file listing what changed in each release.
   Kind: doc.
   Source: in-session-2026-08-27.
@@ -247,6 +257,132 @@ making a build reproducible.
   Kind: refactor.
   Source: in-session-2026-08-27.
   Lanes: ui.
+
+- 📋 [SLIP-0041] **Wrap user-visible strings in tr() so the UI can be translated.**
+  There is not one tr() call in the tree. ~/.claude/standards/languages/qt.md
+  makes it an idiom from the first commit, on the grounds that retrofitting
+  translation across a finished UI costs many times more than never skipping it.
+  Roughly 60 literals in main_window alone -- menu items, group box titles,
+  tooltips, field labels.
+  No user-visible bug today, since STANDARDS.md claims no localisation. The cost
+  of leaving it grows monotonically, so the cheap move is to wrap new strings
+  from now on and retrofit the two builder methods in one pass.
+  **Layman:** Groundwork so the app could be offered in other languages later.
+  Kind: enhancement.
+  Source: review-code-2026-09-01 lanes 4 and 6.
+
+- 📋 [SLIP-0042] **Version the config schema so a value's type can change safely.**
+  DEFAULT_CONFIG has no version key and _deep_merge copies any saved value over
+  a typed default with no validation. Unknown keys survive a downgrade, which is
+  fine, but a change to an existing key's TYPE has no migration path.
+  The 2026-09-01 pass added a _cfg() helper that falls back on a bad type, so
+  the app no longer fails to start -- but that is a guard, not a migration.
+  Blocks the saveGeometry() change, which necessarily alters window_geometry's
+  type.
+  **Layman:** Lets settings files from older versions be upgraded instead of breaking.
+  Kind: enhancement.
+  Source: review-code-2026-09-01 lanes 2 and 4.
+
+- 📋 [SLIP-0043] **Skip the no-op resample in the perspective warp.**
+  _perspective_quad calls cv2.resize (and the PIL equivalent on the fallback
+  path) to the size the image already is: front_shaded is front_w x front_h and
+  spine_shaded is spine_w x front_h at both call sites. That is a full
+  INTER_LANCZOS4 pass over roughly 1.3 MP for no change, twice per render, and
+  a second resample of already-resized cover art costs sharpness.
+  Guard both with `if image.size != (src_w, src_h)`.
+  **Layman:** Removes a slow image-resize step that does nothing, twice per render.
+  Kind: perf.
+  Source: review-code-2026-09-01 lane-1.
+
+- 📋 [SLIP-0044] **Reconcile the spine nudge cap with what the code actually clamps to.**
+  STANDARDS.md section 5 states a flat "up to 15% of spine width". The code is
+  max(8, min(30, int(expected_sw * 0.15))), so the real cap is 21.6% on a 500px
+  scan and 10% on a 4000px one.
+  The floor and ceiling look deliberate -- they keep the search window usable at
+  both extremes -- which points at the document being under-specified rather
+  than the code being wrong. Decide, then make one match the other.
+  **Layman:** The written rule for spine detection does not match what the code does.
+  Kind: doc-fix.
+  Source: review-code-2026-09-01 lane-2.
+
+- 📋 [SLIP-0045] **STANDARDS section 8 says search runs in parallel within a single thread.**
+  Section 8 says search "queries all configured APIs in parallel (within a
+  single worker thread)". SearchWorker.run calls them strictly sequentially,
+  each behind a rate limiter, and one thread cannot issue three blocking HTTP
+  calls in parallel.
+  Two lanes flagged it independently and both declined to pick a side: either
+  the wording means "parallel with the UI" and should say so, or genuine
+  concurrency was intended and SearchWorker is the wrong shape. Contract
+  document, so it runs through review-contract rather than being edited
+  directly.
+  **Layman:** A line in the standards document contradicts itself.
+  Kind: doc-fix.
+  Source: review-code-2026-09-01 lanes 3 and 6.
+
+- 📋 [SLIP-0046] **Field labels are not linked to their controls for screen readers.**
+  No setBuddy links any label to its control and none carries a mnemonic, so a
+  screen reader announces an unnamed edit box; the search field has a
+  placeholder and no accessible name. The preview label is fixed at 150x200 and
+  clips its own prompt text at large font scales, and the busy spinner honours
+  no reduced-motion preference.
+  STANDARDS.md section 6 claims only a shortcut table -- all ten of which are
+  implemented -- so this is filed on general principles rather than against a
+  named standard.
+  **Layman:** Screen-reader users hear unnamed boxes instead of field names.
+  Kind: accessibility.
+  Source: review-code-2026-09-01 lanes 4 and 6.
+
+- 📋 [SLIP-0047] **Cache the font object, and debounce the preview rescale.**
+  Only the font PATH is cached; ImageFont.truetype() is rebuilt on every probe
+  of _fit_text's binary search, which is 30-40 font-file parses per spine and
+  repeats per image in batch mode. An lru_cache on (path, size) closes it.
+  Separately, PreviewWidget.resizeEvent re-scales the full-resolution pixmap
+  with SmoothTransformation on every resize event, on the GUI thread. Coalesce
+  with a single-shot timer and cache one downscaled pixmap.
+  **Layman:** Two small speedups: reusing loaded fonts, and not re-scaling the preview on every pixel of a window drag.
+  Kind: perf.
+  Source: review-code-2026-09-01 lanes 2 and 4.
+
+- 📋 [SLIP-0048] **The window has no icon under Wayland.**
+  main() calls neither setDesktopFileName nor setWindowIcon, though
+  slipcase.desktop ships an Icon= line and resources/ holds four PNG sizes. On
+  X11 the title-bar icon comes from _NET_WM_ICON, which Qt writes only from
+  setWindowIcon; on Wayland matching is by app_id, which Qt takes from
+  desktopFileName(). Plasma 6 defaults to Wayland here, so today there is no
+  icon on either path. Two lines in main().
+  **Layman:** The app shows a generic icon in the taskbar instead of its own.
+  Kind: fix.
+  Source: review-code-2026-09-01 lane-4.
+
+- 📋 [SLIP-0049] **Two running copies can overwrite each other's settings.**
+  Each instance holds a full in-memory copy loaded at startup and whoever calls
+  save() last wins wholesale. Enter credentials in the second window, close the
+  first afterwards, and its stale snapshot erases them.
+  The 2026-09-01 atomic-write change makes each save all-or-nothing but does not
+  make it a merge. Wants an flock around load+save, or a re-read and re-merge
+  inside save().
+  **Layman:** Running the app twice can lose settings you entered in the other window.
+  Kind: fix.
+  Source: review-code-2026-09-01 lane-2.
+
+- 📋 [SLIP-0050] **Honour XDG_CONFIG_HOME for the config location.**
+  Config hardcodes Path.home() / ".config" / "slipcase" and ignores
+  $XDG_CONFIG_HOME. That conforms to STANDARDS.md section 7 as written, so the
+  document is the thing to change first if this is wanted.
+  **Layman:** Put settings where the user's system says they should go.
+  Kind: enhancement.
+  Source: review-code-2026-09-01 lane-2.
+
+- 📋 [SLIP-0051] **Full-cover detection cannot be overridden.**
+  is_full_cover decides on aspect ratio alone, and the accepted band for the
+  Blu-ray case contains 16:9 while the DVD band contains 4:3 and 3:2. A
+  landscape front-only artwork is therefore always split and two thirds of it
+  discarded, with no way to say no.
+  The code matches STANDARDS.md section 4 step 2 as written; the missing escape
+  hatch is the defect.
+  **Layman:** If the app wrongly decides your image is a wraparound cover, you cannot tell it otherwise.
+  Kind: ux.
+  Source: review-code-2026-09-01 lane-2.
 
 ## Feature ideas
 
@@ -381,3 +517,100 @@ building.
   Kind: doc-fix.
   Source: in-session-2026-08-27.
   Lanes: docs.
+
+- 📋 [SLIP-0032] **The drop shadow is displaced too far and clipped square at the canvas edge.**
+  generate_shadow pads its canvas by blur_radius*2 on each side and places the
+  silhouette inside that padding. _render_shadow crops from (0,0) without
+  removing the padding, so the shadow lands about 2x the blur further right and
+  down than the named _SHADOW_OFFSET constants imply. The box's right edge sits
+  close to the canvas edge, so the shadow is then cut off square instead of
+  fading, and the final getbbox crop locks that hard edge in.
+  Fix subtracts blur_radius*2 when cropping and widens the canvas to cover the
+  offset plus blur. Left out of the 2026-09-01 fix pass because it changes
+  canvas geometry and wants its own before/after comparison.
+  **Layman:** The shadow under the case sits too low and is cut off flat on one side.
+  Kind: fix.
+  Source: review-code-2026-09-01 lane-1.
+
+- 📋 [SLIP-0033] **A loaded back cover is advertised in the menu and discarded by the renderer.**
+  render() assigns back_image and never reads it again; its own docstring says
+  "optional, unused in current view". STANDARDS.md section 6 advertises Open
+  Back Cover as Ctrl+Shift+O, and the split export does use it, so the feature
+  is half-real: the shortcut works, the render ignores it.
+  Decide which way it goes -- render the back face, or say in the UI that the
+  back cover is used only by the split export.
+  **Layman:** You can load a back cover with Ctrl+Shift+O and it does not appear in the render.
+  Kind: fix.
+  Source: review-code-2026-09-01 lane-1.
+
+- 📋 [SLIP-0034] **Six of fifteen case types get an empty spine texture overlay.**
+  generate_spine_texture dispatches DVD, Blu-ray and the cardboard group only.
+  CD Jewel, Switch, DS, 3DS, PSP and PS Vita fall through to a fully
+  transparent overlay, which is then composited for no effect. Silent no-op
+  rather than an error, so nothing reports it.
+  **Layman:** Some case types are missing the moulded detail on the spine that others have.
+  Kind: fix.
+  Source: review-code-2026-09-01 lane-1.
+
+- 📋 [SLIP-0035] **The search preview downloads the full-size cover, then downloads it again.**
+  PreviewWorker calls download_front to fill a 150x200 label, pulling the
+  full-size image up to the 50 MB cap. _download_selected then requests the same
+  URL again instead of reusing _preview_cache. Reuse the cached image for the
+  front, and request a thumbnail URL where the API exposes one.
+  **Layman:** Selecting a search result downloads the whole cover twice.
+  Kind: fix.
+  Source: review-code-2026-09-01 lane-6.
+
+- 📋 [SLIP-0036] **Animation export can allocate several gigabytes with no bound.**
+  Frame count runs to 120, bounce roughly doubles it to 238, and output width
+  runs to 2048. Every frame is retained at full resolution before the encoder
+  is reached -- on the order of 5 GB at the top of both ranges. Nothing in the
+  dialog or the worker bounds the product.
+  Either estimate it in the dialog and refuse or warn above a threshold, or
+  stream frames to the encoder instead of accumulating them.
+  **Layman:** A long, wide animation can use all your memory before it starts saving.
+  Kind: fix.
+  Source: review-code-2026-09-01 lane-6.
+
+- 📋 [SLIP-0037] **Output width accepts values that exhaust memory.**
+  width_spin ranges to 8192 and the renderer multiplies by the supersample
+  factor, so the working canvas reaches roughly 16k x 21k RGBA -- about 1.4 GB
+  per layer, with several alive at once. Image.MAX_IMAGE_PIXELS guards decoding,
+  not Image.new, so it does not cover this. STANDARDS.md section 4 documents no
+  target above 1200px.
+  Clamp output_width in BoxRenderer, and lower the spinner maximum.
+  **Layman:** The width box lets you pick a size far larger than anything the app documents.
+  Kind: fix.
+  Source: review-code-2026-09-01 lane-1.
+
+- 📋 [SLIP-0038] **A search with no APIs configured reports "No results found".**
+  With no credentials both is_configured guards are false, and libretro only
+  runs for a platform in LIBRETRO_SYSTEMS -- PS5, Xbox One and Xbox Series X
+  are in ALL_PLATFORMS and in none of its 24 keys. Every source is then skipped
+  and the user is told the query found nothing.
+  Track how many sources actually ran and say "No APIs configured -- add
+  credentials in Settings" when the count is zero.
+  **Layman:** If you have not entered any API keys, search blames your search term.
+  Kind: ux.
+  Source: review-code-2026-09-01 lane-6.
+
+- 📋 [SLIP-0039] **The export overwrite prompt runs before the .png extension is added.**
+  The extension is appended after QFileDialog.getSaveFileName has already done
+  its overwrite confirmation, so typing "render" silently overwrites an existing
+  render.png. Set a defaultSuffix on the dialog instead of appending afterwards.
+  **Layman:** Typing a filename without .png can overwrite an existing file with no warning.
+  Kind: fix.
+  Source: review-code-2026-09-01 lane-5.
+
+- 📋 [SLIP-0040] **The window walks down-right on each restart and can reopen off-screen.**
+  On X11 geometry() returns the client rect excluding the frame while
+  setGeometry positions the client area, so each close/reopen cycle shifts the
+  window by the title-bar height. There is also no validation against the
+  current screens, so a window last closed on a second monitor reopens
+  unreachable when that monitor is gone.
+  Qt's answer is saveGeometry()/restoreGeometry(), which also handles maximised
+  state. That changes the stored value's type, so it needs the config schema
+  version item to land first.
+  **Layman:** The window creeps across the screen every time you reopen it, and can vanish if you unplug a monitor.
+  Kind: fix.
+  Source: review-code-2026-09-01 lane-4.

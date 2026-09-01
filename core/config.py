@@ -1,6 +1,8 @@
 """Application configuration management with JSON persistence."""
 
 import json
+import os
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +27,9 @@ DEFAULT_CONFIG = {
         "shadow": True,
         "texture": True,
         "supersample": 2,
+        # zlib level for PNG export. 6 is the default (see png_utils); 9 is
+        # ~5% smaller and 2-4x slower.
+        "compress_level": 6,
     },
     "ui": {
         "last_platform": "PS2",
@@ -50,25 +55,75 @@ class Config:
             self._path = Path(config_path)
 
         self._data: dict[str, Any] = {}
+        # Set by load(); save() refuses while true. See load().
+        self.load_failed = False
+        self.load_error = ""
         self.load()
 
     def load(self) -> None:
-        """Load configuration from disk, merging with defaults."""
+        """Load configuration from disk, merging with defaults.
+
+        Sets `load_failed` when an existing file could not be read or parsed.
+        Callers MUST check it before saving: the in-memory state is defaults
+        at that point, and writing it out would destroy the stored
+        credentials the unreadable file still holds.
+        """
         self._data = _deep_copy(DEFAULT_CONFIG)
-        if self._path.exists():
-            try:
-                with open(self._path) as f:
-                    saved = json.load(f)
-                _deep_merge(self._data, saved)
-            except (json.JSONDecodeError, OSError):
-                pass
+        self.load_failed = False
+        self.load_error = ""
+        if not self._path.exists():
+            return
+        try:
+            raw = self._path.read_text(encoding="utf-8")
+        except (ValueError, OSError) as e:
+            # ValueError covers the UnicodeDecodeError a non-UTF-8 file raises.
+            self.load_failed = True
+            self.load_error = str(e)
+            return
+        if not raw.strip():
+            # An empty file holds nothing to lose, so this is not a failed
+            # read -- saving over it is correct.
+            return
+        try:
+            _deep_merge(self._data, json.loads(raw))
+        except ValueError as e:
+            self.load_failed = True
+            self.load_error = str(e)
 
     def save(self) -> None:
-        """Save current configuration to disk."""
-        self._path.parent.mkdir(parents=True, exist_ok=True)
-        with open(self._path, "w") as f:
-            json.dump(self._data, f, indent=2)
-        self._path.chmod(0o600)
+        """Save current configuration to disk, atomically.
+
+        Writes a sibling temp file created 0600, fsyncs it, then renames over
+        the target -- POSIX rename(2) within one directory is atomic, so an
+        interrupted save can never leave a truncated credential file. The mode
+        is set at creation rather than after the write, so the password is
+        never briefly world-readable.
+
+        Raises OSError on failure; callers surface it to the user.
+        """
+        if self.load_failed:
+            raise OSError(
+                f"refusing to save: {self._path} could not be read "
+                f"({self.load_error}), so saving now would overwrite it with "
+                f"defaults and lose whatever it holds"
+            )
+        self._path.parent.mkdir(parents=True, mode=0o700, exist_ok=True)
+        fd, tmp_name = tempfile.mkstemp(
+            dir=str(self._path.parent), prefix=".config-", suffix=".tmp"
+        )
+        try:
+            os.fchmod(fd, 0o600)
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                json.dump(self._data, f, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp_name, self._path)
+        except BaseException:
+            try:
+                os.unlink(tmp_name)
+            except OSError:
+                pass
+            raise
 
     def get(self, *keys: str, default: Any = None) -> Any:
         """Get a nested config value. e.g. config.get('api', 'screenscraper', 'username')."""
@@ -100,7 +155,7 @@ class Config:
 
 def _deep_copy(d: dict) -> dict:
     """Deep copy a nested dict."""
-    result = {}
+    result: dict = {}
     for k, v in d.items():
         if isinstance(v, dict):
             result[k] = _deep_copy(v)
