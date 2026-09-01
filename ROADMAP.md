@@ -516,6 +516,35 @@ making a build reproducible.
   Source: review-code-2026-09-01 lane-3.
   Lanes: api.
 
+- 📋 [SLIP-0088] **Online cover-art search has never been verified against the live APIs.**
+  The 2026-09-01 verify-delivery pass ran every user-facing promise except this
+  one. Fifteen were executed -- render, spine generation, real-case proportions,
+  split, batch, animation, transparent PNG, the two output size targets, the app
+  launch, the rename, the settings location, the desktop entry and the export
+  filename. Searching ScreenScraper, TheGamesDB and libretro was reported
+  `unverified`, because it needs live network calls and real credentials, which
+  the skill routes to an explicit ask rather than running unasked.
+
+  What WAS checked: the feature is reachable (Search Online in both the menu and
+  as a button), and the offline half of the libretro path builds correct URLs --
+  including the percent-encoding fixed that day, verified against `100% Orange
+  Juice`, `#IDARB` and `Ratchet &amp; Clank`.
+
+  What was NOT checked: that any of the three services actually answers, that the
+  responses still parse, or that a downloaded image reaches the canvas. The
+  2026-09-01 pass changed all three clients -- search_game now raises instead of
+  returning an empty list, is_configured requires all four ScreenScraper
+  credentials, and the redirect path is revalidated -- so this is the code most
+  in need of a live run and the code that has had none.
+
+  Needs a human with credentials, or a recorded-response fixture (vcrpy or
+  similar) so it can run in CI without them. The second is the better answer and
+  composes with SLIP-0022.
+  **Layman:** The one feature nobody has actually run end to end against the real services.
+  Kind: test.
+  Source: verify-delivery-2026-09-01.
+  Lanes: api, tests.
+
 ## Feature ideas
 
 Suggested rather than requested. Each is worth a decision before it is worth
