@@ -384,6 +384,138 @@ making a build reproducible.
   Kind: ux.
   Source: review-code-2026-09-01 lane-2.
 
+- 📋 [SLIP-0064] **The JSON request path applies no host or scheme validation.**
+  download_image() runs every URL through _is_allowed_url on every redirect hop
+  since 2026-09-01. get() does not: it builds full_url from base_url and a
+  relative path with `startswith("http")` as its only test, so "TLS only" on the
+  JSON path rests entirely on the hardcoded API_URL constants being right.
+  That is true today. It is not enforced, and a base_url taken from a response
+  or a config would not be caught.
+  Route get() through the same check, with the two API hosts added to the set or
+  a second allowlist for them.
+  **Layman:** The rule that all traffic is HTTPS is enforced for image downloads but not for the data requests.
+  Kind: security.
+  Source: review-code-2026-09-01 lane-3.
+  Lanes: api, security.
+
+- 📋 [SLIP-0065] **The request timeout is per-read, not a deadline.**
+  timeout=(10, 30) bounds the gap between reads, not the total. A server sending
+  one byte every 29 seconds holds a worker thread and a connection open forever
+  while never reaching MAX_DOWNLOAD_BYTES, so neither the size cap nor the
+  timeout fires.
+  Add a wall-clock check inside the iter_content loop.
+  **Layman:** A server that trickles data very slowly can tie up a search indefinitely.
+  Kind: security.
+  Source: review-code-2026-09-01 lane-3.
+  Lanes: api, security.
+
+- 📋 [SLIP-0066] **Decide whether BMP and GIF need to be accepted image formats.**
+  _ALLOWED_IMAGE_FORMATS is {PNG, JPEG, WEBP, BMP, GIF}. The comment above it
+  says the list exists to "reject complex formats with larger attack surface",
+  but nothing records why BMP and GIF are in it -- the app only ever renders a
+  cover. If the intent was minimum attack surface, both are droppable.
+  Separately worth recording: ScreenScraper credentials travel as query
+  parameters, so they land in the upstream's access logs (CWE-598). The upstream
+  API mandates that form, so there is nothing to fix -- but it should be written
+  down rather than rediscovered by the next review.
+  **Layman:** The download filter accepts two image formats the app has no obvious use for.
+  Kind: investigate.
+  Source: review-code-2026-09-01 lane-3.
+  Lanes: api, security.
+
+- 📋 [SLIP-0067] **Dragging the spine slider re-runs the whole detector on the GUI thread.**
+  Every valueChanged calls _update_split_preview, which calls split_full_cover,
+  which calls detect_spine_bounds unconditionally -- the full 16-band analysis.
+  That result does not depend on the offsets at all. It is then followed by three
+  full-resolution crops, three convert("RGBA") calls and three pixmap
+  conversions, all on the GUI thread, with a slider range up to plus or minus 150.
+  Against STANDARDS.md section 2, "the main thread is never blocked".
+  Compute detect_spine_bounds once in _set_front_image and cache it; have
+  _update_split_preview only re-crop; add a ~100ms debounce.
+  **Layman:** Adjusting the spine position feels sluggish because the app redoes work that cannot have changed.
+  Kind: perf.
+  Source: review-code-2026-09-01 lane-5.
+  Lanes: ui, core.
+
+- 📋 [SLIP-0068] **Nested thread pools contend during batch rendering.**
+  BoxRenderer.render opens a ThreadPoolExecutor(max_workers=2) per render. In
+  batch mode that sits inside a ProcessPoolExecutor of up to 4 processes, with
+  OpenCV's own internal pool underneath -- up to 4 x 2 x N threads contending on
+  a 4-core machine. The per-render pool is also allocated and torn down for every
+  image in the batch.
+  Measure before changing anything: the parallel warp is a real win for a single
+  render and may still be one under the process pool.
+  **Layman:** Batch mode can start far more threads than the machine has cores.
+  Kind: perf.
+  Source: review-code-2026-09-01 lane-1.
+  Lanes: core.
+
+- 📋 [SLIP-0069] **Bring the workers and the animation dialog up to the project's own conventions.**
+  Three STANDARDS.md section 3 breaches, none behavioural:
+  AnimationDialog builds its entire UI inline in __init__, where both sibling
+  dialogs use the required _build_<component>() methods.
+  RenderWorker.__init__'s parameters (front, back, title, serial, platform,
+  spine_color) are unannotated, and no worker run() has a return annotation or a
+  docstring, against "type annotations throughout" and "docstrings required on
+  all public classes and functions". Same for the front/back/image parameters of
+  three main_window handlers.
+  A mypy run with --disallow-untyped-defs would enumerate the full set.
+  **Layman:** Some code does not follow the style rules the project wrote down for itself.
+  Kind: refactor.
+  Source: review-code-2026-09-01 lanes 5 and 6.
+  Lanes: ui.
+
+- 📋 [SLIP-0070] **Font discovery is Linux-only with no probe for other platforms.**
+  _get_font tries five hardcoded Linux paths and then falls back to
+  ImageFont.load_default(). The 2026-09-01 pass fixed the worst half -- the
+  fallback now receives the requested size, so text is no longer rendered at a
+  fixed ~10px -- but the discovery itself still finds nothing outside those five
+  paths.
+  This blocks nothing today, since the project targets Linux, and it becomes
+  live the moment SLIP-0019 or SLIP-0020 ships a Windows or macOS build.
+  Blocked-by: nothing, but worth doing with those.
+  **Layman:** On macOS or Windows the spine text falls back to a basic font.
+  Kind: fix.
+  Source: review-code-2026-09-01 lane-2.
+  Lanes: core, packaging.
+
+- 📋 [SLIP-0071] **libretro is contacted on every search with no way to opt out.**
+  The ScreenScraper and TheGamesDB lookups are gated on is_configured, so a user
+  who has entered no credentials contacts neither. The libretro lookup is gated
+  only on the platform being in LIBRETRO_SYSTEMS, so it runs on every search
+  regardless, and there is no per-source toggle anywhere in Settings.
+  Search terms leaving the machine on an explicit user action is consented by the
+  act, so this is a preference rather than a privacy defect -- but the asymmetry
+  is undocumented and a user cannot turn it off.
+  **Layman:** Every search reaches out to the libretro thumbnail site whether you want it to or not.
+  Kind: ux.
+  Source: review-code-2026-09-01 lane-6.
+  Lanes: ui, api.
+
+- 📋 [SLIP-0072] **The animation frame count does not say that bounce doubles it.**
+  Frame count maxes at 120 and bounce is checked by default, so
+  `angles += angles[-2:0:-1]` yields 2n-2 = 238 frames in the file. Neither the
+  spinbox label nor its tooltip says so, and the estimated output size a user
+  might reason about is therefore out by a factor of two.
+  Related to SLIP-0036, which bounds the memory; this one is about the label.
+  **Layman:** Asking for 120 frames with bounce on actually produces 238.
+  Kind: ux.
+  Source: review-code-2026-09-01 lane-6.
+  Lanes: ui.
+
+- 📋 [SLIP-0073] **download_spine and ScreenScraperResult.spine_url have no callers.**
+  Both have zero callers tree-wide, tests included. No contract document
+  promises a spine download, so the reviewing lane correctly declined to file it
+  as a zombie feature -- the question is whether it was meant to be wired up
+  (the app does generate spines, and a real one would be better than a generated
+  one) or whether it is leftover surface to delete.
+  Decide, then either wire it into the search dialog or remove it with its
+  dataclass field.
+  **Layman:** A piece of the cover-art API code is never used by anything.
+  Kind: investigate.
+  Source: review-code-2026-09-01 lane-3.
+  Lanes: api.
+
 ## Feature ideas
 
 Suggested rather than requested. Each is worth a decision before it is worth
@@ -473,6 +605,193 @@ building.
   **Layman:** A project note says the app ships console logos; it does not, and the note should be corrected.
   Kind: doc-fix.
   Source: in-session-2026-08-27.
+
+- 📋 [SLIP-0074] **STANDARDS section 4 promises RGBA output while section 11 drops the alpha channel.**
+  Section 4's output table says Transparency "Yes (RGBA)" for both RetroArch and
+  LaunchBox. Section 11 optimisation 3 drops the alpha channel entirely whenever
+  the image is fully opaque, which is every render with a White or Black
+  background.
+  The code follows section 11 and is right to -- an opaque RGBA image wastes a
+  quarter of the file. Section 4 is the side to change: it should say the output
+  is RGBA where transparency is present.
+  **Layman:** Two parts of the standards document disagree about whether exported images keep transparency.
+  Kind: doc-fix.
+  Source: review-code-2026-09-01 lane-1.
+
+- 📋 [SLIP-0075] **STANDARDS section 6 says the status bar has white text; it has dark text.**
+  Section 6 states "Status bar: Accent background with white text". themes.py
+  uses accent_text, which is #2e3440 on Nord and #1a1a1a on Monokai -- dark, and
+  correctly so, since the accent backgrounds are light and white would be
+  unreadable. Section 6's own colour-slot table already describes the real rule.
+  Document side.
+  **Layman:** A colour rule in the standards document does not match what the app does.
+  Kind: doc-fix.
+  Source: review-code-2026-09-01 lane-4.
+
+- 📋 [SLIP-0076] **Two persisted config keys are missing from the STANDARDS schema.**
+  ui.auto_filename and ui.last_export_directory are written by main_window and
+  appear in neither section 7's schema block nor DEFAULT_CONFIG. Harmless at
+  runtime, since every read passes a default -- but one of the two sides is
+  wrong, and the reviewing lanes could not tell which: are they intended config
+  keys the schema forgot, or scratch state that should not be persisted?
+  Decide, then either add them to both or stop persisting them.
+  Section 7's schema gained compress_level on 2026-09-01, so it is otherwise
+  current.
+  **Layman:** The settings file holds two values the documentation does not list.
+  Kind: doc-fix.
+  Source: review-code-2026-09-01 lanes 2 and 4.
+
+- 📋 [SLIP-0077] **STANDARDS section 8 says libretro is queried always; it is not.**
+  Section 8's search strategy says "libretro (always)". The lookup is gated on
+  the platform appearing in LIBRETRO_SYSTEMS, which holds 24 keys -- PS5, Xbox
+  One and Xbox Series X are in ALL_PLATFORMS and in none of them, so for those
+  three platforms libretro is never queried.
+  SLIP-0038 covers the user-facing half (the misleading "No results found").
+  This is the document side.
+  **Layman:** The search documentation overstates which sources are checked.
+  Kind: doc-fix.
+  Source: review-code-2026-09-01 lane-6.
+
+- 📋 [SLIP-0078] **STANDARDS section 11 names np.tile for gradients; the code uses broadcasting.**
+  Section 11 says gradients are built with np.tile. core/image_utils.py uses
+  np.newaxis and np.broadcast_to instead, which is strictly better -- broadcasting
+  does not materialise the array. The code is the right side; the wording is
+  stale.
+  **Layman:** A performance rule names a technique the code improved on.
+  Kind: doc-fix.
+  Source: review-code-2026-09-01 lane-2.
+
+- 📋 [SLIP-0079] **The ScreenScraper media-selection docstring contradicts REGION_PRIORITY.**
+  _select_best_media's docstring says "prefer US > World > SS > first available".
+  REGION_PRIORITY is (us, wor, eu, uk, jp, ss) -- Europe, UK and Japan are
+  missing from the docstring and SS is last rather than third. The constant is
+  the behaviour; the docstring is wrong.
+  **Layman:** A comment lists the wrong order for choosing which regional cover to use.
+  Kind: doc-fix.
+  Source: review-code-2026-09-01 lane-3.
+
+- 📋 [SLIP-0080] **Two case-texture docstrings describe features that are not drawn.**
+  _draw_psp_front's docstring says "border indent + UMD/card slot" and the body
+  draws only the indent. _draw_cardboard_front says "fold lines and slight
+  texture grain" and draws no grain.
+  Either implement the missing halves or correct the docstrings. Worth deciding
+  alongside SLIP-0034, which covers the six case types whose spine overlay is
+  empty -- the same question of how complete the texture set is meant to be.
+  **Layman:** Comments promise case details the code does not actually draw.
+  Kind: doc-fix.
+  Source: review-code-2026-09-01 lane-1.
+
+- 📋 [SLIP-0081] **STANDARDS section 12's rewritten shutdown rule owes a cold review.**
+  The 2026-09-01 fix pass rewrote section 12's closeEvent clause. The old text
+  prescribed worker.quit() plus worker.wait(2000) -- the exact handshake that
+  caused the crash, since every worker overrides run() without calling exec(),
+  so quit() reaches no event loop and wait() simply times out. The new text
+  prescribes requestInterruption() and forbids clearing a reference to a live
+  QThread.
+  That changes what a conformer writes, which is CLAUDE.md rule 14's test for
+  whether a review-contract gate is owed. It is, and it did not run: the fix
+  session's scope was the code review. Run
+  `review-contract STANDARDS.md --genre standard` before anyone implements
+  against that section.
+  Recorded in commit 9e04017's body.
+  **Layman:** A rule that was changed needs an independent read before anyone builds to it.
+  Kind: doc.
+  Source: in-session-2026-09-01.
+
+- 📋 [SLIP-0082] **There is no design document.**
+  The project has README.md (what it does), STANDARDS.md (what is true of the
+  code) and ROADMAP.md (what is planned), and no docs/design.md -- the document
+  that records the decisions and the reasoning behind them.
+  The gap is visible in this review's own output: several findings came down to
+  "the code does X, the standard says Y, and nobody can tell which was intended"
+  -- SLIP-0044's nudge clamp, SLIP-0076's two undocumented config keys,
+  SLIP-0073's unused spine download. A design document is where that intent
+  lives.
+  ~/.claude/skeleton/files/docs/design.md is the skeleton; it is authored
+  directly and gated with `review-contract docs/design.md --genre adr`.
+  **Layman:** Nothing written down explains why the app is built the way it is.
+  Kind: doc.
+  Source: in-session-2026-09-01.
+  Lanes: docs.
+
+- 📋 [SLIP-0083] **There is no SECURITY.md, on a public repository that handles credentials.**
+  The repository is public, the app stores API credentials on disk and downloads
+  images from three third-party services. CLAUDE.md section Security Requirements
+  lists real invariants -- an allowlist, credential scrubbing, a download cap, a
+  decompression-bomb limit -- and the 2026-09-01 review found a live SSRF in the
+  first of them.
+  There is no stated way to report the next one privately, and no statement of
+  what is in scope. GitHub reads SECURITY.md and surfaces it on the Security tab
+  and in the report flow.
+  Short: how to report, what is in scope, and what response to expect.
+  **Layman:** Nobody who finds a security problem knows how to report it.
+  Kind: security.
+  Source: in-session-2026-09-01.
+  Lanes: docs, security.
+
+- 📋 [SLIP-0084] **There is no CONTRIBUTING.md.**
+  The repository is public and has no contributor guidance. The pieces already
+  exist and are scattered: the setup steps are in README.md, the code style and
+  the all-tests-must-pass gate are in STANDARDS.md, and the commit-message shape
+  is enforced by a hook nobody outside the project can read.
+  Worth writing once verify-instructions can be run against it -- that skill
+  executes a document's steps rather than reading them, which is the check this
+  particular file needs.
+  **Layman:** Nothing tells someone how to set the project up and what is expected of a change.
+  Kind: doc.
+  Source: in-session-2026-09-01.
+  Lanes: docs.
+
+- 📋 [SLIP-0085] **There is no .editorconfig, so the shell formatter cannot run.**
+  check-code probes shfmt because the tree holds a shell script
+  (.claude/hook-on-py-edit.sh), then skips it as "no config to run against":
+  without an .editorconfig section whose glob selects *.sh, shfmt would diff
+  every file against its own tab default and report a conforming project as
+  entirely malformed.
+  One small file fixes it. Declare the shell indent the project actually uses,
+  and note that a blanket [*] section does not count -- it is what a project
+  writes when it has not thought about shell, and produces exactly that noise.
+  Worth declaring the Python indent at the same time; STANDARDS.md section 3
+  already states 4 spaces and no tabs.
+  **Layman:** One code checker has no style to check against and is skipped every time.
+  Kind: chore.
+  Source: check-code-2026-09-01.
+  Lanes: ci.
+
+- 📋 [SLIP-0086] **There is no subsystem map, so review tooling partitions by directory.**
+  indie_review_partition looks for docs/subsystems.md or a `## Module map`
+  heading in CLAUDE.md. Neither exists, so it falls back to grouping source files
+  by directory -- which review-code's own procedure forbids, since a directory is
+  not a subsystem.
+  On the 2026-09-01 sweep it returned ui/ as a single 8-file lane containing the
+  1170-line main_window.py, roughly a quarter of the project by line count, and
+  its too_coarse flag did not fire because that flag counts files rather than
+  lines. The partition had to be built by hand.
+  A short module map fixes it permanently and makes every future review cheaper.
+  The hand-built partition from that sweep is a good starting point: render
+  engine, image analysis and spine, API clients, window construction, window
+  actions and workers, dialogs.
+  **Layman:** The code-review tooling has to guess how the project is organised.
+  Kind: doc.
+  Source: in-session-2026-09-01.
+  Lanes: docs.
+
+- 💭 [SLIP-0087] **There is no code-pairs list for facts that live in two places.**
+  close-findings walks .claude/code-pairs.json on every sweep -- the things that
+  must change together but share no searchable token, which no grep will ever
+  surface. The file does not exist, so that step was skipped on 2026-09-01.
+  This review found several genuine pairs the hard way and they are what would
+  seed it: MAX_IMAGE_PIXELS in api/base.py against the figure quoted in CLAUDE.md
+  and STANDARDS.md section 10; the DEFAULT_CONFIG keys against section 7's schema
+  block; CASE_TYPES against the README's case list (which was wrong, fixed in 0d2616c);
+  the worker signal set against section 2's threading table (which was wrong).
+  Filed as considered rather than planned: a pair earns its place the first time
+  a sweep finds a defect across it, and four is thin. Worth starting when the
+  next one appears.
+  **Layman:** A list of things that must be changed together, so one does not drift from the other.
+  Kind: chore.
+  Source: in-session-2026-09-01.
+  Lanes: ci, docs.
 
 ## Defects
 
@@ -614,3 +933,129 @@ building.
   **Layman:** The window creeps across the screen every time you reopen it, and can vanish if you unplug a monitor.
   Kind: fix.
   Source: review-code-2026-09-01 lane-4.
+
+- 📋 [SLIP-0052] **SearchWorker.run is unguarded, so a failure leaves the progress bar spinning forever.**
+  The client construction at the top of run() and the two emits at the bottom sit
+  outside every try. An exception there means finished_signal is never sent, so
+  _on_search_done never runs: the progress bar stays visible and Search stays
+  disabled until the dialog is closed. PyQt6 also treats an unhandled exception
+  in a thread as fatal.
+  The 2026-09-01 pass wrapped BatchWorker.run for exactly this reason and did
+  not carry the same guard to SearchWorker, PreviewWorker or DownloadWorker.
+  Wrap each run() body and emit finished_signal from a finally.
+  **Layman:** If an online search hits an unexpected error, the search never appears to finish.
+  Kind: fix.
+  Source: review-code-2026-09-01 lane-6.
+
+- 📋 [SLIP-0053] **A truncated case_colors.json kills startup; a missing one degrades silently.**
+  core/spine_generator.py loads the file at module scope with a bare json.load
+  guarded only by an exists() check. A truncated or malformed file raises at
+  import time, before any window exists, so the app cannot start and there is no
+  in-app route to recovery. A missing file leaves _CASE_COLORS empty, and every
+  platform then falls back to grey with nothing said.
+  Wrap in try/except (OSError, ValueError), and report the degraded state rather
+  than letting it look like a design choice.
+  **Layman:** If the colour file is damaged the app will not start, and if it is absent every spine turns grey with no warning.
+  Kind: fix.
+  Source: review-code-2026-09-01 lane-2.
+
+- 📋 [SLIP-0054] **Spine-detection failures are hidden by a blanket except around the whole analysis.**
+  _refine_spine_bounds is wrapped by its caller in `except Exception: return
+  geo_left, geo_right`. STANDARDS.md section 5 justifies falling back to the
+  geometric estimate, but not doing it silently -- and the catch is wide enough
+  to hide a genuine bug anywhere in the 55 lines of analysis, including the
+  empty-slice np.percentile case when hi <= lo.
+  The scipy import also sits inside the function, so a missing or broken SciPy
+  disappears the documented Stage 2 entirely with no signal.
+  Hoist the import to module scope, narrow the catch to (ValueError,
+  IndexError), and set a status message when the fallback fires.
+  **Layman:** If the automatic spine finder breaks, you get the rough guess and no hint that anything went wrong.
+  Kind: fix.
+  Source: review-code-2026-09-01 lane-2.
+
+- 📋 [SLIP-0055] **Shading silently does nothing for an unrecognised direction, and wraps above intensity 1.0.**
+  apply_directional_shading has no else branch: an unrecognised `direction`
+  returns the image unshaded with no error. And an intensity above 1.0 makes the
+  gradient factor negative, so astype(np.uint8) wraps to bright values instead of
+  clamping to black.
+  Neither is reachable from the UI today, which is why this is filed rather than
+  fixed -- but both are silent, and the function is public.
+  **Layman:** Two small robustness holes in the shading helper.
+  Kind: fix.
+  Source: review-code-2026-09-01 lane-2.
+
+- 📋 [SLIP-0056] **generate_reflection assumes a 4-band image.**
+  `r, g, b, a = reflection.split()` raises ValueError on an RGB input rather than
+  converting. Every current caller passes RGBA, so this is latent, but the
+  function is public and its signature does not say so.
+  **Layman:** Passing a non-transparent image to the reflection helper raises instead of converting.
+  Kind: fix.
+  Source: review-code-2026-09-01 lane-2.
+
+- 📋 [SLIP-0057] **A very small render width can raise LinAlgError from the perspective solve.**
+  If proj_spine_w truncates to 0 the spine destination quad is degenerate and
+  np.linalg.solve raises LinAlgError; the OpenCV path produces a garbage matrix
+  instead of failing. Not reachable at the spinner's 128px minimum, but
+  BoxRenderer is constructible directly with any width, and the batch and
+  animation paths both build one by hand.
+  Validate the computed quad and raise something a caller can act on.
+  **Layman:** At extreme settings the renderer can fail with an unhelpful maths error.
+  Kind: fix.
+  Source: review-code-2026-09-01 lane-1.
+
+- 📋 [SLIP-0058] **A uniform region makes any spine nudge look like a 20% improvement.**
+  The acceptance test is `best_score > geo_score * 1.2`, which implements
+  STANDARDS.md section 5's 20% bar correctly except when geo_score is 0 -- a
+  uniform region at the geometric estimate -- where any non-zero score clears it.
+  Also worth reconciling: the internal docstring says the nudge goes to the
+  nearest strong edge, while np.argmax takes the strongest in the window.
+  **Layman:** The spine detector can accept a bad adjustment when the image has no detail where it is looking.
+  Kind: fix.
+  Source: review-code-2026-09-01 lane-2.
+
+- 📋 [SLIP-0059] **The progress bar is shared by batch and animation, so one hides it for the other.**
+  _on_batch_done and _on_anim_done both call progress_bar.hide() unconditionally.
+  The 2026-09-01 re-entrancy guard makes the overlapping case much harder to
+  reach from the UI, but the two handlers still share one widget with no owner,
+  so the coupling is still there for any future path that starts both.
+  **Layman:** Running an export while a batch is going makes the progress bar disappear early.
+  Kind: fix.
+  Source: review-code-2026-09-01 lane-5.
+
+- 📋 [SLIP-0060] **Three workers can read the same PIL image object concurrently.**
+  RenderWorker, BatchWorker and AnimationWorker all read self._front_image, and
+  PIL images are not documented thread-safe. The 2026-09-01 re-entrancy guard
+  makes concurrent starts much harder to reach, so this is latent rather than
+  live -- but the guard is a UI-level check, not an ownership rule, and nothing
+  in the workers says the image must not be shared.
+  **Layman:** Two long jobs running at once share one image in memory, which PIL does not promise is safe.
+  Kind: fix.
+  Source: review-code-2026-09-01 lane-5.
+
+- 📋 [SLIP-0061] **Use 3D Boxart is re-enabled for results that have none.**
+  search_dialog re-enables use3d_btn unconditionally after a 3D download
+  completes, rather than re-deriving it from the newly selected result's
+  box3d_url. Selecting a result without one immediately afterwards leaves the
+  button enabled.
+  **Layman:** The 3D Boxart button can look available for a game that does not have one.
+  Kind: fix.
+  Source: review-code-2026-09-01 lane-6.
+
+- 📋 [SLIP-0062] **A failed preview shows two words and discards the reason.**
+  The error handler is `lambda msg: self.preview_label.setText("No preview")` --
+  it binds msg and throws it away, and nothing reaches the status line. Show the
+  reason (escaped, as the 2026-09-01 pass now does for the other API-supplied
+  strings).
+  **Layman:** When a preview image fails to load you are told "No preview" and nothing else.
+  Kind: fix.
+  Source: review-code-2026-09-01 lane-6.
+
+- 📋 [SLIP-0063] **The export base name is derived in three places and only one handles a root folder.**
+  The "derive a base name" logic exists at three call sites and only the first
+  guards an empty parent folder name. An image loaded from a filesystem root
+  exports as " 3D Boxart.png".
+  Extract one helper. The 2026-09-01 pass added _safe_filename() for the
+  sanitising half, which is the natural home for this.
+  **Layman:** Exporting an image loaded from a drive root can produce a filename starting with a space.
+  Kind: fix.
+  Source: review-code-2026-09-01 lane-5.
