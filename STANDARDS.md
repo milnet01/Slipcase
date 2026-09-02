@@ -178,7 +178,12 @@ Calculate expected spine position from case dimensions and image width.
 - Sample **16 horizontal bands** across the image height
 - Measure colour discontinuity at candidate spine boundaries
 - Use **30th percentile** of band scores for robustness against noise
-- Independently nudge left/right boundaries up to **15% of spine width**
+- Independently nudge left/right boundaries up to **15% of the expected
+  spine width, clamped to 8-30 pixels**. The clamp is deliberate and is
+  the reason the effective percentage varies with scan size: it keeps the
+  search window usable on a small scan, where 15% is a couple of pixels,
+  and bounded on a large one, where it would otherwise be wide enough to
+  find a false edge
 - Only accept nudge if improvement exceeds **20%** over geometric baseline
 - Validate final spine width stays within **85-115%** of expected width
 - Fall back to geometric on failure

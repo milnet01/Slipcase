@@ -19,8 +19,9 @@ from core.config import Config
 from core.image_utils import is_full_cover, split_full_cover
 from core.png_utils import save_optimized_png
 from core.renderer import BoxRenderer
+from core.spine_generator import CASE_COLORS_ERROR
 from core.version import __version__
-from ui.animation_dialog import AnimationDialog
+from ui.animation_dialog import AnimationDialog, frames_in_file
 from ui.preview_widget import BusyOverlay, PreviewWidget, pil_to_qpixmap
 from ui.settings_dialog import SettingsDialog
 from ui.search_dialog import SearchDialog
@@ -515,7 +516,14 @@ class MainWindow(QMainWindow):
     def _build_statusbar(self) -> None:
         self.status = QStatusBar()
         self.setStatusBar(self.status)
-        self.status.showMessage("Ready")
+        if CASE_COLORS_ERROR:
+            # Say it rather than letting every spine turn grey silently, which
+            # is indistinguishable from a design choice (SLIP-0053).
+            self.status.showMessage(
+                f"{CASE_COLORS_ERROR} \u2014 spines will use default colours"
+            )
+        else:
+            self.status.showMessage("Ready")
 
     def _cfg(self, section: str, key: str, default, kind):
         """Read a config value, falling back to `default` on a bad type.
@@ -938,8 +946,9 @@ class MainWindow(QMainWindow):
             self, "Export PNG", suggested, "PNG Images (*.png)"
         )
         if path:
-            if not path.lower().endswith(".png"):
-                path += ".png"
+            path = self._with_confirmed_suffix(path, ".png")
+            if path is None:
+                return
             try:
                 save_optimized_png(image, path, compress_level=self._compress_level())
             except OSError as e:
@@ -948,6 +957,30 @@ class MainWindow(QMainWindow):
             self.config.set("ui", "last_export_directory", str(Path(path).parent))
             self._save_config()
             self.status.showMessage(f"Exported: {path}")
+
+    def _with_confirmed_suffix(self, path: str, ext: str) -> str | None:
+        """Append `ext` if missing, asking before an overwrite the dialog missed.
+
+        QFileDialog runs its own overwrite confirmation against the name as
+        typed. Appending the extension afterwards means typing "render" can
+        replace an existing render.png with no warning (SLIP-0039). Only the
+        appended case needs asking -- if the name already carried the
+        extension, the dialog has confirmed the right file.
+        """
+        if path.lower().endswith(ext):
+            return path
+        path += ext
+        if Path(path).exists():
+            reply = QMessageBox.question(
+                self,
+                "Replace file?",
+                f"{Path(path).name} already exists.\nReplace it?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return None
+        return path
 
     def _export_split_covers(self) -> None:
         if self._front_image is None:
@@ -1137,16 +1170,15 @@ class MainWindow(QMainWindow):
         )
         if not path:
             return
-        if not path.lower().endswith(ext):
-            path += ext
+        path = self._with_confirmed_suffix(path, ext)
+        if path is None:
+            return
 
         case_name = self.case_combo.currentText()
         case_type = CASE_TYPES[case_name]
 
         self.progress_bar.show()
-        total = params["frame_count"]
-        if params["bounce"] and total > 2:
-            total = total * 2 - 2
+        total = frames_in_file(params["frame_count"], params["bounce"])
         self.progress_bar.setMaximum(total)
         self.progress_bar.setValue(0)
         self.status.showMessage("Rendering animation...")

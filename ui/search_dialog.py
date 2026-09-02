@@ -37,7 +37,7 @@ def _create_tgdb_client(config: Config) -> TheGamesDBAPI:
 
 class SearchWorker(QThread):
     """Background thread for API searches."""
-    results_ready = pyqtSignal(list)  # list of (source, name, platform, result_obj)
+    results_ready = pyqtSignal(list, int)  # results, number of sources queried
     error = pyqtSignal(str)
     finished_signal = pyqtSignal()
 
@@ -48,52 +48,73 @@ class SearchWorker(QThread):
         self.config = config
 
     def run(self):
+        """Query every source available for this platform.
+
+        The whole body is guarded and both signals are emitted from a
+        finally. An exception escaping run() meant _on_search_done never
+        ran, so the progress bar stayed visible and Search stayed disabled
+        until the dialog was closed -- and PyQt6 treats an unhandled
+        exception in a thread as fatal (SLIP-0052).
+
+        sources_queried counts the sources that were actually asked, which
+        is not the same as the number that returned nothing: with no
+        credentials and a platform libretro does not carry, the count is
+        zero and "no results" would blame the user's search term
+        (SLIP-0038).
+        """
         all_results = []
+        sources_queried = 0
 
-        # ScreenScraper
-        ss = _create_ss_client(self.config)
         try:
-            if ss.is_configured:
-                sys_id = SCREENSCRAPER_SYSTEMS.get(self.platform)
-                try:
-                    results = ss.search_game(self.query, system_id=sys_id)
-                    for r in results[:10]:
-                        all_results.append(("ScreenScraper", r.name, r.platform, r))
-                except Exception as e:
-                    self.error.emit(f"ScreenScraper: {e}")
-        finally:
-            ss.close()
+            # ScreenScraper
+            ss = _create_ss_client(self.config)
+            try:
+                if ss.is_configured:
+                    sources_queried += 1
+                    sys_id = SCREENSCRAPER_SYSTEMS.get(self.platform)
+                    try:
+                        results = ss.search_game(self.query, system_id=sys_id)
+                        for r in results[:10]:
+                            all_results.append(("ScreenScraper", r.name, r.platform, r))
+                    except Exception as e:
+                        self.error.emit(f"ScreenScraper: {e}")
+            finally:
+                ss.close()
 
-        # TheGamesDB
-        tgdb = _create_tgdb_client(self.config)
-        try:
-            if tgdb.is_configured:
-                plat_id = THEGAMESDB_PLATFORMS.get(self.platform)
-                try:
-                    results = tgdb.search_game(self.query, platform_id=plat_id)
-                    for r in results[:10]:
-                        all_results.append(("TheGamesDB", r.name, r.platform, r))
-                except Exception as e:
-                    self.error.emit(f"TheGamesDB: {e}")
-        finally:
-            tgdb.close()
+            # TheGamesDB
+            tgdb = _create_tgdb_client(self.config)
+            try:
+                if tgdb.is_configured:
+                    sources_queried += 1
+                    plat_id = THEGAMESDB_PLATFORMS.get(self.platform)
+                    try:
+                        results = tgdb.search_game(self.query, platform_id=plat_id)
+                        for r in results[:10]:
+                            all_results.append(("TheGamesDB", r.name, r.platform, r))
+                    except Exception as e:
+                        self.error.emit(f"TheGamesDB: {e}")
+            finally:
+                tgdb.close()
 
-        # libretro (try direct lookup)
-        lr = LibretroThumbnails()
-        try:
-            lr_system = LIBRETRO_SYSTEMS.get(self.platform)
-            if lr_system:
-                try:
-                    img = lr.download_boxart(lr_system, self.query)
-                    if img:
-                        all_results.append(("libretro", self.query, self.platform, img))
-                except Exception as e:
-                    self.error.emit(f"libretro: {e}")
+            # libretro (try direct lookup)
+            lr = LibretroThumbnails()
+            try:
+                lr_system = LIBRETRO_SYSTEMS.get(self.platform)
+                if lr_system:
+                    sources_queried += 1
+                    try:
+                        img = lr.download_boxart(lr_system, self.query)
+                        if img:
+                            all_results.append(("libretro", self.query, self.platform, img))
+                    except Exception as e:
+                        self.error.emit(f"libretro: {e}")
+            finally:
+                lr.close()
+        except Exception as e:
+            self.error.emit(f"Search failed: {e}")
         finally:
-            lr.close()
-
-        self.results_ready.emit(all_results)
-        self.finished_signal.emit()
+            self.results_ready.emit(all_results, sources_queried)
+            self.finished_signal.emit()
 
 
 class PreviewWorker(QThread):
@@ -292,16 +313,23 @@ class SearchDialog(QDialog):
         self._worker.finished.connect(self._worker.deleteLater)
         self._worker.start()
 
-    def _on_results(self, results: list) -> None:
+    def _on_results(self, results: list, sources_queried: int) -> None:
         self._results = results
         for source, name, platform, _obj in results:
             item = QListWidgetItem(f"[{source}] {name} ({platform})")
             self.results_list.addItem(item)
 
-        if not results:
-            self.status_label.setText("No results found")
-        else:
+        if results:
             self.status_label.setText(f"Found {len(results)} result(s)")
+        elif sources_queried == 0:
+            # Nothing was asked, so nothing could be found. Saying "no results"
+            # here blames the search term for a missing configuration.
+            self.status_label.setText(
+                "No cover-art sources available for this platform \u2014 "
+                "add API credentials in Settings"
+            )
+        else:
+            self.status_label.setText("No results found")
 
     def _on_error(self, msg: str) -> None:
         self.status_label.setText(f"Error: {html.escape(str(msg))}")

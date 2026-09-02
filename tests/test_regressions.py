@@ -21,6 +21,7 @@ from core.case_types import CASE_TYPES, PLATFORM_CASE_MAP, get_case_for_platform
 from core.config import DEFAULT_CONFIG, Config
 from core.image_utils import generate_reflection
 from core.png_utils import save_optimized_png
+from core.spine_generator import CASE_COLORS_ERROR, _load_case_colors
 from core.renderer import BoxRenderer
 from ui.workers import unique_output_path
 
@@ -205,6 +206,40 @@ class TestPlatformCaseMapping(unittest.TestCase):
 if __name__ == "__main__":
     unittest.main()
 
+
+class TestCaseColoursDegradeGracefully(unittest.TestCase):
+    """A damaged colour file must not stop the application starting.
+
+    The table is read at import, before any window exists, so a bare
+    json.load meant a truncated file raised during import with no in-app
+    route to recovery; a missing file left the table empty and every spine
+    fell back to grey with nothing said (SLIP-0053).
+    """
+
+    def test_a_good_file_loads_with_no_error(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / "case_colors.json"
+            path.write_text('{"PS2": {"brand": "#003791"}}', encoding="utf-8")
+            colors, error = _load_case_colors(path)
+        self.assertEqual(colors, {"PS2": {"brand": "#003791"}})
+        self.assertIsNone(error)
+
+    def test_a_truncated_file_reports_instead_of_raising(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / "case_colors.json"
+            path.write_text('{"PS2": {"brand": "#0037', encoding="utf-8")
+            colors, error = _load_case_colors(path)
+        self.assertEqual(colors, {})
+        self.assertIsNotNone(error)
+
+    def test_a_missing_file_reports_instead_of_going_quiet(self):
+        with tempfile.TemporaryDirectory() as d:
+            colors, error = _load_case_colors(pathlib.Path(d) / "absent.json")
+        self.assertEqual(colors, {})
+        self.assertIn("missing", error)
+
+    def test_the_shipped_file_actually_loads(self):
+        self.assertIsNone(CASE_COLORS_ERROR, "resources/case_colors.json is unreadable")
 
 class TestPersistedKeysAreDeclared(unittest.TestCase):
     """Every ui key the window writes has a declared default.

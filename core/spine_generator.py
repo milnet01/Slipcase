@@ -7,12 +7,26 @@ from PIL import Image, ImageDraw, ImageFont
 
 _RESOURCES = Path(__file__).parent.parent / "resources"
 
-# Load platform colors
-_CASE_COLORS: dict = {}
+def _load_case_colors(path: Path) -> tuple[dict, str | None]:
+    """Read the platform colour table, returning what went wrong if anything.
+
+    This runs at import, before any window exists. A bare json.load here meant
+    a truncated file raised during import and the application could not start
+    at all, with no in-app route to recovery; a missing file left the table
+    empty and every spine silently fell back to grey, which looked like a
+    design choice (SLIP-0053). Both now degrade to grey and say so.
+    """
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f), None
+    except FileNotFoundError:
+        return {}, f"{path.name} is missing"
+    except (OSError, ValueError) as e:
+        return {}, f"{path.name} could not be read: {e}"
+
+
 _colors_path = _RESOURCES / "case_colors.json"
-if _colors_path.exists():
-    with open(_colors_path) as f:
-        _CASE_COLORS = json.load(f)
+_CASE_COLORS, CASE_COLORS_ERROR = _load_case_colors(_colors_path)
 
 
 # Platform-specific branding for the spine strip.
