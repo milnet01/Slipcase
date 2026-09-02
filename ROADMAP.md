@@ -821,7 +821,7 @@ building.
   Source: in-session-2026-09-01.
   Lanes: docs, security.
 
-- 📋 [SLIP-0084] **There is no CONTRIBUTING.md.**
+- ✅ [SLIP-0084] **There is no CONTRIBUTING.md.**
   The repository is public and has no contributor guidance. The pieces already
   exist and are scattered: the setup steps are in README.md, the code style and
   the all-tests-must-pass gate are in STANDARDS.md, and the commit-message shape
@@ -829,6 +829,17 @@ building.
   Worth writing once verify-instructions can be run against it -- that skill
   executes a document's steps rather than reading them, which is the check this
   particular file needs.
+  Resolved (2026-09-02): CONTRIBUTING.md gathers the setup, the gate,
+  the change expectations, the commit shape and the reporting routes
+  that were scattered across README.md, STANDARDS.md and the git
+  history. This item asked that it be written once verify-instructions
+  could be run against it, so the steps were executed rather than read:
+  a fresh clone of the public repository, a Python 3.12 venv, install
+  from requirements.lock and requirements-dev.txt, the gate green in
+  that clone, and python3 main.py launching and staying up. One claim in
+  this item's own body turned out to be false and is not repeated in the
+  document -- the commit-message shape is enforced by no hook; the only
+  hook here is pre-push, which runs the gate.
   **Layman:** Nothing tells someone how to set the project up and what is expected of a change.
   Kind: doc.
   Source: in-session-2026-09-01.

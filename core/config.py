@@ -38,6 +38,8 @@ DEFAULT_CONFIG = {
         "window_geometry": None,
         "recent_files": [],
         "theme": "Midnight Blue",
+        "auto_filename": False,
+        "last_export_directory": "",
     },
 }
 

@@ -126,10 +126,15 @@ class CaseType:
 
 | Target | Width | Format | Transparency |
 |--------|-------|--------|-------------|
-| RetroArch thumbnails | max 512px | PNG | Yes (RGBA) |
-| LaunchBox 3D boxart | 800-1200px | PNG | Yes (RGBA) |
-| Animation (APNG) | configurable | APNG | Yes (RGBA) |
+| RetroArch thumbnails | max 512px | PNG | RGBA where present |
+| LaunchBox 3D boxart | 800-1200px | PNG | RGBA where present |
+| Animation (APNG) | configurable | APNG | RGBA where present |
 | Animation (GIF) | configurable | GIF | No (solid bg) |
+
+"RGBA where present" is exact: a render whose alpha is fully opaque --
+which is every render on a White or Black background -- is written as RGB.
+Section 11 optimisation 3 does this, and an opaque alpha channel is a
+quarter of the file spent on nothing.
 
 ### Rendering Pipeline
 
@@ -221,7 +226,9 @@ The application uses a centralized theme system (`ui/themes.py`):
 - **All thumbnails**: Dark background (`bg_preview`), 1px solid border
 - **Action buttons**: Bold text for primary actions (Generate)
 - **Disabled elements**: Dimmed text (`text_dim`), no interaction feedback
-- **Status bar**: Accent background with white text for visibility
+- **Status bar**: Accent background with `accent_text`, which is dark in
+  both themes -- the accent backgrounds are light, and white would be
+  unreadable on them
 - **Progress bar**: Accent-coloured fill, bordered frame
 - **Busy overlay**: Semi-transparent dark scrim with animated spinner
 
@@ -269,12 +276,13 @@ rendering/
    compress_level}
 ui/
   {last_platform, last_case_type, last_image_directory, window_geometry,
-   recent_files, theme}
+   recent_files, theme, auto_filename, last_export_directory}
 ```
 
 ### Persistence Rules
 
-- Save on: window close, settings dialog OK, recent file added, image directory changed
+- Save on: window close, settings dialog OK, recent file added, image or
+  export directory changed
 - Load on: application start (merged with defaults)
 - Deep merge: saved values override defaults; missing keys get default values
 - Recent files: max 10 entries, most-recent-first, stale entries removed on access
@@ -301,7 +309,9 @@ All API clients extend `APIClient` base class with configurable `min_request_int
 Online search queries all configured APIs in parallel (within a single worker thread):
 1. ScreenScraper (if configured) - up to 10 results
 2. TheGamesDB (if configured) - up to 10 results
-3. libretro (always) - direct name lookup
+3. libretro (only where the platform appears in `LIBRETRO_SYSTEMS`) -
+   direct name lookup. Platforms absent from that map never reach it;
+   SLIP-0038 covers what a user is shown when every source is skipped.
 
 Results are aggregated and displayed with source attribution.
 
@@ -386,7 +396,7 @@ Used for all PNG saves (single export, batch, animation). Applies three impercep
 - **No intermediate canvas in `_perspective_quad`**: Transform padded source directly to canvas-sized output via `fillcolor=(0,0,0,0)`. Never allocate an intermediate `src_canvas`.
 - **Shadow blur on alpha only**: `generate_shadow()` works with `L` mode alpha channel, not full RGBA. ~4x faster Gaussian blur.
 - **Combined top/bottom faces**: `_render_faces()` draws both faces on a single canvas (one `alpha_composite` instead of two).
-- **Vectorized shading**: NumPy `np.linspace` + `np.tile` for gradient overlays, not pixel-by-pixel loops.
+- **Vectorized shading**: NumPy `np.linspace` with `np.newaxis` + `np.broadcast_to` for gradient overlays, not pixel-by-pixel loops. Broadcasting is deliberate over `np.tile`: it never materialises the repeated array.
 - **Edge padding**: `np.pad(mode='edge')` for perspective transform boundary padding.
 
 ### General

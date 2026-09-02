@@ -175,7 +175,9 @@ class ScreenScraperAPI(APIClient):
         try:
             game_id = int(game.get("id", 0))
 
-            # Get best name (prefer US > World > SS > first available)
+            # Get best name, by REGION_PRIORITY: us, wor, eu, uk, jp, ss,
+            # then first available. Read the constant rather than this
+            # comment if the two ever disagree.
             names = game.get("noms", [])
             name = ""
             for region in REGION_PRIORITY:

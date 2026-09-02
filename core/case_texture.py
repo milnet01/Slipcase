@@ -149,7 +149,12 @@ def _draw_jewel_front(draw: ImageDraw.ImageDraw, w: int, h: int) -> None:
 # --- Cartridge/Cardboard boxes ---
 
 def _draw_cardboard_front(draw: ImageDraw.ImageDraw, w: int, h: int) -> None:
-    """Cardboard box: fold lines and slight texture grain."""
+    """Cardboard box: fold lines.
+
+    No texture grain: the docstring promised it and the body never drew
+    it (SLIP-0080). Whether the texture set should be richer is
+    SLIP-0034's question, not a silent gap here.
+    """
     lw = max(1, w // 200)
 
     # Top fold line
@@ -213,7 +218,10 @@ def _draw_ds_front(draw: ImageDraw.ImageDraw, w: int, h: int) -> None:
 # --- PSP / Vita ---
 
 def _draw_psp_front(draw: ImageDraw.ImageDraw, w: int, h: int) -> None:
-    """PSP/Vita case: border indent + UMD/card slot."""
+    """PSP/Vita case: border indent.
+
+    No UMD or card slot is drawn; see SLIP-0080.
+    """
     margin_x = int(w * 0.03)
     margin_y = int(h * 0.02)
     lw = max(1, w // 200)

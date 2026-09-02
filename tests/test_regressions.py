@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from PIL import Image
 
 from core.case_types import CASE_TYPES, PLATFORM_CASE_MAP, get_case_for_platform
-from core.config import Config
+from core.config import DEFAULT_CONFIG, Config
 from core.image_utils import generate_reflection
 from core.png_utils import save_optimized_png
 from core.renderer import BoxRenderer
@@ -205,6 +205,23 @@ class TestPlatformCaseMapping(unittest.TestCase):
 if __name__ == "__main__":
     unittest.main()
 
+
+class TestPersistedKeysAreDeclared(unittest.TestCase):
+    """Every ui key the window writes has a declared default.
+
+    ui.auto_filename and ui.last_export_directory were written by
+    main_window and appeared in neither DEFAULT_CONFIG nor the STANDARDS
+    schema. Harmless at runtime, because every read passes a default -- but
+    a setting nothing declares is a setting nobody can find (SLIP-0076).
+    """
+
+    def test_the_window_writes_no_undeclared_ui_key(self):
+        root = pathlib.Path(__file__).resolve().parent.parent
+        source = (root / "ui" / "main_window.py").read_text(encoding="utf-8")
+        written = set(re.findall(r'config\.set\(\s*"ui",\s*"([a-z_]+)"', source))
+        self.assertTrue(written, "found no ui keys; the search pattern has gone stale")
+        undeclared = sorted(written - set(DEFAULT_CONFIG["ui"]))
+        self.assertEqual(undeclared, [], f"persisted but undeclared: {undeclared}")
 
 class TestVersionIsNotDuplicated(unittest.TestCase):
     """The version is defined once and read everywhere it is shown.

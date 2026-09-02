@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **A subsystem map for review tooling** (SLIP-0086)
+  docs/subsystems.md and .indie-review/partition.json divide the code by what it does rather than by directory, so a review is briefed per concern.
+
+- **CONTRIBUTING.md, with steps that have been run** (SLIP-0084)
+  Setup, the gate, what a change should look like, the commit shape and where to report things. Every step was executed against a fresh clone rather than only written down.
+
 - **The shell formatter now has a style to check against** (SLIP-0085)
   An `.editorconfig` declares the Python and shell indentation the project
   already uses, so `shfmt` no longer skips every run for want of a config.
@@ -27,6 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   noticing.
 
 ### Changed
+
+- **Builds install exactly pinned dependencies** (SLIP-0023)
+  requirements.lock holds the exact versions, transitive ones included, so two builds of one release bundle the same libraries. requirements.txt stays as the readable declaration of what the project depends on.
 
 - **PNG exports are written atomically**
   An interrupted save could replace a good file with a truncated one.
