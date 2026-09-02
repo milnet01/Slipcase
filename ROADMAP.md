@@ -316,13 +316,18 @@ making a build reproducible.
   Kind: perf.
   Source: review-code-2026-09-01 lane-1.
 
-- 📋 [SLIP-0044] **Reconcile the spine nudge cap with what the code actually clamps to.**
+- ✅ [SLIP-0044] **Reconcile the spine nudge cap with what the code actually clamps to.**
   STANDARDS.md section 5 states a flat "up to 15% of spine width". The code is
   max(8, min(30, int(expected_sw * 0.15))), so the real cap is 21.6% on a 500px
   scan and 10% on a 4000px one.
   The floor and ceiling look deliberate -- they keep the search window usable at
   both extremes -- which points at the document being under-specified rather
   than the code being wrong. Decide, then make one match the other.
+  Resolved (2026-09-02): the document took the correction, as this item
+  expected. Section 5 now states the 15% of expected spine width AND the
+  8-30 pixel clamp, and says why the clamp exists -- it keeps the search
+  window usable on a small scan and bounded on a large one, which is
+  what makes the effective percentage vary.
   **Layman:** The written rule for spine detection does not match what the code does.
   Kind: doc-fix.
   Source: review-code-2026-09-01 lane-2.
@@ -522,12 +527,18 @@ making a build reproducible.
   Source: review-code-2026-09-01 lane-6.
   Lanes: ui, api.
 
-- 📋 [SLIP-0072] **The animation frame count does not say that bounce doubles it.**
+- ✅ [SLIP-0072] **The animation frame count does not say that bounce doubles it.**
   Frame count maxes at 120 and bounce is checked by default, so
   `angles += angles[-2:0:-1]` yields 2n-2 = 238 frames in the file. Neither the
   spinbox label nor its tooltip says so, and the estimated output size a user
   might reason about is therefore out by a factor of two.
   Related to SLIP-0036, which bounds the memory; this one is about the label.
+  Resolved (2026-09-02): frames_in_file() holds the arithmetic and both
+  the dialog's live total and the export's progress maximum call it, so
+  the label and the file cannot disagree. The dialog shows the real
+  count as the spinbox or the bounce checkbox changes -- 24 frames with
+  bounce reads 46, and 120 reads 238, the figure this item cited. Both
+  controls' tooltips now say bounce nearly doubles the file.
   **Layman:** Asking for 120 frames with bounce on actually produces 238.
   Kind: ux.
   Source: review-code-2026-09-01 lane-6.
@@ -1064,21 +1075,33 @@ building.
   Kind: fix.
   Source: review-code-2026-09-01 lane-1.
 
-- 📋 [SLIP-0038] **A search with no APIs configured reports "No results found".**
+- ✅ [SLIP-0038] **A search with no APIs configured reports "No results found".**
   With no credentials both is_configured guards are false, and libretro only
   runs for a platform in LIBRETRO_SYSTEMS -- PS5, Xbox One and Xbox Series X
   are in ALL_PLATFORMS and in none of its 24 keys. Every source is then skipped
   and the user is told the query found nothing.
   Track how many sources actually ran and say "No APIs configured -- add
   credentials in Settings" when the count is zero.
+  Resolved (2026-09-02): SearchWorker counts the sources it actually
+  queried and reports it with the results. Where the count is zero -- no
+  credentials and a platform absent from LIBRETRO_SYSTEMS -- the dialog
+  says no sources are available and points at Settings, instead of
+  blaming the search term. Three tests, including PS5, which is in
+  ALL_PLATFORMS and in none of LIBRETRO_SYSTEMS' keys.
   **Layman:** If you have not entered any API keys, search blames your search term.
   Kind: ux.
   Source: review-code-2026-09-01 lane-6.
 
-- 📋 [SLIP-0039] **The export overwrite prompt runs before the .png extension is added.**
+- ✅ [SLIP-0039] **The export overwrite prompt runs before the .png extension is added.**
   The extension is appended after QFileDialog.getSaveFileName has already done
   its overwrite confirmation, so typing "render" silently overwrites an existing
   render.png. Set a defaultSuffix on the dialog instead of appending afterwards.
+  Resolved (2026-09-02): one helper appends the extension and asks
+  before replacing, but only where it changed the name -- if the user
+  typed the extension, the dialog's own confirmation already covered the
+  right file, so there is no double prompt. Applied to both save paths:
+  the PNG export and the animation export, which had the same defect and
+  was not named in this item.
   **Layman:** Typing a filename without .png can overwrite an existing file with no warning.
   Kind: fix.
   Source: review-code-2026-09-01 lane-5.
@@ -1096,7 +1119,7 @@ building.
   Kind: fix.
   Source: review-code-2026-09-01 lane-4.
 
-- 📋 [SLIP-0052] **SearchWorker.run is unguarded, so a failure leaves the progress bar spinning forever.**
+- ✅ [SLIP-0052] **SearchWorker.run is unguarded, so a failure leaves the progress bar spinning forever.**
   The client construction at the top of run() and the two emits at the bottom sit
   outside every try. An exception there means finished_signal is never sent, so
   _on_search_done never runs: the progress bar stays visible and Search stays
@@ -1105,11 +1128,19 @@ building.
   The 2026-09-01 pass wrapped BatchWorker.run for exactly this reason and did
   not carry the same guard to SearchWorker, PreviewWorker or DownloadWorker.
   Wrap each run() body and emit finished_signal from a finally.
+  Resolved (2026-09-02): SearchWorker.run is wrapped and both
+  results_ready and finished_signal are emitted from a finally, so a
+  failure anywhere -- including constructing a client -- still releases
+  the progress bar and the Search button. One claim in this item's body
+  was wrong and is worth recording: PreviewWorker and DownloadWorker
+  already carry an outer try/except that emits error, so neither needed
+  the change. Two tests cover it, including the constructor case that
+  was the actual gap.
   **Layman:** If an online search hits an unexpected error, the search never appears to finish.
   Kind: fix.
   Source: review-code-2026-09-01 lane-6.
 
-- 📋 [SLIP-0053] **A truncated case_colors.json kills startup; a missing one degrades silently.**
+- ✅ [SLIP-0053] **A truncated case_colors.json kills startup; a missing one degrades silently.**
   core/spine_generator.py loads the file at module scope with a bare json.load
   guarded only by an exists() check. A truncated or malformed file raises at
   import time, before any window exists, so the app cannot start and there is no
@@ -1117,6 +1148,13 @@ building.
   platform then falls back to grey with nothing said.
   Wrap in try/except (OSError, ValueError), and report the degraded state rather
   than letting it look like a design choice.
+  Resolved (2026-09-02): the colour table is read through
+  _load_case_colors, which returns the table and what went wrong. A
+  truncated or unreadable file degrades to an empty table instead of
+  raising during import, and a missing one is distinguished from it. The
+  status bar reports either at start-up, so grey spines no longer look
+  like a design choice. Four tests, one of which asserts the shipped
+  resources/case_colors.json still loads.
   **Layman:** If the colour file is damaged the app will not start, and if it is absent every spine turns grey with no warning.
   Kind: fix.
   Source: review-code-2026-09-01 lane-2.

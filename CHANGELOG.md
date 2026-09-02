@@ -50,6 +50,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The animation dialog shows how many frames will really be written** (SLIP-0072)
+  Bounce replays the sweep in reverse, so asking for 120 frames writes 238. Nothing said so, and the file was about twice the size you would expect.
+
+- **A damaged colour file no longer stops the app starting** (SLIP-0053)
+  A truncated resources/case_colors.json crashed on launch. It now starts with default spine colours and says why in the status bar; a missing file is reported rather than passing silently.
+
+- **Search says when there is nothing to search** (SLIP-0038)
+  With no API credentials entered, and on a platform libretro does not carry, search reported "No results found" -- blaming your search term for a missing setup. It now says so and points at Settings.
+
+- **A failed online search now ends** (SLIP-0052)
+  An unexpected error left the progress bar spinning and the Search button disabled until the dialog was closed.
+
+- **Exporting without typing .png no longer replaces a file silently** (SLIP-0039)
+  The extension was added after the file dialog had already asked about overwriting, so typing "render" could replace an existing render.png with no warning. Both the image and animation exports are covered.
+
 - **The standards document and the code agree again** (SLIP-0074)
   Seven statements described behaviour the code does not have -- transparency in exports, the status bar's text colour, when libretro is searched, how gradients are built, which regional cover is preferred, and two case details that are not drawn. Covers SLIP-0074, 0075, 0077, 0078, 0079 and 0080.
 
