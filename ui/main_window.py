@@ -19,6 +19,7 @@ from core.config import Config
 from core.image_utils import is_full_cover, split_full_cover
 from core.png_utils import save_optimized_png
 from core.renderer import BoxRenderer
+from core.version import __version__
 from ui.animation_dialog import AnimationDialog
 from ui.preview_widget import BusyOverlay, PreviewWidget, pil_to_qpixmap
 from ui.settings_dialog import SettingsDialog
@@ -1312,7 +1313,7 @@ class MainWindow(QMainWindow):
         QMessageBox.about(
             self,
             "About Slipcase",
-            "Slipcase v1.0\n\n"
+            f"Slipcase v{__version__}\n\n"
             "Convert 2D game cover art into realistic 3D boxart renders.\n"
             "Compatible with RetroArch and LaunchBox.",
         )

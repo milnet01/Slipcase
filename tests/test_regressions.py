@@ -4,9 +4,11 @@ Each test locks one fixed defect. Named for the behaviour, not the finding,
 so they stay readable once the review is forgotten.
 """
 
+import json
 import math
 import os
 import pathlib
+import re
 import sys
 import tempfile
 import unittest
@@ -202,3 +204,31 @@ class TestPlatformCaseMapping(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestVersionIsNotDuplicated(unittest.TestCase):
+    """The version is defined once and read everywhere it is shown.
+
+    The About dialog previously spelled its own version literal, so a bump
+    updated core/version.py and left the dialog behind. Asserted by source
+    inspection rather than by opening the dialog: importing ui.main_window
+    pulls in QtWidgets, which needs desktop libraries a CI runner may not
+    have, and the defect is a duplicated literal rather than a runtime one.
+    """
+
+    def _main_window_source(self):
+        root = pathlib.Path(__file__).resolve().parent.parent
+        return (root / "ui" / "main_window.py").read_text(encoding="utf-8")
+
+    def test_about_dialog_reads_the_shared_version(self):
+        self.assertIn("from core.version import __version__", self._main_window_source())
+
+    def test_about_dialog_spells_no_version_of_its_own(self):
+        literals = re.findall(r"Slipcase v[0-9]", self._main_window_source())
+        self.assertEqual(literals, [], f"hard-coded version in the About text: {literals}")
+
+    def test_the_bump_recipe_points_at_the_version_module(self):
+        root = pathlib.Path(__file__).resolve().parent.parent
+        recipe = json.loads((root / ".claude" / "bump.json").read_text(encoding="utf-8"))
+        self.assertEqual(recipe["version_source"], "core/version.py")
+        self.assertEqual([f["path"] for f in recipe["files"]], ["core/version.py"])

@@ -207,12 +207,19 @@ making a build reproducible.
   Source: in-session-2026-08-27.
   Lanes: api, tests.
 
-- 📋 [SLIP-0022] **Run the test suite in CI on push.**
+- ✅ [SLIP-0022] **Run the test suite in CI on push.**
   The repository has no CI configuration. The project rule that all tests must
   pass before a commit is enforced only by whoever remembers to run pytest.
   This is also a prerequisite for two of the Distribution items rather than a
   separate concern: a Windows build and a macOS build cannot be produced on
   this machine, and hosted runners are the route to both. The repository is public, so Linux runner minutes cost nothing. Note that the push gate is wired but idle: the pre-push hook runs and reports it has no pipeline to gate, so landing CI means giving it a local gate script to run.
+  Resolved (2026-09-02): scripts/local-ci.sh holds the one list of
+  checks (ruff, pytest) and .github/workflows/ci.yml calls that same
+  script, so the local gate and GitHub cannot drift. The machine-wide
+  pre-push hook discovers the script by name, so the push gate is no
+  longer idle -- it ran and passed on the pushing commit. Actions pinned
+  to immutable SHAs, checkout with persist-credentials: false. First CI
+  run was green in 43s.
   **Layman:** Have the tests run automatically whenever code is pushed.
   Kind: chore.
   Source: in-session-2026-08-27.
