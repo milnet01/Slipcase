@@ -31,6 +31,13 @@ _MAX_TOP_ANGLE = 8.0          # Maximum top face angle in degrees
 _V_SHRINK_BASE = 0.96         # Vertical shrink base (far edge foreshortening)
 _V_SHRINK_ANGLE_FACTOR = 0.12 # Additional shrink per 90 degrees of angle
 
+# Largest output width the renderer will honour. The working canvas is
+# output_width * supersample wide and roughly 1.3x that tall in RGBA, with
+# several layers alive at once, so 8192 reached about 1.4 GB per layer.
+# Image.MAX_IMAGE_PIXELS guards decoding, not Image.new, so it never covered
+# this. STANDARDS.md section 4 documents no target above 1200px (SLIP-0037).
+MAX_OUTPUT_WIDTH = 2048
+
 # Layout spacing (multiplied by supersample scale)
 _CANVAS_PAD = 20              # Horizontal/vertical canvas padding
 _CANVAS_TOP_PAD = 5           # Extra top padding for face overhang
@@ -68,7 +75,7 @@ class BoxRenderer:
     ):
         self.case_type = case_type
         self.angle = angle
-        self.output_width = output_width
+        self.output_width = min(max(int(output_width), 1), MAX_OUTPUT_WIDTH)
         self.show_reflection = show_reflection
         self.show_shadow = show_shadow
         self.show_texture = show_texture

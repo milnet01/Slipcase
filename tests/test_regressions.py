@@ -24,7 +24,7 @@ from core.config import DEFAULT_CONFIG, Config
 from core.image_utils import apply_directional_shading, generate_reflection
 from core.png_utils import save_optimized_png
 from core.spine_generator import CASE_COLORS_ERROR, _load_case_colors
-from core.renderer import BoxRenderer
+from core.renderer import MAX_OUTPUT_WIDTH, BoxRenderer
 from ui.main_window import MainWindow
 from ui.workers import unique_output_path
 
@@ -392,3 +392,27 @@ class TestDegenerateRenderIsRefused(unittest.TestCase):
         renderer = BoxRenderer(CASE_TYPES["DVD Case"], output_width=64, angle=30)
         out = renderer.render(Image.new("RGBA", (700, 1000), (255, 0, 0, 255)))
         self.assertGreater(out.size[0], 1)
+
+
+class TestOutputWidthIsBounded(unittest.TestCase):
+    """A width beyond the documented range cannot exhaust memory.
+
+    The spinner ran to 8192 and the renderer multiplies by the supersample
+    factor, so the working canvas reached roughly 16k x 21k RGBA -- about
+    1.4 GB per layer with several alive at once. Image.MAX_IMAGE_PIXELS
+    guards decoding, not Image.new, so it never covered this (SLIP-0037).
+    """
+
+    def test_a_width_past_the_ceiling_is_clamped(self):
+        renderer = BoxRenderer(CASE_TYPES["DVD Case"], output_width=8192)
+        self.assertEqual(renderer.output_width, MAX_OUTPUT_WIDTH)
+
+    def test_a_width_inside_the_range_is_untouched(self):
+        for width in (128, 512, 1200, MAX_OUTPUT_WIDTH):
+            with self.subTest(width=width):
+                renderer = BoxRenderer(CASE_TYPES["DVD Case"], output_width=width)
+                self.assertEqual(renderer.output_width, width)
+
+    def test_the_ceiling_covers_every_documented_target(self):
+        # STANDARDS.md section 4: RetroArch max 512px, LaunchBox 800-1200px.
+        self.assertGreaterEqual(MAX_OUTPUT_WIDTH, 1200)

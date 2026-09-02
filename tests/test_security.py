@@ -10,6 +10,7 @@ Covers ROADMAP SLIP-0021.
 import os
 import sys
 import unittest
+from io import BytesIO
 from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -17,6 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import requests
 from PIL import Image
 
+from api import base
 from api.base import (
     ALLOWED_IMAGE_DOMAINS,
     MAX_DOWNLOAD_BYTES,
@@ -270,3 +272,109 @@ class TestTlsEnforced(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestJsonRequestsAreValidated(unittest.TestCase):
+    """The allowlist covers the JSON path, not only image downloads.
+
+    get() tested only startswith("http"), so "TLS only" on that path rested
+    entirely on the hardcoded API_URL constants being right -- true, and
+    enforced by nothing (SLIP-0064).
+
+    Each refusal test hands the session a response it would happily return,
+    so the request CAN succeed if the guard is missing. Without that, these
+    passed on a DNS failure and proved nothing.
+    """
+
+    @staticmethod
+    def _willing_session(client):
+        response = MagicMock()
+        response.raise_for_status.return_value = None
+        return patch.object(client._session, "get", return_value=response)
+
+    def test_the_three_real_api_hosts_are_permitted(self):
+        for url in (
+            "https://api.screenscraper.fr/api2/jeuInfos.php",
+            "https://api.thegamesdb.net/v1/Games/ByGameName",
+            "https://thumbnails.libretro.com/x/Named_Boxarts/y.png",
+        ):
+            with self.subTest(url=url):
+                self.assertTrue(_is_allowed_url(url))
+
+    def test_a_permitted_host_still_gets_through(self):
+        client = APIClient(base_url="https://api.thegamesdb.net/v1", min_request_interval=0)
+        with self._willing_session(client) as session_get:
+            client.get("Games/ByGameName")
+        session_get.assert_called_once()
+
+    def test_a_plain_http_api_url_is_refused_without_being_requested(self):
+        client = APIClient(base_url="http://api.screenscraper.fr/api2", min_request_interval=0)
+        with self._willing_session(client) as session_get:
+            with self.assertRaises(requests.RequestException) as caught:
+                client.get("jeuInfos.php")
+        self.assertIn("not permitted", str(caught.exception))
+        session_get.assert_not_called()
+
+    def test_a_base_url_off_the_allowlist_is_refused_without_being_requested(self):
+        client = APIClient(base_url="https://evil.example.com/api", min_request_interval=0)
+        with self._willing_session(client) as session_get:
+            with self.assertRaises(requests.RequestException):
+                client.get("jeuInfos.php")
+        session_get.assert_not_called()
+
+    def test_an_absolute_url_off_the_allowlist_is_refused(self):
+        client = APIClient(base_url="https://api.thegamesdb.net/v1", min_request_interval=0)
+        with self._willing_session(client) as session_get:
+            with self.assertRaises(requests.RequestException):
+                client.get("https://evil.example.com/steal")
+        session_get.assert_not_called()
+
+
+def _png_bytes(size=(8, 8)):
+    """A real PNG, so a download that is NOT cut short succeeds."""
+    buf = BytesIO()
+    Image.new("RGB", size, (10, 20, 30)).save(buf, format="PNG")
+    return buf.getvalue()
+
+
+class TestDownloadDeadline(unittest.TestCase):
+    """A trickling server trips neither the size cap nor the read timeout.
+
+    timeout=(10, 30) bounds the gap between reads, not the total, so one byte
+    every 29 seconds held a worker thread and a connection open indefinitely
+    (SLIP-0065).
+
+    The payload is a real PNG and well under MAX_DOWNLOAD_BYTES, so the only
+    thing that can return None is the deadline. download_image() swallows
+    every exception, so a test using junk bytes would pass whether the
+    deadline fired or the decode simply failed.
+    """
+
+    def _response(self):
+        response = MagicMock(
+            is_redirect=False, is_permanent_redirect=False, headers={},
+        )
+        response.raise_for_status.return_value = None
+        payload = _png_bytes()
+        response.iter_content.return_value = iter(
+            [payload[i:i + 4] for i in range(0, len(payload), 4)]
+        )
+        return response
+
+    def test_a_slow_trickle_is_abandoned(self):
+        client = APIClient(base_url="https://screenscraper.fr", min_request_interval=0)
+        # A deadline already in the past, rather than a faked clock: the rate
+        # limiter reads the same monotonic clock, and patching it globally
+        # made that compute a multi-day sleep.
+        with patch.object(client._session, "get", return_value=self._response()), \
+                patch.object(base, "MAX_DOWNLOAD_SECONDS", -1.0):
+            self.assertIsNone(
+                client.download_image("https://screenscraper.fr/slow.png")
+            )
+
+    def test_the_same_download_succeeds_within_the_deadline(self):
+        client = APIClient(base_url="https://screenscraper.fr", min_request_interval=0)
+        with patch.object(client._session, "get", return_value=self._response()):
+            image = client.download_image("https://screenscraper.fr/ok.png")
+        self.assertIsNotNone(image, "the payload itself must be downloadable")
+        self.assertEqual(image.size, (8, 8))

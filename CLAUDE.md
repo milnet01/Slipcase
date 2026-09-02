@@ -61,9 +61,16 @@ All tests must pass before any commit. 18 tests covering case types, image utils
 
 ## Security Requirements
 These MUST be maintained in all code changes:
-- **URL allowlist**: `api/base.py` restricts image downloads to known domains only (`ALLOWED_IMAGE_DOMAINS`)
+- **URL allowlist**: `api/base.py` restricts every request -- image downloads
+  and JSON API calls alike -- to known domains over HTTPS
+  (`ALLOWED_IMAGE_DOMAINS`, checked by `_is_allowed_url`). The name is
+  historical: the check covers both paths, and is re-run on every redirect
+  hop so a 302 cannot move the fetch to another host or drop TLS
 - **Credential scrubbing**: API errors strip passwords/keys before display (`_sanitize_message`)
-- **Download limit**: 50MB max per image download (`MAX_DOWNLOAD_BYTES`)
+- **Download limit**: 50MB max per image download (`MAX_DOWNLOAD_BYTES`), and
+  a wall-clock budget per download (`MAX_DOWNLOAD_SECONDS`). The byte cap
+  alone does not bound a trickle: the request timeout is per-read, so a
+  slow drip never reaches either limit
 - **TLS only**: All API requests use HTTPS with `verify=True`
 - **Config permissions**: `~/.config/slipcase/` dir gets `0o700`, config file gets `chmod 600`
 - **Decompression bomb**: `MAX_IMAGE_PIXELS` (40M) defined and applied in

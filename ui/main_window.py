@@ -18,7 +18,7 @@ from core.case_types import CASE_TYPES, ALL_PLATFORMS, PLATFORM_CASE_MAP
 from core.config import Config
 from core.image_utils import is_full_cover, split_full_cover
 from core.png_utils import save_optimized_png
-from core.renderer import BoxRenderer
+from core.renderer import MAX_OUTPUT_WIDTH, BoxRenderer
 from core.spine_generator import CASE_COLORS_ERROR
 from core.version import __version__
 from ui.animation_dialog import AnimationDialog, frames_in_file
@@ -459,7 +459,11 @@ class MainWindow(QMainWindow):
         size_row = QHBoxLayout()
         size_row.addWidget(QLabel("Output Width:"))
         self.width_spin = QSpinBox()
-        self.width_spin.setRange(128, 8192)
+        self.width_spin.setRange(128, MAX_OUTPUT_WIDTH)
+        self.width_spin.setToolTip(
+            "Width of the exported image. RetroArch thumbnails are at most "
+            "512px; LaunchBox uses 800-1200px."
+        )
         self.width_spin.setValue(512)
         self.width_spin.setSuffix(" px")
         size_row.addWidget(self.width_spin)

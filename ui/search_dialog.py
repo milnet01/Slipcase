@@ -331,6 +331,16 @@ class SearchDialog(QDialog):
         else:
             self.status_label.setText("No results found")
 
+    def _on_preview_error(self, msg: str) -> None:
+        """Say why the preview failed rather than only that it did.
+
+        The handler was a lambda that bound the message and threw it away
+        (SLIP-0062). Escaped: the text can carry an API-supplied string, and
+        QLabel renders HTML by default.
+        """
+        self.preview_label.setText("No preview")
+        self.status_label.setText(f"Preview failed: {html.escape(str(msg))}")
+
     def _on_error(self, msg: str) -> None:
         self.status_label.setText(f"Error: {html.escape(str(msg))}")
 
@@ -338,6 +348,19 @@ class SearchDialog(QDialog):
         self.search_btn.setEnabled(True)
         self.search_input.setEnabled(True)
         self.progress.hide()
+
+    @staticmethod
+    def _result_has_3d(source: str, obj) -> bool:
+        """Whether one result offers a pre-rendered 3D boxart."""
+        return bool(source == "ScreenScraper" and getattr(obj, "box3d_url", None))
+
+    def _selected_result_has_3d(self) -> bool:
+        """The same question about whatever is selected right now."""
+        row = self.results_list.currentRow()
+        if not (0 <= row < len(self._results)):
+            return False
+        source, _name, _platform, obj = self._results[row]
+        return self._result_has_3d(source, obj)
 
     def _on_result_selected(self, row: int) -> None:
         valid = 0 <= row < len(self._results)
@@ -356,14 +379,13 @@ class SearchDialog(QDialog):
         )
 
         # Check if 3D boxart is available
-        has_3d = (source == "ScreenScraper"
-                  and hasattr(obj, "box3d_url") and obj.box3d_url)
+        has_3d = self._result_has_3d(source, obj)
+        self.use3d_btn.setEnabled(has_3d)
         if has_3d:
             info += (
                 f"<br><span style='color: {get_active_theme().accent};'>"
                 "3D Boxart available</span>"
             )
-            self.use3d_btn.setEnabled(True)
 
         self.info_label.setText(info)
 
@@ -393,7 +415,7 @@ class SearchDialog(QDialog):
         self.preview_label.setText("Loading...")
         self._preview_worker = PreviewWorker(source, obj, self.config, row)
         self._preview_worker.preview_ready.connect(self._on_preview_ready)
-        self._preview_worker.error.connect(lambda msg: self.preview_label.setText("No preview"))
+        self._preview_worker.error.connect(self._on_preview_error)
         self._preview_worker.finished.connect(self._preview_worker.deleteLater)
         self._preview_worker.start()
 
@@ -469,7 +491,10 @@ class SearchDialog(QDialog):
     def _on_3d_download(self, image, name: str) -> None:
         self.progress.hide()
         self.download_btn.setEnabled(True)
-        self.use3d_btn.setEnabled(True)
+        # Re-derive from whatever is selected NOW. Enabling unconditionally
+        # left the button live for a result with no 3D boxart, if one was
+        # selected while the download ran (SLIP-0061).
+        self.use3d_btn.setEnabled(self._selected_result_has_3d())
         if image is None:
             self.status_label.setText("Failed to download 3D boxart")
             return

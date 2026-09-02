@@ -36,6 +36,13 @@ ALLOWED_IMAGE_DOMAINS: set[str] = {
     "thumbnails.libretro.com",
 }
 
+# Wall-clock budget for one download, in seconds. timeout=(10, 30) bounds the
+# gap between reads, not the total: a server sending one byte every 29 seconds
+# holds a worker thread and a connection open indefinitely while never
+# reaching MAX_DOWNLOAD_BYTES, so neither the size cap nor the timeout ever
+# fires (SLIP-0065).
+MAX_DOWNLOAD_SECONDS = 60.0
+
 # Accepted image formats. The list exists to keep the decoder attack surface
 # small: every format here is one more Pillow decoder reachable from a
 # remote response. BMP and GIF were dropped on 2026-09-02 (SLIP-0066)
@@ -122,8 +129,16 @@ class APIClient:
 
         Errors are sanitized to strip credential values before propagating.
         """
-        self._rate_limit()
         full_url = f"{self.base_url}/{url.lstrip('/')}" if not url.startswith("http") else url
+        # The same check download_image() runs. startswith("http") was the only
+        # test here, so "TLS only" on the JSON path rested entirely on the
+        # hardcoded API_URL constants being right -- true today, and enforced
+        # by nothing (SLIP-0064). All three API hosts are subdomains of, or
+        # exactly, an entry in ALLOWED_IMAGE_DOMAINS, so no second list is
+        # needed.
+        if not _is_allowed_url(full_url):
+            raise requests.RequestException("URL not permitted by allowlist")
+        self._rate_limit()
         try:
             response = self._session.get(
                 full_url, params=params, timeout=(10, 30), verify=True, **kwargs
@@ -190,9 +205,14 @@ class APIClient:
             # Stream with enforced byte limit
             chunks: list[bytes] = []
             downloaded = 0
+            deadline = time.monotonic() + MAX_DOWNLOAD_SECONDS
             for chunk in response.iter_content(chunk_size=65_536):
                 downloaded += len(chunk)
                 if downloaded > MAX_DOWNLOAD_BYTES:
+                    response.close()
+                    return None
+                if time.monotonic() > deadline:
+                    # A trickle never trips the size cap or the read timeout.
                     response.close()
                     return None
                 chunks.append(chunk)
