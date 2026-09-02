@@ -1,0 +1,27 @@
+# Exact runtime dependencies, including transitive ones.
+#
+# requirements.txt states what Slipcase depends on and the minimum it needs.
+# This file states what a build actually installs, so two builds of one
+# release bundle the same libraries and a rendering change arriving from a
+# dependency is traceable to a commit here.
+#
+# CI and the packaged builds install from this file. Developing against
+# requirements.txt is fine and is how a newer release gets noticed.
+#
+# Regenerate on the Python version CI uses (see .github/workflows/ci.yml):
+#
+#   python3.12 -m venv /tmp/lock && /tmp/lock/bin/pip install -r requirements.txt
+#   /tmp/lock/bin/pip freeze > requirements.lock   # then restore this header
+#
+certifi==2026.7.22
+charset-normalizer==3.5.1
+idna==3.19
+numpy==2.5.2
+opencv-python-headless==5.0.0.93
+pillow==12.3.0
+PyQt6==6.11.0
+PyQt6-Qt6==6.11.2
+PyQt6_sip==13.12.0
+requests==2.34.2
+scipy==1.18.1
+urllib3==2.7.0

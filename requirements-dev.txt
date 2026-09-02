@@ -1,0 +1,7 @@
+# Tooling the gate needs, pinned so a new release of a linter cannot turn CI
+# red on a commit that did not change any code.
+#
+# scripts/local-ci.sh runs these; requirements.lock holds the runtime side.
+# These are the versions the gate is known to pass with.
+ruff==0.16.4
+pytest==9.1.1
