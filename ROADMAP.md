@@ -422,7 +422,7 @@ making a build reproducible.
   Source: review-code-2026-09-01 lane-3.
   Lanes: api, security.
 
-- 📋 [SLIP-0066] **Decide whether BMP and GIF need to be accepted image formats.**
+- ✅ [SLIP-0066] **Decide whether BMP and GIF need to be accepted image formats.**
   _ALLOWED_IMAGE_FORMATS is {PNG, JPEG, WEBP, BMP, GIF}. The comment above it
   says the list exists to "reject complex formats with larger attack surface",
   but nothing records why BMP and GIF are in it -- the app only ever renders a
@@ -431,6 +431,14 @@ making a build reproducible.
   parameters, so they land in the upstream's access logs (CWE-598). The upstream
   API mandates that form, so there is nothing to fix -- but it should be written
   down rather than rediscovered by the next review.
+  Resolved (2026-09-02): user decided to drop both.
+  _ALLOWED_IMAGE_FORMATS is now PNG, JPEG and WEBP, with the reasoning
+  kept beside it so adding a format back is a deliberate decision. The
+  ScreenScraper credentials-in-query-string exposure (CWE-598) is
+  recorded in _auth_params' docstring as accepted rather than missed --
+  the upstream API mandates that form, the transport is HTTPS with
+  verify=True, and _sanitize_message strips those keys before display.
+  Two tests lock the accepted set; both were mutation-checked.
   **Layman:** The download filter accepts two image formats the app has no obvious use for.
   Kind: investigate.
   Source: review-code-2026-09-01 lane-3.
@@ -867,7 +875,7 @@ building.
   Kind: fix.
   Source: in-session-2026-08-27.
 
-- 📋 [SLIP-0028] **The About dialog carries its own copy of the version string.**
+- ✅ [SLIP-0028] **The About dialog carries its own copy of the version string.**
   __init__.py holds __version__ as the source of truth, and .claude/bump.json
   rewrites that file and only that file. The About dialog in ui/main_window.py
   spells its version into a literal string instead of reading __version__, so
@@ -876,15 +884,27 @@ building.
   other is written to two parts.
   Fix by reading __version__ in the dialog. The bump recipe's own todo list
   anticipates this, asking that the version be stamped wherever it is shown.
+  Resolved (2026-09-02): core/version.py now holds __version__ as the
+  single definition and ui/main_window.py imports it, so the About
+  dialog cannot go stale. The version moved out of the root __init__.py
+  because the repository root is a sys.path entry rather than an
+  importable package, which is why the dialog could not read it in the
+  first place. Three source-inspection regression tests lock it --
+  importing ui.main_window pulls in QtWidgets, which a CI runner may
+  lack the desktop libraries for.
   **Layman:** The version shown in About will go stale the next time the version changes.
   Kind: fix.
   Source: in-session-2026-08-27.
   Lanes: ui.
 
-- 📋 [SLIP-0029] **The bump recipe still says the project is not version-controlled.**
+- ✅ [SLIP-0029] **The bump recipe still says the project is not version-controlled.**
   The tag todo in .claude/bump.json reads "once this becomes a git repo
   (currently not version-controlled)". The project is a git repository now, so
   the caveat is stale and the tagging step is simply live.
+  Resolved (2026-09-02): .claude/bump.json's tag todo no longer says the
+  project is not version-controlled, and the CHANGELOG todo now points
+  at the file that exists rather than asking for one to be scaffolded.
+  The recipe's version_source moved to core/version.py with SLIP-0028.
   **Layman:** A note in the release config is out of date now that git is set up.
   Kind: doc-fix.
   Source: in-session-2026-08-27.

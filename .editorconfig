@@ -1,0 +1,28 @@
+# Editor and formatter configuration for Slipcase.
+#
+# The sections are per-language on purpose. shfmt reads this file to learn the
+# shell indent, and a single blanket [*] section is what a project writes when
+# it has not thought about shell -- shfmt would then diff every script against
+# a default this project never adopted and report conforming files as
+# malformed. STANDARDS.md section 3 "Code Style" sets 4 spaces and no tabs.
+
+root = true
+
+[*.py]
+indent_style = space
+indent_size = 4
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+max_line_length = 100
+
+[*.sh]
+indent_style = space
+indent_size = 4
+# shfmt does not indent case branches by default; this project does.
+switch_case_indent = true
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true

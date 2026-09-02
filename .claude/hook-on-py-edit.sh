@@ -24,9 +24,9 @@ PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && 
 
 file=$(jq -r '.tool_input.file_path // .tool_response.filePath // empty' 2>/dev/null)
 case "$file" in
-    "$PROJECT_ROOT"/core/*.py|*/core/*.py) ;;
-    "$PROJECT_ROOT"/ui/*.py|*/ui/*.py) ;;
-    "$PROJECT_ROOT"/api/*.py|*/api/*.py) ;;
+    "$PROJECT_ROOT"/core/*.py | */core/*.py) ;;
+    "$PROJECT_ROOT"/ui/*.py | */ui/*.py) ;;
+    "$PROJECT_ROOT"/api/*.py | */api/*.py) ;;
     *) exit 0 ;;
 esac
 
