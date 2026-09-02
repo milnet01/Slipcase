@@ -36,9 +36,14 @@ ALLOWED_IMAGE_DOMAINS: set[str] = {
     "thumbnails.libretro.com",
 }
 
-# Accepted image formats (reject complex formats with larger attack surface)
+# Accepted image formats. The list exists to keep the decoder attack surface
+# small: every format here is one more Pillow decoder reachable from a
+# remote response. BMP and GIF were dropped on 2026-09-02 (SLIP-0066)
+# because cover art from all three services is PNG, JPEG or WEBP, and
+# nothing recorded a use for the other two. Adding a format back is a
+# deliberate decision, not a convenience.
 _ALLOWED_IMAGE_FORMATS: frozenset[str] = frozenset({
-    "PNG", "JPEG", "WEBP", "BMP", "GIF",
+    "PNG", "JPEG", "WEBP",
 })
 
 # Last request time per API host, shared across client INSTANCES.

@@ -21,6 +21,7 @@ from api.base import (
     ALLOWED_IMAGE_DOMAINS,
     MAX_DOWNLOAD_BYTES,
     APIClient,
+    _ALLOWED_IMAGE_FORMATS,
     _is_allowed_url,
     _sanitize_message,
 )
@@ -224,6 +225,35 @@ class TestDownloadLimits(unittest.TestCase):
             self.assertIsNone(
                 client.download_image("https://screenscraper.fr/x.svg")
             )
+
+
+class TestAcceptedImageFormats(unittest.TestCase):
+    """The set of decoders a remote response can reach is a deliberate choice.
+
+    SLIP-0066 dropped BMP and GIF: cover art from all three services is PNG,
+    JPEG or WEBP, and nothing recorded a use for the other two. This test
+    fails if a format is added back, which is the intent -- widening the set
+    widens the attack surface and should be an explicit decision.
+    """
+
+    def test_only_the_three_cover_art_formats_are_accepted(self):
+        self.assertEqual(_ALLOWED_IMAGE_FORMATS, frozenset({"PNG", "JPEG", "WEBP"}))
+
+    def test_bmp_and_gif_are_rejected_by_the_download_path(self):
+        client = APIClient(base_url="https://screenscraper.fr")
+        for fmt in ("BMP", "GIF"):
+            with self.subTest(image_format=fmt):
+                response = MagicMock(
+                    is_redirect=False, is_permanent_redirect=False, headers={},
+                )
+                response.raise_for_status.return_value = None
+                response.iter_content.return_value = iter([b"bytes"])
+                img = MagicMock(format=fmt, size=(10, 10))
+                with patch.object(client._session, "get", return_value=response), \
+                        patch("api.base.Image.open", return_value=img):
+                    self.assertIsNone(
+                        client.download_image("https://screenscraper.fr/x.img")
+                    )
 
 
 class TestTlsEnforced(unittest.TestCase):

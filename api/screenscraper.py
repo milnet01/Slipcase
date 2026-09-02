@@ -87,6 +87,14 @@ class ScreenScraperAPI(APIClient):
 
         Parameter order matters: devid/devpassword MUST come before ssid/sspassword.
         Returns list of tuples to preserve order.
+
+        These credentials travel in the query string, so they reach
+        ScreenScraper's own access logs (CWE-598). That is not a defect here
+        to fix: the upstream API mandates this form and offers no header or
+        body alternative. Written down so a later review recognises it as
+        accepted rather than missed (SLIP-0066). The transport is HTTPS with
+        verify=True, so the exposure stops at the upstream, and
+        _sanitize_message strips these keys before any error is displayed.
         """
         params = []
         if self.devid and self.devpassword:

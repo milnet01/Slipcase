@@ -135,6 +135,12 @@ which covers the source repository going public.
   notarisation, which requires a paid Apple developer account — decide whether
   that cost is worth paying or whether an unsigned build with install
   instructions is acceptable.
+  Decided (2026-09-02, user): ship UNSIGNED with install instructions. A
+  paid Apple developer account is not being bought, so the first launch
+  shows Gatekeeper's "unidentified developer" warning and the README
+  must document the right-click -> Open step that clears it. Signing and
+  notarisation are out of scope for this item; reopen only if the
+  warning proves to be a real barrier.
   **Layman:** A Mac download that opens like any other Mac app.
   Kind: package.
   Source: user-request-2026-08-27.
@@ -567,12 +573,16 @@ building.
   so a CLI entry point would mostly be argument parsing over code that is
   already there.
   Decide first whether that audience is one this project wants to serve.
+  Declined (2026-09-02, user): GUI only. The project keeps one way in,
+  so batch conversion stays reachable through the window and main.py
+  keeps launching nothing else. Recorded rather than deleted so the idea
+  is not re-proposed; reopen only on a real request for headless use.
   **Layman:** Convert a whole folder of covers from a script, without opening the window.
   Kind: feature.
   Source: in-session-2026-08-27.
   Lanes: cli, core.
 
-- 💭 [SLIP-0027] **Let users define their own case types.**
+- 📋 [SLIP-0027] **Let users define their own case types.**
   CASE_TYPES is a dictionary in core/case_types.py, so covering a system that
   is not already listed means editing Python. Case colours are already loaded
   from resources/case_colors.json, so the precedent for data-driven case
@@ -580,6 +590,13 @@ building.
   A case type is dimensions plus a colour, which is exactly the shape that
   survives being moved into a config file. The open question is whether user
   definitions live alongside the built-ins or override them by name.
+  Accepted (2026-09-02, user): build it, loaded from a file. Promoted
+  from considered to planned. The open design question in this item's
+  body still stands and is the first thing the work must settle: whether
+  user definitions sit alongside the built-ins or override them by name.
+  resources/case_colors.json is the precedent for the loading path, and
+  SLIP-0053 (a truncated case_colors.json kills startup) is the failure
+  mode a second data file must not repeat."
   **Layman:** Let people add a case for a console the app does not know about yet.
   Kind: feature.
   Source: in-session-2026-08-27.
