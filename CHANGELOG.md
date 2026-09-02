@@ -9,10 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The shell formatter now has a style to check against** (SLIP-0085)
+  An `.editorconfig` declares the Python and shell indentation the project
+  already uses, so `shfmt` no longer skips every run for want of a config.
+
+- **SECURITY.md, with a private way to report a flaw** (SLIP-0083)
+  GitHub private vulnerability reporting is enabled, and the file states what
+  is in scope, what is not, and which release is supported.
+
+- **The test suite runs automatically on every push** (SLIP-0022)
+  `scripts/local-ci.sh` holds the one list of checks and the GitHub workflow
+  calls that same script, so the local push gate and CI cannot drift apart.
+
 - **Regression tests for the security invariants and for every defect fixed in this release**
-  The suite grows from 18 tests to 56. `api/` had no coverage at all, so the URL
-  allowlist, credential scrubbing and the download limits could each have been
-  removed by a refactor without a test noticing.
+  `api/` had no coverage at all, so the URL allowlist, credential scrubbing and
+  the download limits could each have been removed by a refactor without a test
+  noticing.
 
 ### Changed
 
@@ -28,6 +40,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   slower. The documented requirement said 9 while every call site used 6.
 
 ### Fixed
+
+- **libretro cover art can now be found by typing a game's title** (SLIP-0089)
+  Thumbnails are stored under the full ROM name with its region tag, so asking
+  for the bare title matched nothing on any system. The lookup now tries the
+  exact name first, then the common region tags.
+
+- **The release recipe no longer claims the project is not under git** (SLIP-0029)
+  It also points at the changelog that exists rather than asking for one to be
+  created.
+
+- **About shows the real version** (SLIP-0028)
+  The dialog carried its own copy of the version string, which a bump updated
+  everywhere else and left behind here.
 
 - **Credentials are trimmed of stray whitespace before being saved**
 
@@ -112,6 +137,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   12-14% too wide and did not match the real-world case proportions.
 
 ### Security
+
+- **Downloads accept only PNG, JPEG and WEBP** (SLIP-0066)
+  BMP and GIF were accepted with no recorded use. Every accepted format is
+  another image decoder a remote response can reach.
 
 - **Escape cover-art titles and API errors before showing them in the search dialog**
   Titles come from a community-edited database and were rendered as rich text.
