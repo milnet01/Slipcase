@@ -422,7 +422,7 @@ making a build reproducible.
   Kind: ux.
   Source: review-code-2026-09-01 lane-2.
 
-- 📋 [SLIP-0064] **The JSON request path applies no host or scheme validation.**
+- ✅ [SLIP-0064] **The JSON request path applies no host or scheme validation.**
   download_image() runs every URL through _is_allowed_url on every redirect hop
   since 2026-09-01. get() does not: it builds full_url from base_url and a
   relative path with `startswith("http")` as its only test, so "TLS only" on the
@@ -431,17 +431,31 @@ making a build reproducible.
   or a config would not be caught.
   Route get() through the same check, with the two API hosts added to the set or
   a second allowlist for them.
+  Resolved (2026-09-02): get() runs full_url through _is_allowed_url
+  before the request, the same check download_image() uses. No second
+  allowlist was needed -- api.screenscraper.fr and api.thegamesdb.net
+  are subdomains of existing entries and thumbnails.libretro.com is one
+  exactly, verified against all three. Four tests, mutation-checked; the
+  first drafts passed with the guard removed because an unguarded
+  request dies on DNS, so they now hand the session a response it would
+  return and assert it was never called.
   **Layman:** The rule that all traffic is HTTPS is enforced for image downloads but not for the data requests.
   Kind: security.
   Source: review-code-2026-09-01 lane-3.
   Lanes: api, security.
 
-- 📋 [SLIP-0065] **The request timeout is per-read, not a deadline.**
+- ✅ [SLIP-0065] **The request timeout is per-read, not a deadline.**
   timeout=(10, 30) bounds the gap between reads, not the total. A server sending
   one byte every 29 seconds holds a worker thread and a connection open forever
   while never reaching MAX_DOWNLOAD_BYTES, so neither the size cap nor the
   timeout fires.
   Add a wall-clock check inside the iter_content loop.
+  Resolved (2026-09-02): MAX_DOWNLOAD_SECONDS bounds one download by
+  wall clock, checked inside the streaming loop where the byte cap
+  already is. Tested with a real PNG payload well under the size cap, so
+  the deadline is the only thing that can return None --
+  download_image() swallows every exception, so a junk-bytes test would
+  have passed whether the deadline fired or the decode simply failed.
   **Layman:** A server that trickles data very slowly can tie up a search indefinitely.
   Kind: security.
   Source: review-code-2026-09-01 lane-3.
@@ -1075,13 +1089,19 @@ building.
   Kind: fix.
   Source: review-code-2026-09-01 lane-6.
 
-- 📋 [SLIP-0037] **Output width accepts values that exhaust memory.**
+- ✅ [SLIP-0037] **Output width accepts values that exhaust memory.**
   width_spin ranges to 8192 and the renderer multiplies by the supersample
   factor, so the working canvas reaches roughly 16k x 21k RGBA -- about 1.4 GB
   per layer, with several alive at once. Image.MAX_IMAGE_PIXELS guards decoding,
   not Image.new, so it does not cover this. STANDARDS.md section 4 documents no
   target above 1200px.
   Clamp output_width in BoxRenderer, and lower the spinner maximum.
+  Resolved (2026-09-02): BoxRenderer clamps output_width to
+  MAX_OUTPUT_WIDTH (2048) and the width spinner stops there rather than
+  at 8192. The ceiling still covers every target STANDARDS.md section 4
+  documents -- RetroArch at most 512px, LaunchBox 800-1200 -- and a test
+  asserts that, so lowering it further would fail rather than silently
+  dropping a supported size.
   **Layman:** The width box lets you pick a size far larger than anything the app documents.
   Kind: fix.
   Source: review-code-2026-09-01 lane-1.
@@ -1256,20 +1276,28 @@ building.
   Kind: fix.
   Source: review-code-2026-09-01 lane-5.
 
-- 📋 [SLIP-0061] **Use 3D Boxart is re-enabled for results that have none.**
+- ✅ [SLIP-0061] **Use 3D Boxart is re-enabled for results that have none.**
   search_dialog re-enables use3d_btn unconditionally after a 3D download
   completes, rather than re-deriving it from the newly selected result's
   box3d_url. Selecting a result without one immediately afterwards leaves the
   button enabled.
+  Resolved (2026-09-02): _on_3d_download re-derives the button from the
+  current selection instead of enabling it unconditionally. The has-3D
+  test is now one helper used by both the selection handler and the
+  download handler, so they cannot disagree.
   **Layman:** The 3D Boxart button can look available for a game that does not have one.
   Kind: fix.
   Source: review-code-2026-09-01 lane-6.
 
-- 📋 [SLIP-0062] **A failed preview shows two words and discards the reason.**
+- ✅ [SLIP-0062] **A failed preview shows two words and discards the reason.**
   The error handler is `lambda msg: self.preview_label.setText("No preview")` --
   it binds msg and throws it away, and nothing reaches the status line. Show the
   reason (escaped, as the 2026-09-01 pass now does for the other API-supplied
   strings).
+  Resolved (2026-09-02): the lambda that bound the message and discarded
+  it is replaced by a handler that keeps "No preview" on the image area
+  and puts the reason on the status line, HTML-escaped like the other
+  API-supplied strings.
   **Layman:** When a preview image fails to load you are told "No preview" and nothing else.
   Kind: fix.
   Source: review-code-2026-09-01 lane-6.

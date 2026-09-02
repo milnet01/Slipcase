@@ -34,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The export width is capped at a size the app documents** (SLIP-0037)
+  The width box accepted values that could use all available memory before anything was saved.
+
 - **Renders are faster and slightly sharper** (SLIP-0043)
   Every render did two full image-resize passes that changed nothing. Measured at 512px: about 8% quicker, and cover art is no longer resampled twice.
 
@@ -52,6 +55,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   slower. The documented requirement said 9 while every call site used 6.
 
 ### Fixed
+
+- **Two smaller search-window fixes** (SLIP-0061)
+  The 3D Boxart button could look available for a game that has none, and a failed preview said only "No preview" while discarding the reason. Covers SLIP-0061 and SLIP-0062.
 
 - **Clearer failures in the rendering helpers** (SLIP-0057)
   A width too small to draw at raised an unhelpful maths error, or silently produced a corrupt image. Shading now refuses an unknown direction instead of doing nothing, and the reflection helper accepts an image without transparency. Covers SLIP-0055, 0056 and 0057.
@@ -179,6 +185,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   12-14% too wide and did not match the real-world case proportions.
 
 ### Security
+
+- **A download now has a time limit, not only a size limit** (SLIP-0065)
+  A server drip-feeding data could hold a search open indefinitely without ever reaching the 50MB cap.
+
+- **Data requests are held to the same allowlist as image downloads** (SLIP-0064)
+  The rule that all traffic goes to known sites over HTTPS was enforced when downloading a cover but not when asking the service for search results.
 
 - **Downloads accept only PNG, JPEG and WEBP** (SLIP-0066)
   BMP and GIF were accepted with no recorded use. Every accepted format is
