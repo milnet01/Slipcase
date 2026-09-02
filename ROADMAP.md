@@ -561,6 +561,20 @@ making a build reproducible.
   Needs a human with credentials, or a recorded-response fixture (vcrpy or
   similar) so it can run in CI without them. The second is the better answer and
   composes with SLIP-0022.
+  Progress (2026-09-02): the libretro third is now verified live, and
+  the run found SLIP-0089 -- the lookup asked for a filename the server
+  does not have, so that path had never worked for any title a person
+  would type. That is the argument for this item stated as evidence: the
+  offline tests were green throughout, because the URL builder matched
+  its specification and the specification was wrong about the server.
+  tests/test_libretro.py carries an opt-in live check behind
+  SLIPCASE_LIVE_API, which is what a fixture cannot replace for a naming
+  contract that lives on someone else's server. ScreenScraper and
+  TheGamesDB remain unverified: no credentials are configured on this
+  machine (all four ScreenScraper fields and the TheGamesDB key are
+  empty), so neither the live run nor the agreed fixture recording can
+  be made. Recording needs the user's credentials once. Kept open for
+  those two thirds.
   **Layman:** The one feature nobody has actually run end to end against the real services.
   Kind: test.
   Source: verify-delivery-2026-09-01.
@@ -775,7 +789,7 @@ building.
   Source: in-session-2026-09-01.
   Lanes: docs.
 
-- 📋 [SLIP-0083] **There is no SECURITY.md, on a public repository that handles credentials.**
+- ✅ [SLIP-0083] **There is no SECURITY.md, on a public repository that handles credentials.**
   The repository is public, the app stores API credentials on disk and downloads
   images from three third-party services. CLAUDE.md section Security Requirements
   lists real invariants -- an allowlist, credential scrubbing, a download cap, a
@@ -785,6 +799,14 @@ building.
   what is in scope. GitHub reads SECURITY.md and surfaces it on the Security tab
   and in the report flow.
   Short: how to report, what is in scope, and what response to expect.
+  Resolved (2026-09-02): SECURITY.md states the private reporting route,
+  what is in scope, what is not, and that only the latest release is
+  supported. GitHub private vulnerability reporting was disabled, so the
+  document would have pointed at a channel that did not exist -- enabled
+  as part of this item. The out-of-scope section records the
+  ScreenScraper query-string credentials as an accepted upstream
+  constraint, so a reporter is not sent to write up a finding already
+  ruled on. Every code claim was checked against the source.
   **Layman:** Nobody who finds a security problem knows how to report it.
   Kind: security.
   Source: in-session-2026-09-01.
@@ -803,7 +825,7 @@ building.
   Source: in-session-2026-09-01.
   Lanes: docs.
 
-- 📋 [SLIP-0085] **There is no .editorconfig, so the shell formatter cannot run.**
+- ✅ [SLIP-0085] **There is no .editorconfig, so the shell formatter cannot run.**
   check-code probes shfmt because the tree holds a shell script
   (.claude/hook-on-py-edit.sh), then skips it as "no config to run against":
   without an .editorconfig section whose glob selects *.sh, shfmt would diff
@@ -814,6 +836,15 @@ building.
   writes when it has not thought about shell, and produces exactly that noise.
   Worth declaring the Python indent at the same time; STANDARDS.md section 3
   already states 4 spaces and no tabs.
+  Resolved (2026-09-02): .editorconfig declares the Python and shell
+  styles in separate sections, so shfmt has a glob that selects *.sh and
+  no longer skips. switch_case_indent is declared because this project
+  indents case branches and shfmt does not by default. One mechanical
+  reformat followed -- shfmt normalises the spacing around case pattern
+  separators and that is not configurable -- so
+  .claude/hook-on-py-edit.sh took it; it still parses and passes
+  shellcheck. shfmt is not in the CI gate, which stays ruff plus pytest;
+  it runs from check-code locally.
   **Layman:** One code checker has no style to check against and is skipped every time.
   Kind: chore.
   Source: check-code-2026-09-01.
@@ -1132,3 +1163,29 @@ building.
   **Layman:** Exporting an image loaded from a drive root can produce a filename starting with a space.
   Kind: fix.
   Source: review-code-2026-09-01 lane-5.
+
+- ✅ [SLIP-0089] **The libretro lookup asked for a filename that does not exist.**
+  A libretro thumbnail is named after the full No-Intro ROM name, which carries
+  a region tag: the SNES cover for Super Mario World is stored as
+  "Super Mario World (USA).png". download_boxart built the URL from the bare
+  title, and ui/search_dialog.py passes the user's typed query, so the libretro
+  half of Search Online returned nothing for any title a person would type.
+  Measured 2026-09-02: "Super Mario World" 404, the same name with " (USA)" 200
+  and 301,072 bytes.
+  Found by the first live run of the search path, which is what SLIP-0088 asked
+  for. Nothing in the offline tests could have caught it -- the URL builder was
+  behaving exactly as specified, and the specification was wrong about the
+  server.
+  Resolved (2026-09-02): download_boxart tries the exact name first, then
+  " (USA)", " (World)", " (Europe)" and " (Japan)", stopping at the first hit,
+  so a caller holding the full ROM name pays nothing. A total miss costs one
+  request per candidate at the client's 0.5s interval. The per-system directory
+  listing was considered and rejected: it is about 1 MB for the SNES alone.
+  Verified live: Super Mario World, Sonic The Hedgehog and Ratchet &amp; Clank all
+  resolve to real PNGs; an invented title still misses. tests/test_libretro.py
+  locks the candidate order offline and carries an opt-in live check behind
+  SLIPCASE_LIVE_API.
+  **Layman:** Searching libretro for cover art never found anything, because it asked for the wrong filename.
+  Kind: fix.
+  Source: verify-delivery-2026-09-02.
+  Lanes: api.

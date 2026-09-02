@@ -13,6 +13,13 @@ class LibretroThumbnails(APIClient):
 
     BASE_URL = "https://thumbnails.libretro.com"
 
+    # Region tags appended to a bare title when the exact name misses.
+    # Ordered by library coverage; the empty string keeps the exact name
+    # first, for a caller that already holds the full ROM name.
+    REGION_SUFFIXES: tuple[str, ...] = (
+        "", " (USA)", " (World)", " (Europe)", " (Japan)",
+    )
+
     def __init__(self):
         super().__init__(base_url=self.BASE_URL, min_request_interval=0.5)
 
@@ -48,18 +55,41 @@ class LibretroThumbnails(APIClient):
             f"/Named_Boxarts/{quote(safe_name, safe='')}.png"
         )
 
+    def candidate_urls(self, system: str, game_name: str) -> list[str]:
+        """Ordered URLs to try for one game, most likely first.
+
+        A libretro thumbnail is named after the full No-Intro ROM name, which
+        carries a region tag: the SNES cover for Super Mario World is stored as
+        "Super Mario World (USA).png". A bare title 404s, so searching for what
+        a person actually types found nothing at all until 2026-09-02.
+
+        The exact name is tried first, so a caller that already holds the full
+        ROM name pays nothing for this. The tags after it are ordered by how
+        much of the library they cover.
+        """
+        return [
+            self.get_boxart_url(system, game_name + suffix)
+            for suffix in self.REGION_SUFFIXES
+        ]
+
     def download_boxart(self, system: str, game_name: str) -> Image.Image | None:
         """Download a game's boxart from libretro-thumbnails.
+
+        Tries the exact name, then the common region tags, and stops at the
+        first hit. A total miss costs one request per candidate.
 
         Args:
             system: libretro system name.
             game_name: Game name.
 
         Returns:
-            PIL Image or None if not found.
+            PIL Image or None if no candidate resolved.
         """
-        url = self.get_boxart_url(system, game_name)
-        return self.download_image(url)
+        for url in self.candidate_urls(system, game_name):
+            img = self.download_image(url)
+            if img is not None:
+                return img
+        return None
 
 
 # Map platform names to libretro system directory names
