@@ -690,7 +690,7 @@ building.
   Kind: doc-fix.
   Source: in-session-2026-08-27.
 
-- 📋 [SLIP-0074] **STANDARDS section 4 promises RGBA output while section 11 drops the alpha channel.**
+- ✅ [SLIP-0074] **STANDARDS section 4 promises RGBA output while section 11 drops the alpha channel.**
   Section 4's output table says Transparency "Yes (RGBA)" for both RetroArch and
   LaunchBox. Section 11 optimisation 3 drops the alpha channel entirely whenever
   the image is fully opaque, which is every render with a White or Black
@@ -698,21 +698,26 @@ building.
   The code follows section 11 and is right to -- an opaque RGBA image wastes a
   quarter of the file. Section 4 is the side to change: it should say the output
   is RGBA where transparency is present.
+  Resolved (2026-09-02): section 4's table now reads "RGBA where
+  present", with one sentence saying an opaque render is written as RGB
+  and why. Section 11 was the correct side, as this item said.
   **Layman:** Two parts of the standards document disagree about whether exported images keep transparency.
   Kind: doc-fix.
   Source: review-code-2026-09-01 lane-1.
 
-- 📋 [SLIP-0075] **STANDARDS section 6 says the status bar has white text; it has dark text.**
+- ✅ [SLIP-0075] **STANDARDS section 6 says the status bar has white text; it has dark text.**
   Section 6 states "Status bar: Accent background with white text". themes.py
   uses accent_text, which is #2e3440 on Nord and #1a1a1a on Monokai -- dark, and
   correctly so, since the accent backgrounds are light and white would be
   unreadable. Section 6's own colour-slot table already describes the real rule.
   Document side.
+  Resolved (2026-09-02): section 6 now names accent_text and says it is
+  dark in both themes because the accent backgrounds are light.
   **Layman:** A colour rule in the standards document does not match what the app does.
   Kind: doc-fix.
   Source: review-code-2026-09-01 lane-4.
 
-- 📋 [SLIP-0076] **Two persisted config keys are missing from the STANDARDS schema.**
+- ✅ [SLIP-0076] **Two persisted config keys are missing from the STANDARDS schema.**
   ui.auto_filename and ui.last_export_directory are written by main_window and
   appear in neither section 7's schema block nor DEFAULT_CONFIG. Harmless at
   runtime, since every read passes a default -- but one of the two sides is
@@ -721,46 +726,65 @@ building.
   Decide, then either add them to both or stop persisting them.
   Section 7's schema gained compress_level on 2026-09-01, so it is otherwise
   current.
+  Resolved (2026-09-02): decided that both keys are genuine user
+  preferences -- a checkbox state and a remembered export folder -- so
+  they are declared rather than dropped. Added to DEFAULT_CONFIG and to
+  section 7's schema, and the persistence rule now names the export
+  directory. A mutation-checked test fails if the window persists
+  another ui key nothing declares, so the two sides cannot drift apart
+  again.
   **Layman:** The settings file holds two values the documentation does not list.
   Kind: doc-fix.
   Source: review-code-2026-09-01 lanes 2 and 4.
 
-- 📋 [SLIP-0077] **STANDARDS section 8 says libretro is queried always; it is not.**
+- ✅ [SLIP-0077] **STANDARDS section 8 says libretro is queried always; it is not.**
   Section 8's search strategy says "libretro (always)". The lookup is gated on
   the platform appearing in LIBRETRO_SYSTEMS, which holds 24 keys -- PS5, Xbox
   One and Xbox Series X are in ALL_PLATFORMS and in none of them, so for those
   three platforms libretro is never queried.
   SLIP-0038 covers the user-facing half (the misleading "No results found").
   This is the document side.
+  Resolved (2026-09-02): section 8 now says libretro is queried only
+  where the platform appears in LIBRETRO_SYSTEMS, and points at
+  SLIP-0038 for what a user is shown when every source is skipped.
   **Layman:** The search documentation overstates which sources are checked.
   Kind: doc-fix.
   Source: review-code-2026-09-01 lane-6.
 
-- 📋 [SLIP-0078] **STANDARDS section 11 names np.tile for gradients; the code uses broadcasting.**
+- ✅ [SLIP-0078] **STANDARDS section 11 names np.tile for gradients; the code uses broadcasting.**
   Section 11 says gradients are built with np.tile. core/image_utils.py uses
   np.newaxis and np.broadcast_to instead, which is strictly better -- broadcasting
   does not materialise the array. The code is the right side; the wording is
   stale.
+  Resolved (2026-09-02): section 11 now names np.newaxis with
+  np.broadcast_to and says broadcasting is deliberate over np.tile
+  because it never materialises the repeated array.
   **Layman:** A performance rule names a technique the code improved on.
   Kind: doc-fix.
   Source: review-code-2026-09-01 lane-2.
 
-- 📋 [SLIP-0079] **The ScreenScraper media-selection docstring contradicts REGION_PRIORITY.**
+- ✅ [SLIP-0079] **The ScreenScraper media-selection docstring contradicts REGION_PRIORITY.**
   _select_best_media's docstring says "prefer US > World > SS > first available".
   REGION_PRIORITY is (us, wor, eu, uk, jp, ss) -- Europe, UK and Japan are
   missing from the docstring and SS is last rather than third. The constant is
   the behaviour; the docstring is wrong.
+  Resolved (2026-09-02): the comment now gives all six regions in
+  REGION_PRIORITY order and says to read the constant if the two ever
+  disagree.
   **Layman:** A comment lists the wrong order for choosing which regional cover to use.
   Kind: doc-fix.
   Source: review-code-2026-09-01 lane-3.
 
-- 📋 [SLIP-0080] **Two case-texture docstrings describe features that are not drawn.**
+- ✅ [SLIP-0080] **Two case-texture docstrings describe features that are not drawn.**
   _draw_psp_front's docstring says "border indent + UMD/card slot" and the body
   draws only the indent. _draw_cardboard_front says "fold lines and slight
   texture grain" and draws no grain.
   Either implement the missing halves or correct the docstrings. Worth deciding
   alongside SLIP-0034, which covers the six case types whose spine overlay is
   empty -- the same question of how complete the texture set is meant to be.
+  Resolved (2026-09-02): both docstrings corrected to describe what is
+  drawn, each naming this item, rather than inventing the missing art.
+  How complete the texture set should be stays SLIP-0034's question.
   **Layman:** Comments promise case details the code does not actually draw.
   Kind: doc-fix.
   Source: review-code-2026-09-01 lane-1.

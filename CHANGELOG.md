@@ -50,6 +50,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The standards document and the code agree again** (SLIP-0074)
+  Seven statements described behaviour the code does not have -- transparency in exports, the status bar's text colour, when libretro is searched, how gradients are built, which regional cover is preferred, and two case details that are not drawn. Covers SLIP-0074, 0075, 0077, 0078, 0079 and 0080.
+
+- **Two remembered settings are now declared** (SLIP-0076)
+  The auto-filename checkbox and the last export folder were saved but listed nowhere, so nothing told you they existed. A test now fails if another setting is saved without being declared.
+
 - **libretro cover art can now be found by typing a game's title** (SLIP-0089)
   Thumbnails are stored under the full ROM name with its region tag, so asking
   for the bare title matched nothing on any system. The lookup now tries the
