@@ -34,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Renders are faster and slightly sharper** (SLIP-0043)
+  Every render did two full image-resize passes that changed nothing. Measured at 512px: about 8% quicker, and cover art is no longer resampled twice.
+
 - **Builds install exactly pinned dependencies** (SLIP-0023)
   requirements.lock holds the exact versions, transitive ones included, so two builds of one release bundle the same libraries. requirements.txt stays as the readable declaration of what the project depends on.
 
@@ -49,6 +52,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   slower. The documented requirement said 9 while every call site used 6.
 
 ### Fixed
+
+- **Clearer failures in the rendering helpers** (SLIP-0057)
+  A width too small to draw at raised an unhelpful maths error, or silently produced a corrupt image. Shading now refuses an unknown direction instead of doing nothing, and the reflection helper accepts an image without transparency. Covers SLIP-0055, 0056 and 0057.
+
+- **Exporting from a drive root no longer produces a blank name** (SLIP-0063)
+  An image loaded from the top of a drive exported as " 3D Boxart.png". The name is now derived in one place, which falls back to the title and then the file name.
+
+- **The app shows its own icon in the taskbar** (SLIP-0048)
+  Neither the X11 nor the Wayland route to an icon was set, so the window showed a generic one on both.
 
 - **The animation dialog shows how many frames will really be written** (SLIP-0072)
   Bounce replays the sweep in reverse, so asking for 120 frames writes 238. Nothing said so, and the file was about twice the size you would expect.

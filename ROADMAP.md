@@ -305,13 +305,19 @@ making a build reproducible.
   Kind: enhancement.
   Source: review-code-2026-09-01 lanes 2 and 4.
 
-- 📋 [SLIP-0043] **Skip the no-op resample in the perspective warp.**
+- ✅ [SLIP-0043] **Skip the no-op resample in the perspective warp.**
   _perspective_quad calls cv2.resize (and the PIL equivalent on the fallback
   path) to the size the image already is: front_shaded is front_w x front_h and
   spine_shaded is spine_w x front_h at both call sites. That is a full
   INTER_LANCZOS4 pass over roughly 1.3 MP for no change, twice per render, and
   a second resample of already-resized cover art costs sharpness.
   Guard both with `if image.size != (src_w, src_h)`.
+  Resolved (2026-09-02): both the OpenCV and PIL paths now resample only
+  when the size differs. Instrumenting a render confirms this item's
+  claim exactly -- 2 of 2 _perspective_quad calls pass an image already
+  at the target size, so both LANCZOS passes are skipped. Measured at
+  512px on a DVD Case: 211.7 ms to 195.1 ms per render, about 8%, plus
+  the sharpness a second resample was costing.
   **Layman:** Removes a slow image-resize step that does nothing, twice per render.
   Kind: perf.
   Source: review-code-2026-09-01 lane-1.
@@ -370,13 +376,18 @@ making a build reproducible.
   Kind: perf.
   Source: review-code-2026-09-01 lanes 2 and 4.
 
-- 📋 [SLIP-0048] **The window has no icon under Wayland.**
+- ✅ [SLIP-0048] **The window has no icon under Wayland.**
   main() calls neither setDesktopFileName nor setWindowIcon, though
   slipcase.desktop ships an Icon= line and resources/ holds four PNG sizes. On
   X11 the title-bar icon comes from _NET_WM_ICON, which Qt writes only from
   setWindowIcon; on Wayland matching is by app_id, which Qt takes from
   desktopFileName(). Plasma 6 defaults to Wayland here, so today there is no
   icon on either path. Two lines in main().
+  Resolved (2026-09-02): main() sets setDesktopFileName("slipcase") for
+  Wayland's app_id matching and setWindowIcon for X11's _NET_WM_ICON.
+  All four shipped PNG sizes are added to one QIcon so the compositor
+  picks its own; verified the icon reports 48, 64, 128 and 256
+  available.
   **Layman:** The app shows a generic icon in the taskbar instead of its own.
   Kind: fix.
   Source: review-code-2026-09-01 lane-4.
@@ -1173,32 +1184,45 @@ building.
   Kind: fix.
   Source: review-code-2026-09-01 lane-2.
 
-- 📋 [SLIP-0055] **Shading silently does nothing for an unrecognised direction, and wraps above intensity 1.0.**
+- ✅ [SLIP-0055] **Shading silently does nothing for an unrecognised direction, and wraps above intensity 1.0.**
   apply_directional_shading has no else branch: an unrecognised `direction`
   returns the image unshaded with no error. And an intensity above 1.0 makes the
   gradient factor negative, so astype(np.uint8) wraps to bright values instead of
   clamping to black.
   Neither is reachable from the UI today, which is why this is filed rather than
   fixed -- but both are silent, and the function is public.
+  Resolved (2026-09-02): an unrecognised direction now raises ValueError
+  naming the four accepted values, and intensity is clamped to 0..1
+  before the gradient is built. Tests cover both, including that
+  intensity 4.0 reaches near-black rather than wrapping bright.
   **Layman:** Two small robustness holes in the shading helper.
   Kind: fix.
   Source: review-code-2026-09-01 lane-2.
 
-- 📋 [SLIP-0056] **generate_reflection assumes a 4-band image.**
+- ✅ [SLIP-0056] **generate_reflection assumes a 4-band image.**
   `r, g, b, a = reflection.split()` raises ValueError on an RGB input rather than
   converting. Every current caller passes RGBA, so this is latent, but the
   function is public and its signature does not say so.
+  Resolved (2026-09-02): the cropped reflection is converted to RGBA
+  before split(), so a 3-band input works instead of raising ValueError.
+  Tests cover RGB and RGBA input.
   **Layman:** Passing a non-transparent image to the reflection helper raises instead of converting.
   Kind: fix.
   Source: review-code-2026-09-01 lane-2.
 
-- 📋 [SLIP-0057] **A very small render width can raise LinAlgError from the perspective solve.**
+- ✅ [SLIP-0057] **A very small render width can raise LinAlgError from the perspective solve.**
   If proj_spine_w truncates to 0 the spine destination quad is degenerate and
   np.linalg.solve raises LinAlgError; the OpenCV path produces a garbage matrix
   instead of failing. Not reachable at the spinner's 128px minimum, but
   BoxRenderer is constructible directly with any width, and the batch and
   animation paths both build one by hand.
   Validate the computed quad and raise something a caller can act on.
+  Resolved (2026-09-02): render() refuses a projection under 1px in
+  either dimension with a ValueError naming the width, the case and the
+  angle. Both failure modes this item predicted were reproduced first:
+  without the guard the numpy path raises LinAlgError("Singular matrix")
+  and the OpenCV path returns an image with no error at all, which is
+  the worse of the two.
   **Layman:** At extreme settings the renderer can fail with an unhelpful maths error.
   Kind: fix.
   Source: review-code-2026-09-01 lane-1.
@@ -1250,12 +1274,17 @@ building.
   Kind: fix.
   Source: review-code-2026-09-01 lane-6.
 
-- 📋 [SLIP-0063] **The export base name is derived in three places and only one handles a root folder.**
+- ✅ [SLIP-0063] **The export base name is derived in three places and only one handles a root folder.**
   The "derive a base name" logic exists at three call sites and only the first
   guards an empty parent folder name. An image loaded from a filesystem root
   exports as " 3D Boxart.png".
   Extract one helper. The 2026-09-01 pass added _safe_filename() for the
   sanitising half, which is the natural home for this.
+  Resolved (2026-09-02): one _export_base_name helper replaces the three
+  copies, and it falls through to the title and then the file stem when
+  the parent folder name is empty. So an image at a filesystem root no
+  longer exports as " 3D Boxart.png". Five tests, driven against a
+  stand-in rather than a constructed window.
   **Layman:** Exporting an image loaded from a drive root can produce a filename starting with a space.
   Kind: fix.
   Source: review-code-2026-09-01 lane-5.
