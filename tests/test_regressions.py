@@ -12,17 +12,20 @@ import re
 import sys
 import tempfile
 import unittest
+from types import SimpleNamespace
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import numpy as np
 from PIL import Image
 
 from core.case_types import CASE_TYPES, PLATFORM_CASE_MAP, get_case_for_platform
 from core.config import DEFAULT_CONFIG, Config
-from core.image_utils import generate_reflection
+from core.image_utils import apply_directional_shading, generate_reflection
 from core.png_utils import save_optimized_png
 from core.spine_generator import CASE_COLORS_ERROR, _load_case_colors
 from core.renderer import BoxRenderer
+from ui.main_window import MainWindow
 from ui.workers import unique_output_path
 
 
@@ -284,3 +287,108 @@ class TestVersionIsNotDuplicated(unittest.TestCase):
         recipe = json.loads((root / ".claude" / "bump.json").read_text(encoding="utf-8"))
         self.assertEqual(recipe["version_source"], "core/version.py")
         self.assertEqual([f["path"] for f in recipe["files"]], ["core/version.py"])
+
+
+class TestExportBaseName(unittest.TestCase):
+    """One derivation, and a filesystem root no longer produces a blank name.
+
+    The name was derived at three call sites and only one guarded an empty
+    parent folder, so an image loaded from a drive root exported as
+    " 3D Boxart.png" (SLIP-0063). Called against a stand-in rather than a real
+    window: the logic reads three widgets and building the whole UI to check
+    it would test Qt rather than the rule.
+    """
+
+    def _window(self, auto, path, title):
+        stand_in = SimpleNamespace(
+            auto_filename_check=SimpleNamespace(isChecked=lambda: auto),
+            _front_image_path=path,
+            title_input=SimpleNamespace(text=lambda: title),
+        )
+        return MainWindow._export_base_name(stand_in, "Untitled")
+
+    def test_auto_filename_prefers_the_source_folder(self):
+        self.assertEqual(
+            self._window(True, "/games/Chrono Trigger/front.png", ""),
+            "Chrono Trigger",
+        )
+
+    def test_a_file_at_a_filesystem_root_falls_through(self):
+        # "/front.png".parent.name is "", which used to be used verbatim.
+        self.assertEqual(self._window(True, "/front.png", ""), "front")
+
+    def test_a_root_file_with_a_title_uses_the_title(self):
+        self.assertEqual(self._window(True, "/front.png", "  Halo  "), "Halo")
+
+    def test_the_title_wins_when_auto_filename_is_off(self):
+        self.assertEqual(
+            self._window(False, "/games/Chrono Trigger/front.png", "Chrono"),
+            "Chrono",
+        )
+
+    def test_nothing_loaded_falls_back(self):
+        self.assertEqual(self._window(False, None, ""), "Untitled")
+
+
+class TestShadingRobustness(unittest.TestCase):
+    """apply_directional_shading is public, and both holes were silent.
+
+    An unrecognised direction returned the image unshaded with no error, and
+    an intensity above 1.0 made the gradient factor negative, so the uint8
+    cast wrapped to bright values instead of clamping to black (SLIP-0055).
+    """
+
+    def _flat(self):
+        return Image.new("RGBA", (32, 32), (200, 200, 200, 255))
+
+    def test_an_unrecognised_direction_is_refused(self):
+        with self.assertRaises(ValueError):
+            apply_directional_shading(self._flat(), direction="sideways")
+
+    def test_every_documented_direction_is_accepted(self):
+        for direction in ("left", "right", "top", "bottom"):
+            with self.subTest(direction=direction):
+                out = apply_directional_shading(self._flat(), direction=direction)
+                self.assertEqual(out.size, (32, 32))
+
+    def test_an_intensity_above_one_darkens_rather_than_wrapping(self):
+        out = apply_directional_shading(self._flat(), direction="left", intensity=4.0)
+        darkest = int(np.array(out)[:, :, 0].min())
+        self.assertLessEqual(darkest, 5, "clamped intensity should reach near-black")
+
+
+class TestReflectionAcceptsRgb(unittest.TestCase):
+    """generate_reflection split() a 4-band image without saying it needed one.
+
+    Every current caller passes RGBA, so this was latent -- but the function
+    is public and its signature was silent about the requirement (SLIP-0056).
+    """
+
+    def test_an_rgb_image_is_converted_rather_than_raising(self):
+        out = generate_reflection(Image.new("RGB", (40, 60), (10, 20, 30)))
+        self.assertEqual(out.mode, "RGBA")
+
+    def test_an_rgba_image_still_works(self):
+        out = generate_reflection(Image.new("RGBA", (40, 60), (10, 20, 30, 255)))
+        self.assertEqual(out.mode, "RGBA")
+
+
+class TestDegenerateRenderIsRefused(unittest.TestCase):
+    """A width too small to project raises something a caller can act on.
+
+    Without the guard the numpy path raised LinAlgError("Singular matrix")
+    and the OpenCV path produced a garbage matrix instead of failing. Not
+    reachable from the spinner's minimum, but BoxRenderer takes any width and
+    the batch and animation paths construct one directly (SLIP-0057).
+    """
+
+    def test_a_width_too_small_to_project_names_the_problem(self):
+        renderer = BoxRenderer(CASE_TYPES["DVD Case"], output_width=1, angle=30)
+        with self.assertRaises(ValueError) as caught:
+            renderer.render(Image.new("RGBA", (700, 1000), (255, 0, 0, 255)))
+        self.assertIn("too small", str(caught.exception))
+
+    def test_a_usable_width_still_renders(self):
+        renderer = BoxRenderer(CASE_TYPES["DVD Case"], output_width=64, angle=30)
+        out = renderer.render(Image.new("RGBA", (700, 1000), (255, 0, 0, 255)))
+        self.assertGreater(out.size[0], 1)

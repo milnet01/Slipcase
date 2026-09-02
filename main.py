@@ -7,7 +7,10 @@ import os
 # Add project root to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from pathlib import Path
+
 from PIL import Image
+from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication
 
 from api.base import MAX_IMAGE_PIXELS
@@ -25,6 +28,21 @@ def main():
     app = QApplication(sys.argv)
     app.setApplicationName("Slipcase")
     app.setOrganizationName("Slipcase")
+
+    # Both are needed, for different display servers. On X11 the title-bar
+    # icon comes from _NET_WM_ICON, which Qt writes only from setWindowIcon;
+    # on Wayland the icon is matched by app_id, which Qt takes from
+    # desktopFileName. Without them the app shows a generic icon on either
+    # (SLIP-0048). The name is slipcase.desktop, without the suffix.
+    app.setDesktopFileName("slipcase")
+    icon = QIcon()
+    resources = Path(__file__).resolve().parent / "resources"
+    for size in (48, 64, 128, 256):
+        icon_file = resources / f"icon_{size}.png"
+        if icon_file.exists():
+            icon.addFile(str(icon_file))
+    if not icon.isNull():
+        app.setWindowIcon(icon)
 
     config = Config()
 

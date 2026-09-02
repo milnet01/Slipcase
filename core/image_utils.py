@@ -32,6 +32,16 @@ def apply_directional_shading(
     Returns:
         Shaded RGBA image.
     """
+    if direction not in ("left", "right", "top", "bottom"):
+        # Returning the image unshaded said nothing, and this function is
+        # public (SLIP-0055).
+        raise ValueError(
+            f"direction must be left, right, top or bottom, not {direction!r}"
+        )
+    # Above 1.0 the gradient factor goes negative and astype(np.uint8) wraps
+    # to bright values instead of clamping to black.
+    intensity = min(max(intensity, 0.0), 1.0)
+
     arr = np.array(image.convert("RGBA"))
     h, w = arr.shape[:2]
 
@@ -136,6 +146,10 @@ def generate_reflection(
     # a mirror of the top of the artwork.
     flipped = image.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
     reflection = flipped.crop((0, 0, w, reflect_h))
+    if reflection.mode != "RGBA":
+        # split() below needs four bands. Every current caller passes RGBA,
+        # but the signature never said it was required (SLIP-0056).
+        reflection = reflection.convert("RGBA")
 
     # Apply gradient alpha fade
     r, g, b, a = reflection.split()

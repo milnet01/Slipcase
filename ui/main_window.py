@@ -906,6 +906,27 @@ class MainWindow(QMainWindow):
 
     # --- Export ---
 
+    def _export_base_name(self, fallback: str) -> str:
+        """The name an export is built from, before sanitising.
+
+        Auto Filename prefers the source file's parent folder, which is how a
+        ROM set names its game. A file loaded from a filesystem root has no
+        parent name: this was derived at three call sites and only one guarded
+        that, so an export could be named " 3D Boxart.png" (SLIP-0063).
+        """
+        if self.auto_filename_check.isChecked() and self._front_image_path:
+            folder = Path(self._front_image_path).parent.name
+            if folder:
+                return folder
+        title = self.title_input.text().strip()
+        if title:
+            return title
+        if self._front_image_path:
+            stem = Path(self._front_image_path).stem
+            if stem:
+                return stem
+        return fallback
+
     @staticmethod
     def _safe_filename(name: str) -> str:
         """Reduce a title to a single safe path component.
@@ -933,14 +954,7 @@ class MainWindow(QMainWindow):
             )
 
         # Always suggest a filename — Auto Filename controls using folder name
-        if self.auto_filename_check.isChecked() and self._front_image_path:
-            name = Path(self._front_image_path).parent.name
-        elif self.title_input.text().strip():
-            name = self.title_input.text().strip()
-        elif self._front_image_path:
-            name = Path(self._front_image_path).stem
-        else:
-            name = "Untitled"
+        name = self._export_base_name("Untitled")
         suggested = str(Path(default_dir) / f"{self._safe_filename(name)} 3D Boxart.png")
         path, _ = QFileDialog.getSaveFileName(
             self, "Export PNG", suggested, "PNG Images (*.png)"
@@ -1011,16 +1025,7 @@ class MainWindow(QMainWindow):
             left_offset=left_off, right_offset=right_off,
         )
 
-        if self.auto_filename_check.isChecked() and self._front_image_path:
-            base = Path(self._front_image_path).parent.name
-        elif self.title_input.text().strip():
-            base = self.title_input.text().strip()
-        elif self._front_image_path:
-            base = Path(self._front_image_path).stem
-        else:
-            base = "cover"
-
-        safe_base = self._safe_filename(base)
+        safe_base = self._safe_filename(self._export_base_name("cover"))
         try:
             for part, suffix in [
                 (back, "Back Cover"), (spine, "Spine"), (front, "Front Cover"),

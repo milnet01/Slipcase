@@ -155,6 +155,19 @@ class BoxRenderer:
         proj_spine_w = int(spine_w * sin_a)
         proj_top_h = int(spine_w * math.sin(top_angle_rad) * cos_a)
 
+        # A zero-width projection makes a destination quad with two identical
+        # corners. numpy's solve then raises LinAlgError and OpenCV silently
+        # produces a garbage matrix. Neither is reachable from the spinner's
+        # 128px minimum, but BoxRenderer takes any width and the batch and
+        # animation paths construct one directly (SLIP-0057).
+        if proj_front_w < 1 or proj_spine_w < 1:
+            raise ValueError(
+                f"output_width {self.output_width} is too small to render "
+                f"{self.case_type.name} at {self.angle} degrees: the projected "
+                f"front is {proj_front_w}px and the spine {proj_spine_w}px, "
+                "and both must be at least 1"
+            )
+
         # Vertical perspective shrink for the far edge
         v_shrink = _V_SHRINK_BASE - (self.angle / 90.0) * _V_SHRINK_ANGLE_FACTOR
 
@@ -338,8 +351,14 @@ class BoxRenderer:
 
         if _HAS_CV2:
             img_arr = np.array(image)
-            resized_arr = cv2.resize(img_arr, (src_w, src_h),
+            # Both call sites already pass an image of exactly this size, so
+            # resizing was a full INTER_LANCZOS4 pass over ~1.3 MP for no
+            # change, twice per render -- and resampling already-resized cover
+            # art costs sharpness (SLIP-0043).
+            if image.size != (src_w, src_h):
+                img_arr = cv2.resize(img_arr, (src_w, src_h),
                                      interpolation=cv2.INTER_LANCZOS4)
+            resized_arr = img_arr
             padded_arr = cv2.copyMakeBorder(resized_arr, pad, pad, pad, pad,
                                             cv2.BORDER_REPLICATE)
             src_pts = np.float32(src_points)
@@ -354,7 +373,9 @@ class BoxRenderer:
             return Image.fromarray(result_arr, "RGBA")
 
         # PIL fallback
-        resized = image.resize((src_w, src_h), Image.Resampling.LANCZOS)
+        resized = image
+        if image.size != (src_w, src_h):
+            resized = image.resize((src_w, src_h), Image.Resampling.LANCZOS)
         padded = Image.fromarray(
             np.pad(np.array(resized), ((pad, pad), (pad, pad), (0, 0)), mode="edge")
         )
