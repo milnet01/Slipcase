@@ -1,4 +1,5 @@
 {
+    "changelog": "CHANGELOG.md",
     "roadmap": "ROADMAP.md",
     "source_roots": [
         "."
