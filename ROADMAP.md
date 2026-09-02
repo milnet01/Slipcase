@@ -231,13 +231,22 @@ making a build reproducible.
   Source: in-session-2026-08-27.
   Lanes: ci.
 
-- 📋 [SLIP-0023] **Pin dependencies so a build is reproducible.**
+- ✅ [SLIP-0023] **Pin dependencies so a build is reproducible.**
   requirements.txt declares minimum versions only. That is fine for developing
   against, but it means two builds of the same Slipcase version can bundle
   different PyQt6, Pillow or NumPy releases, and a rendering change arriving
   from a dependency would be untraceable to any commit here.
   Blocks nothing today; matters once the Distribution items start shipping
   binaries with the libraries baked in.
+  Resolved (2026-09-02): requirements.lock pins the runtime exactly,
+  transitive dependencies included, resolved on the Python version CI
+  uses; requirements-dev.txt pins the two gate tools so a linter release
+  cannot redden a commit that changed no code. requirements.txt stays as
+  the readable declaration of direct dependencies, which is how a newer
+  release gets noticed. CI installs from the pinned files. Verified
+  twice: a clean local Python 3.12 venv built only from them runs the
+  suite green, and the CI run on the pushing commit did the same on a
+  hosted runner.
   **Layman:** Lock the exact library versions so two builds of one release are identical.
   Kind: package.
   Source: in-session-2026-08-27.

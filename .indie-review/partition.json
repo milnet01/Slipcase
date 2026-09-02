@@ -1,0 +1,60 @@
+{
+  "$comment": "Authoritative subsystem partition for indie-review / review-code. docs/subsystems.md describes these lanes in prose; change both together. Pinned because the computed fallback groups by directory, which put the whole of ui/ -- window, dialogs, theming and workers -- into one 2,968-line lane.",
+  "lanes": [
+    {
+      "name": "render-engine",
+      "summary": "Turns a flat cover into a 3D box: perspective transform, shading, reflection, shadow, and the PNG write.",
+      "sourcePaths": ["core/renderer.py", "core/case_texture.py", "core/png_utils.py"]
+    },
+    {
+      "name": "image-analysis",
+      "summary": "Decides what an input image is and manufactures what it lacks: full-cover detection and splitting, spine location, generated spine art.",
+      "sourcePaths": ["core/image_utils.py", "core/spine_generator.py"]
+    },
+    {
+      "name": "case-model",
+      "summary": "The real-world measurements every render is built from, the platform-to-case mapping, and the persisted settings.",
+      "sourcePaths": ["core/case_types.py", "core/config.py", "core/version.py"]
+    },
+    {
+      "name": "api-clients",
+      "summary": "Everything that talks to a third party. Reviewed against the security invariants in CLAUDE.md and SECURITY.md: allowlist, redirect revalidation, size caps, accepted formats, credential scrubbing, TLS.",
+      "sourcePaths": ["api/base.py", "api/screenscraper.py", "api/thegamesdb.py", "api/libretro.py"]
+    },
+    {
+      "name": "main-window",
+      "summary": "Menu and toolbar construction, the load-render-export flow, and the window's own state. The largest file in the project; worth splitting further when a review has the budget (SLIP-0025).",
+      "sourcePaths": ["ui/main_window.py"]
+    },
+    {
+      "name": "workers",
+      "summary": "QThread and process-pool workers for batch rendering, animation export and search. Reviewed against the memory and cleanup rules in CLAUDE.md.",
+      "sourcePaths": ["ui/workers.py"]
+    },
+    {
+      "name": "dialogs",
+      "summary": "The screens reached from the main window, and the preview surface.",
+      "sourcePaths": ["ui/search_dialog.py", "ui/settings_dialog.py", "ui/animation_dialog.py", "ui/preview_widget.py"]
+    },
+    {
+      "name": "theming",
+      "summary": "Palette definitions and stylesheet generation.",
+      "sourcePaths": ["ui/themes.py"]
+    },
+    {
+      "name": "entry-point",
+      "summary": "Process start-up: the decompression-bomb ceiling, theme selection, and constructing the window.",
+      "sourcePaths": ["main.py", "__init__.py"]
+    },
+    {
+      "name": "ci-and-gate",
+      "summary": "The one list of checks and the workflow that calls it. Not Python, so the computed partition never covered it.",
+      "sourcePaths": [".github/workflows/ci.yml", "scripts/local-ci.sh"]
+    },
+    {
+      "name": "tests",
+      "summary": "The test suite. review-code excludes this lane; review-tests is exactly this lane.",
+      "sourcePaths": ["tests/test_regressions.py", "tests/test_renderer.py", "tests/test_security.py", "tests/test_libretro.py", "tests/conftest.py"]
+    }
+  ]
+}
