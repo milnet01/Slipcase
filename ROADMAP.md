@@ -872,6 +872,20 @@ building.
   The hand-built partition from that sweep is a good starting point: render
   engine, image analysis and spine, API clients, window construction, window
   actions and workers, dialogs.
+  Progress (2026-09-02): the map is written and the partition is pinned
+  -- docs/subsystems.md describes eleven lanes in prose and
+  .indie-review/partition.json holds the file-to-lane assignment,
+  including the CI workflow and the gate script, which are not Python
+  and which the computed partition never covered. Left OPEN because it
+  does not yet achieve what this item asked for: indie_review_partition
+  still answers partition_source "computed" with map_lane_count 0,
+  having ignored the heading form, the "- name -- summary" bullet form
+  the verb's own hint names, and the JSON override, before and after
+  committing them. So the tooling still groups by directory and still
+  reports ui/ as one 2,968-line lane. Filed against the MCP in
+  Slipcase_Ants_MCP_Feedback.md, 2026-09-02. The documents stand on
+  their own for a human or for an orchestrator that reads them directly;
+  close this once the verb picks one of them up.
   **Layman:** The code-review tooling has to guess how the project is organised.
   Kind: doc.
   Source: in-session-2026-09-01.
