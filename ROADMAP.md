@@ -338,7 +338,7 @@ making a build reproducible.
   Kind: doc-fix.
   Source: review-code-2026-09-01 lane-2.
 
-- 📋 [SLIP-0045] **STANDARDS section 8 says search runs in parallel within a single thread.**
+- ✅ [SLIP-0045] **STANDARDS section 8 says search runs in parallel within a single thread.**
   Section 8 says search "queries all configured APIs in parallel (within a
   single worker thread)". SearchWorker.run calls them strictly sequentially,
   each behind a rate limiter, and one thread cannot issue three blocking HTTP
@@ -348,6 +348,16 @@ making a build reproducible.
   concurrency was intended and SearchWorker is the wrong shape. Contract
   document, so it runs through review-contract rather than being edited
   directly.
+  Resolved (2026-09-03) by the review-contract gate on STANDARDS.md
+  (SLIP-0081), which is the route this item asked for. Of the two options the
+  lanes declined to choose between, the wording was wrong rather than the code:
+  section 8 now reads "queries each configured source in turn, inside one worker
+  thread". SearchWorker.run calls ScreenScraper, TheGamesDB and libretro in
+  sequence, each in its own try/finally, with no executor anywhere in
+  ui/search_dialog.py -- and the sequential shape is load-bearing, since
+  sources_queried is incremented per source and SLIP-0038's "every source was
+  skipped" message reads that count. Genuine concurrency remains a separate
+  question; SLIP-0068 already covers thread-pool contention.
   **Layman:** A line in the standards document contradicts itself.
   Kind: doc-fix.
   Source: review-code-2026-09-01 lanes 3 and 6.
@@ -749,6 +759,15 @@ building.
   Document side.
   Resolved (2026-09-02): section 6 now names accent_text and says it is
   dark in both themes because the accent backgrounds are light.
+  Correction (2026-09-03, from the SLIP-0081 gate): this item's own fix
+  over-generalised, and section 6 has been corrected again. "Dark in both themes"
+  was written from Nord and Monokai alone. Seven themes ship -- Midnight Blue,
+  Emerald, Crimson, Amethyst, Nord, Monokai, Sunset -- and accent_text is #ffffff
+  on five of them; only Nord (#2e3440) and Monokai (#1a1a1a) are dark. The
+  original defect was real and stays shipped: section 6 no longer claims white
+  text. What was wrong was the explanation, which a conformer adding an eighth
+  theme would have followed. Section 6 now says each theme picks accent_text for
+  contrast against its own accent rather than naming a fixed value.
   **Layman:** A colour rule in the standards document does not match what the app does.
   Kind: doc-fix.
   Source: review-code-2026-09-01 lane-4.

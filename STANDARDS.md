@@ -11,7 +11,7 @@
 
 **Signs of success**: three of the four things the purpose names carry a
 checkable bar, stated later in this document — the interface must never block
-(§ 6), and the RetroArch and LaunchBox output targets fix format, transparency
+(§ 2), and the RetroArch and LaunchBox output targets fix format, transparency
 and size (§ 4). The fourth, *realistic*, does not. It is judged by eye by the
 project author, and there is deliberately no written test for it. Do not read
 the rendering pipeline as that bar: it constrains how a render is produced,
@@ -35,7 +35,9 @@ never whether the result is good enough.
 
 ```
 main.py
+  -> api/base.py            (MAX_IMAGE_PIXELS, applied at import)
   -> core/config.py         (configuration)
+  -> ui/themes.py           (startup stylesheet)
   -> ui/main_window.py       (GUI)
        -> ui/themes.py       (theme system)
        -> ui/preview_widget.py
@@ -56,9 +58,10 @@ main.py
 ### Threading Model
 
 All heavy work runs in `QThread` subclasses. The main thread is **never blocked**
-by rendering, batch processing, animation export, or network requests. The one
-exception is shutdown: `closeEvent` waits, bounded, for a running worker to
-notice its interruption request (see § 12).
+by rendering, batch processing, animation export, or network requests. The
+exceptions are bounded waits when a window or dialog closes: `closeEvent` and
+`SearchDialog._cleanup` each wait for a running worker to notice its
+interruption request (see § 12).
 
 `BatchWorker` additionally fans out across a `ProcessPoolExecutor` (spawn
 context), falling back to sequential rendering if the pool cannot start.
@@ -83,7 +86,7 @@ Every worker declares `error(str)`.
 - **Python 3.12+** type annotations throughout (use `X | None`, not `Optional[X]`)
 - **PEP 8** naming: `snake_case` for functions/variables, `PascalCase` for classes
 - **4-space indentation**, no tabs
-- **Max line length**: 100 characters (soft), 120 characters (hard)
+- **Max line length**: 100 characters, enforced by `ruff` (E501) via `ruff.toml`
 - **Imports**: stdlib first, then third-party, then local; grouped with blank lines
 - **Docstrings**: Required on all public classes and functions; `"""One-liner."""`
   or multi-line with summary, blank line, details
@@ -131,10 +134,11 @@ class CaseType:
 | Animation (APNG) | configurable | APNG | RGBA where present |
 | Animation (GIF) | configurable | GIF | No (solid bg) |
 
-"RGBA where present" is exact: a render whose alpha is fully opaque --
-which is every render on a White or Black background -- is written as RGB.
-Section 11 optimisation 3 does this, and an opaque alpha channel is a
-quarter of the file spent on nothing.
+"RGBA where present" is exact for the single-image rows: a render whose alpha
+is fully opaque -- which is every render on a White or Black background -- is
+written as RGB. Section 11 optimisation 3 does this, and an opaque alpha
+channel is a quarter of the file spent on nothing. The APNG row is not covered:
+section 11 exempts the animated path, so those frames keep their alpha.
 
 Output width is bounded. `MAX_OUTPUT_WIDTH` in `core/renderer.py` is the hard
 ceiling: `BoxRenderer` clamps a larger `output_width` down to it, and the
@@ -166,6 +170,11 @@ configurable within that bound, not unbounded.
   PIL fallback
 - Canvas size must be consistent across all `_perspective_quad` calls and
   `alpha_composite` operations within a single render
+- Where a step has both an OpenCV and a PIL implementation, the two must
+  produce visually equivalent output, and a parameter whose meaning differs
+  between the libraries must be passed explicitly. `generate_shadow` passes
+  Gaussian sigma for that reason: OpenCV derives sigma from the kernel where
+  PIL uses the blur radius as sigma
 
 ### Viewing Angle
 
@@ -308,7 +317,10 @@ ui/
 ### Rate Limiting
 
 All API clients extend `APIClient` base class with configurable `min_request_interval`
-(default 1.0 second between requests). Rate limiting is enforced transparently.
+(default 1.0 second between requests). The last-request timestamps are
+module-level and keyed by host, shared across client instances: each worker
+builds its own client, so per-instance state resets the interval to zero and
+does not satisfy this rule.
 
 ### Client Configuration
 
@@ -363,7 +375,10 @@ Results are aggregated and displayed with source attribution.
 - All tests must pass before any commit
 - New rendering features require corresponding test cases
 - Test images are programmatically generated (no external fixtures)
-- Keep the suite fast enough to run before every commit: no network, no sleeps
+- Keep the suite fast enough to run before every commit: no sleeps, and no
+  network in the default run. A live-API test is permitted only where it is
+  skipped by default behind `SLIPCASE_LIVE_API` (as `TestLibretroLive` is) and
+  is never part of the gate
 
 ### Running Tests
 
@@ -403,9 +418,11 @@ All security measures are **mandatory** and must be preserved in any code change
   `width * height` before decoding.
 - **No code execution**: User-provided text (titles, serials, filenames) is only rendered as image text via PIL, never passed to `eval`, `exec`, `subprocess`, or shell commands.
 - **File dialogs**: Filter by image extensions to prevent accidental loading of non-image files.
-- **Network**: HTTPS only. `timeout=(10, 30)` bounds the connect and each
-  read; it does **not** bound the total, so `MAX_DOWNLOAD_SECONDS` caps one
-  download's wall clock. A slow trickle needs both. Rate limiting via
+- **Network**: HTTPS only. `timeout=(10, 30)` bounds the connect and each read
+  but not the total, so `MAX_DOWNLOAD_SECONDS` caps the body transfer -- a slow
+  trickle trips neither the size cap nor the read timeout. That budget starts
+  once the response is open, so the connect and redirect phases sit outside it
+  and are bounded by `timeout` and `MAX_REDIRECTS`. Rate limiting via
   `APIClient._rate_limit()`.
 
 ---
@@ -419,7 +436,10 @@ Used for every single-image PNG save (export, batch). The animated-export path
 is exempt: a multi-frame APNG/GIF cannot route through a single-image saver.
 Applies three imperceptible optimisations, plus compression:
 1. **LSB strip**: `arr[:, :, :3] &= 0xFE` — zeroes lowest bit of RGB (~15% smaller)
-2. **Alpha quantization**: Semi-transparent alpha rounded to multiples of 4 (preserves 0 and 255 exactly)
+2. **Alpha quantization**: Semi-transparent alpha rounded to multiples of 4 in a
+   wider dtype, then clamped to 1-254; fully transparent and fully opaque pixels
+   are left untouched. The widen is required, not incidental -- `254 + 2` wraps
+   to 0 in `uint8`, which would turn an opaque pixel transparent.
 3. **RGB conversion**: Drops alpha channel when all pixels are fully opaque (~15% smaller)
 4. **Compression**: zlib level from the `rendering.compress_level` config key.
    Default 6 (balances speed and size); 9 is ~5% smaller and 2-4x slower.
@@ -473,7 +493,7 @@ All memory patterns listed here are **mandatory** and must be followed in any co
 - Worker threads must close API clients in `finally` blocks: `client.close()`.
 
 ### Caches and References
-- `SearchDialog._preview_cache` and `_results` must be cleared on dialog close (both accept and reject paths).
+- `SearchDialog._preview_cache` and `_results` must be cleared on dialog close (both accept and reject paths), *after* the dialog's workers have been interrupted and waited on -- a late `results_ready` or `preview_ready` would otherwise refill what was just cleared.
 - `PreviewWidget.clear_image()` sets both `_rendered_image` and `_source_pixmap` to `None`.
 - `MainWindow.closeEvent` clears `_front_image`, `_back_image`, and all preview widgets.
 
@@ -518,3 +538,4 @@ four questions; Q4 is not asked of a standard.
 | Loop | Date | Lanes | Q1 | Q2 | Q3 | Q4 | Outcome |
 |------|------|-------|----|----|----|----|---------|
 | 1 | 2026-09-03 | 3, cold — genre pinned `standard` | 9 | 3 | 2 | n/a | **14 verified, 14 fixed; 2 dismissed as true-but-immaterial.** First gate on this document (SLIP-0081), armed by the § 12 `closeEvent` rewrite — and **§ 12 verified clean**, so the trigger section was the one thing that held. **All three lanes independently found the same five**, the strongest signal in the run: `MAX_IMAGE_PIXELS` attributed to `main.py` when `api/base.py` is the sole definition *and* applies it (a conformer could delete the only copy protecting a test or a spawned batch child); "30-second timeout" where the code is a per-read bound plus a 60s wall clock, with `MAX_DOWNLOAD_SECONDS` unmentioned (deleting the deadline check restores SLIP-0065); the allowlist described as image-only when `_is_allowed_url` gates every request and re-checks each redirect hop (SLIP-0064); "all PNG saves … animation" against `CLAUDE.md`'s animation exemption, both marked mandatory; and `results_ready(list)` against `pyqtSignal(list, int)`. **Three findings came from the orchestrator rather than a lane** — two lanes raised them as open questions the packet could not settle: seven themes ship and five use white `accent_text`, so "dark in both themes" was false (it was introduced by SLIP-0075, whose author checked two); search is strictly sequential, not "in parallel", which closes SLIP-0045; and `Pillow >= 12.0` against `requirements.txt`'s `12.1.1`. **Two Q3s**: § 4 stated no output-width ceiling though the renderer bounds it and cites § 4 as its authority, and `_ALLOWED_IMAGE_FORMATS` (SLIP-0066) was recorded in no document, so a conformer could widen the decoder surface without breaching anything. **4a step 3's refute case caught a false claim in one of this run's own fixes** — "a wider request is refused" when `BoxRenderer` clamps; the project's own `test_a_width_past_the_ceiling_is_clamped` settles it. Collateral fixed in `CLAUDE.md`: a stale test count, and the same `np.pad` claim § 11 carried. This section did not exist before this run; the skeleton requires it. |
+| 2 | 2026-09-03 | 3, cold — identical brief, packet rebuilt from disk | 4 | 3 | 4 | n/a | **11 verified, 11 fixed; none dismissed.** **Loop 1's fixes held** — not one of its fourteen came back. **Four of the eleven were loop 1's own collateral, and two of those were false sentences loop 1 itself wrote**: `MAX_DOWNLOAD_SECONDS` was said to cap "one download's wall clock" when the deadline is set after `_get_validated` returns, so the connect and redirect phases sit outside it; and a flat "no network" rule forbade `TestLibretroLive`, which is deliberately opt-in behind `SLIPCASE_LIVE_API`. The other two were rules loop 1 made newly reachable: § 4's blanket "RGBA where present" note contradicted the animation exemption loop 1 added to § 11, and § 2's dependency diagram omitted the `main.py` → `api/base.py` edge that loop 1's § 10 fix leans on. **All three lanes independently found the same defect**: § 1 cited § 6 for the never-block bar, which § 6 does not contain — the rule is § 2's. **Two Q1s were pre-existing and subtle.** § 2 called shutdown the *one* exception to never blocking, while `SearchDialog._cleanup` waits up to three times two seconds from `accept()` and `reject()`. And § 11 described alpha quantization as rounding to multiples of 4: executed, the outputs are `[0, 1, 4, 128, 252, 252, 254, 255]`, so 1 and 254 are not multiples, and the `uint16` widen is load-bearing rather than incidental — without it `254 + 2` wraps to 0 and an opaque pixel becomes transparent. **Four Q3s, each a rule a conformer could breach undetectably**: the rate-limit state is module-level and keyed by host, and per-instance state silently restores zero throttling; `SearchDialog`'s caches must be cleared *after* its workers are stopped; nothing required the OpenCV and PIL branches to agree, though `generate_shadow`'s own comment records a visible shadow difference between them; and § 3 promised a 120-character hard limit while `ruff.toml` sets `line-length = 100` with E501 active — measured, `E501 Line too long (110 > 100)`. `ruff.toml`'s own comment repeated the wrong split and was corrected with it. |
