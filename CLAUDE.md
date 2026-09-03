@@ -57,7 +57,9 @@ python3 main.py
 ```bash
 python3 -m pytest tests/ -v
 ```
-All tests must pass before any commit. 18 tests covering case types, image utils, spine generator, renderer, and config.
+All tests must pass before any commit. The suite covers case types, image utils,
+spine generation, rendering and config (`test_renderer.py`), plus security,
+locked regressions, libretro and the search worker in their own files.
 
 ## Security Requirements
 These MUST be maintained in all code changes:
@@ -88,7 +90,9 @@ These optimisations MUST be preserved in all code changes:
 - **Shadow blur**: Blur alpha channel only (L mode), not full RGBA (~4x faster)
 - **Perspective transform**: `_perspective_quad` transforms padded source directly to canvas (no intermediate canvas allocation)
 - **Combined faces**: Top and bottom box faces rendered on single canvas layer
-- **Vectorized operations**: NumPy for shading gradients, `np.pad(mode='edge')` for edge padding
+- **Vectorized operations**: NumPy for shading gradients; replicate-edge padding
+  before the perspective transform — `cv2.copyMakeBorder(..., BORDER_REPLICATE)`,
+  or `np.pad(mode='edge')` on the PIL fallback
 
 ## Memory Management Requirements
 These patterns MUST be followed in all code changes:

@@ -70,7 +70,7 @@ Every worker declares `error(str)`.
 | `RenderWorker` | Single 3D render | `rendered(Image)`, `error(str)` |
 | `BatchWorker` | Multi-file processing | `progress(int,int,str)`, `finished_signal(int)`, `error(str)` |
 | `AnimationWorker` | Multi-angle animation | `progress(int,int)`, `finished_signal(str)`, `error(str)` |
-| `SearchWorker` | API game search | `results_ready(list)`, `finished_signal()`, `error(str)` |
+| `SearchWorker` | API game search | `results_ready(list,int)`, `finished_signal()`, `error(str)` |
 | `PreviewWorker` | Thumbnail download | `preview_ready(Image,int)`, `error(str)` |
 | `DownloadWorker` | Full image download | `image_ready(Image,Image)`, `error(str)` |
 
@@ -136,6 +136,11 @@ which is every render on a White or Black background -- is written as RGB.
 Section 11 optimisation 3 does this, and an opaque alpha channel is a
 quarter of the file spent on nothing.
 
+Output width is bounded. `MAX_OUTPUT_WIDTH` in `core/renderer.py` is the hard
+ceiling: `BoxRenderer` clamps a larger `output_width` down to it, and the
+width control offers nothing above it. The animation targets above are
+configurable within that bound, not unbounded.
+
 ### Rendering Pipeline
 
 1. **Input validation** - Check front image exists
@@ -144,7 +149,8 @@ quarter of the file spent on nothing.
 4. **Spine generation** - Platform-branded text with title, serial, colour
 5. **Texture overlay** - Procedural case-type-specific emboss/deboss details
 6. **Shading** - Uniform + directional gradient, applied after texture
-7. **Perspective transform** - PIL `PERSPECTIVE` with coefficient solving
+7. **Perspective transform** - OpenCV `warpPerspective` where cv2 is present;
+   PIL `PERSPECTIVE` with coefficient solving is the fallback
 8. **Face compositing** - Front, spine, top, bottom faces onto canvas
 9. **Edge highlights** - Subtle light/dark edge lines for depth
 10. **Effects** - Shadow (optional), reflection (optional)
@@ -155,7 +161,9 @@ quarter of the file spent on nothing.
 
 - **2x supersampling** is the standard: render at 2x output width, then
   `Image.LANCZOS` downscale
-- Edge padding with `np.pad(mode='edge')` prevents bleed at perspective edges
+- Replicate-edge padding prevents bleed at perspective edges:
+  `cv2.copyMakeBorder(..., BORDER_REPLICATE)`, or `np.pad(mode='edge')` on the
+  PIL fallback
 - Canvas size must be consistent across all `_perspective_quad` calls and
   `alpha_composite` operations within a single render
 
@@ -231,9 +239,10 @@ The application uses a centralized theme system (`ui/themes.py`):
 - **All thumbnails**: Dark background (`bg_preview`), 1px solid border
 - **Action buttons**: Bold text for primary actions (Generate)
 - **Disabled elements**: Dimmed text (`text_dim`), no interaction feedback
-- **Status bar**: Accent background with `accent_text`, which is dark in
-  both themes -- the accent backgrounds are light, and white would be
-  unreadable on them
+- **Status bar**: Accent background with `accent_text`. Each theme picks its
+  own `accent_text` for contrast against its own accent -- a light accent
+  takes dark text, a darker one takes white. A new theme makes that choice
+  rather than copying another theme's
 - **Progress bar**: Accent-coloured fill, bordered frame
 - **Busy overlay**: Semi-transparent dark scrim with animated spinner
 
@@ -311,7 +320,7 @@ All API clients extend `APIClient` base class with configurable `min_request_int
 
 ### Search Strategy
 
-Online search queries all configured APIs in parallel (within a single worker thread):
+Online search queries each configured source in turn, inside one worker thread:
 1. ScreenScraper (if configured) - up to 10 results
 2. TheGamesDB (if configured) - up to 10 results
 3. libretro (only where the platform appears in `LIBRETRO_SYSTEMS`) -
@@ -326,23 +335,27 @@ Results are aggregated and displayed with source attribution.
 
 ### Framework
 
-- **unittest** (stdlib) - no external test runner required
-- Run: `python3 -m unittest discover -s tests`
+- Tests are written as `unittest.TestCase` subclasses (stdlib).
+- **pytest is the gate** -- pinned in `requirements-dev.txt` and run by
+  `scripts/local-ci.sh`. `python3 -m unittest discover -s tests` runs the same
+  suite, but a bare `def test_x()` is invisible to it, so write `TestCase`
+  methods rather than bare functions.
 
 ### Test Organization
 
-| Test Class | Coverage Area |
-|-----------|--------------|
-| `TestCaseTypes` | Case definitions, platform mapping, dimensions |
-| `TestImageUtils` | Edge colour extraction, reflection, shading |
-| `TestSpineGenerator` | Spine text rendering, platform branding |
-| `TestRenderer` | End-to-end rendering, effects, all case types |
-| `TestConfig` | Configuration defaults, persistence, get/set |
+| File | Coverage Area |
+|------|--------------|
+| `test_renderer.py` | Case definitions, image utils, spine generation, end-to-end rendering, config |
+| `test_regressions.py` | Locked fixes: aspect ratio, batch output paths, config durability, PNG export, export naming, render bounds |
+| `test_security.py` | URL allowlist, redirect validation, credential scrubbing, download limits and deadline, accepted formats, TLS |
+| `test_libretro.py` | libretro URL candidates and download short-circuit |
+| `test_search_worker.py` | Search worker always finishes; source counting; frame totals |
 
 ### Test Utilities
 
-- `_make_test_image(w, h, color)` - Generates solid RGBA test images
-- `_make_cover()` - Standard 400x560 RGBA test cover
+- `TestImageUtils._make_test_image()` and `TestRenderer._make_cover()` are
+  private helpers on those classes in `test_renderer.py`, not a shared module.
+  A new test file defines its own.
 - Tests use `tempfile` for filesystem operations
 
 ### Expectations
@@ -350,7 +363,7 @@ Results are aggregated and displayed with source attribution.
 - All tests must pass before any commit
 - New rendering features require corresponding test cases
 - Test images are programmatically generated (no external fixtures)
-- Tests must complete in under 5 seconds total
+- Keep the suite fast enough to run before every commit: no network, no sleeps
 
 ### Running Tests
 
@@ -365,7 +378,14 @@ python3 -m pytest tests/ -v
 All security measures are **mandatory** and must be preserved in any code changes.
 
 ### Image Downloads
-- **Domain allowlist**: `api/base.py` defines `ALLOWED_IMAGE_DOMAINS` — only URLs matching these domains (or subdomains) are downloaded. New domains require explicit addition.
+- **Domain allowlist**: `api/base.py` defines `ALLOWED_IMAGE_DOMAINS`, and
+  `_is_allowed_url` gates **every** request -- JSON API calls as well as image
+  downloads. It is re-checked on each redirect hop, so a 302 cannot move the
+  fetch to another host or drop TLS. The constant's name is historical. New
+  domains require explicit addition.
+- **Decoder surface**: `_ALLOWED_IMAGE_FORMATS` limits decoding to PNG, JPEG
+  and WEBP. Every accepted format is one more Pillow decoder reachable from a
+  remote response, so adding one back is a deliberate decision.
 - **Size limit**: `MAX_DOWNLOAD_BYTES = 50MB` — responses exceeding this are rejected before loading into memory.
 - **TLS enforcement**: All API requests use `verify=True`. Never disable certificate verification.
 
@@ -375,13 +395,18 @@ All security measures are **mandatory** and must be preserved in any code change
 - **No logging of secrets**: Never print, log, or emit API keys or passwords in status bar or error dialogs.
 
 ### Input Safety
-- **Decompression bomb protection**: `Image.MAX_IMAGE_PIXELS = 40_000_000` set in `main.py`.
-  Pillow only *warns* at this value and raises above 2x it, so `api/base.py`
-  additionally checks `width * height` against it before decoding a
-  downloaded image.
+- **Decompression bomb protection**: `MAX_IMAGE_PIXELS` is defined in
+  `api/base.py` and applied there at import, so the download path is protected
+  even when `main.py` never ran -- a test, a spawned batch child, library use.
+  `main.py` imports the value rather than repeating it. Pillow only *warns* at
+  this value and raises above 2x it, so `download_image()` also checks
+  `width * height` before decoding.
 - **No code execution**: User-provided text (titles, serials, filenames) is only rendered as image text via PIL, never passed to `eval`, `exec`, `subprocess`, or shell commands.
 - **File dialogs**: Filter by image extensions to prevent accidental loading of non-image files.
-- **Network**: HTTPS only; 30-second timeout; rate limiting via `APIClient._rate_limit()`
+- **Network**: HTTPS only. `timeout=(10, 30)` bounds the connect and each
+  read; it does **not** bound the total, so `MAX_DOWNLOAD_SECONDS` caps one
+  download's wall clock. A slow trickle needs both. Rate limiting via
+  `APIClient._rate_limit()`.
 
 ---
 
@@ -390,7 +415,9 @@ All security measures are **mandatory** and must be preserved in any code change
 All optimisations listed here are **mandatory** and must be preserved in any code changes.
 
 ### PNG Export (`save_optimized_png`)
-Used for all PNG saves (single export, batch, animation). Applies three imperceptible optimisations:
+Used for every single-image PNG save (export, batch). The animated-export path
+is exempt: a multi-frame APNG/GIF cannot route through a single-image saver.
+Applies three imperceptible optimisations, plus compression:
 1. **LSB strip**: `arr[:, :, :3] &= 0xFE` — zeroes lowest bit of RGB (~15% smaller)
 2. **Alpha quantization**: Semi-transparent alpha rounded to multiples of 4 (preserves 0 and 255 exactly)
 3. **RGB conversion**: Drops alpha channel when all pixels are fully opaque (~15% smaller)
@@ -398,11 +425,11 @@ Used for all PNG saves (single export, batch, animation). Applies three impercep
    Default 6 (balances speed and size); 9 is ~5% smaller and 2-4x slower.
 
 ### Rendering Engine
-- **No intermediate canvas in `_perspective_quad`**: Transform padded source directly to canvas-sized output via `fillcolor=(0,0,0,0)`. Never allocate an intermediate `src_canvas`.
+- **No intermediate canvas in `_perspective_quad`**: Transform padded source directly to canvas-sized output, transparent outside the quad (`borderValue` under OpenCV, `fillcolor` under PIL). Never allocate an intermediate `src_canvas`.
 - **Shadow blur on alpha only**: `generate_shadow()` works with `L` mode alpha channel, not full RGBA. ~4x faster Gaussian blur.
 - **Combined top/bottom faces**: `_render_faces()` draws both faces on a single canvas (one `alpha_composite` instead of two).
 - **Vectorized shading**: NumPy `np.linspace` with `np.newaxis` + `np.broadcast_to` for gradient overlays, not pixel-by-pixel loops. Broadcasting is deliberate over `np.tile`: it never materialises the repeated array.
-- **Edge padding**: `np.pad(mode='edge')` for perspective transform boundary padding.
+- **Edge padding**: replicate-edge padding before the perspective transform -- `cv2.copyMakeBorder(..., BORDER_REPLICATE)`, or `np.pad(mode='edge')` on the PIL fallback.
 
 ### General
 - Prefer in-place list operations over building separate lists (e.g., AnimationWorker normalises frames in-place).
@@ -466,15 +493,28 @@ All memory patterns listed here are **mandatory** and must be followed in any co
 
 ## 14. Dependencies
 
-All dependencies specified in `requirements.txt` with minimum versions:
+Runtime dependencies and their minimum versions are in `requirements.txt`.
+`requirements.lock` pins exact versions, transitive ones included, for CI, and
+`requirements-dev.txt` pins the tools the gate runs.
 
 | Package | Purpose |
 |---------|---------|
 | PyQt6 >= 6.6 | GUI framework |
-| Pillow >= 12.0 | Image processing and rendering |
+| Pillow >= 12.1.1 | Image processing and rendering |
 | numpy >= 1.26 | Vectorized image operations |
 | requests >= 2.31 | HTTP client for API access |
 | opencv-python-headless >= 4.9 | Image processing support |
 | scipy >= 1.12 | Image analysis (ndimage for spine detection) |
 
 No additional runtime dependencies. No build system required beyond pip.
+
+---
+
+## Cold-eyes loop log
+
+Rows are written by `review-contract`, one per loop. Columns are that skill's
+four questions; Q4 is not asked of a standard.
+
+| Loop | Date | Lanes | Q1 | Q2 | Q3 | Q4 | Outcome |
+|------|------|-------|----|----|----|----|---------|
+| 1 | 2026-09-03 | 3, cold — genre pinned `standard` | 9 | 3 | 2 | n/a | **14 verified, 14 fixed; 2 dismissed as true-but-immaterial.** First gate on this document (SLIP-0081), armed by the § 12 `closeEvent` rewrite — and **§ 12 verified clean**, so the trigger section was the one thing that held. **All three lanes independently found the same five**, the strongest signal in the run: `MAX_IMAGE_PIXELS` attributed to `main.py` when `api/base.py` is the sole definition *and* applies it (a conformer could delete the only copy protecting a test or a spawned batch child); "30-second timeout" where the code is a per-read bound plus a 60s wall clock, with `MAX_DOWNLOAD_SECONDS` unmentioned (deleting the deadline check restores SLIP-0065); the allowlist described as image-only when `_is_allowed_url` gates every request and re-checks each redirect hop (SLIP-0064); "all PNG saves … animation" against `CLAUDE.md`'s animation exemption, both marked mandatory; and `results_ready(list)` against `pyqtSignal(list, int)`. **Three findings came from the orchestrator rather than a lane** — two lanes raised them as open questions the packet could not settle: seven themes ship and five use white `accent_text`, so "dark in both themes" was false (it was introduced by SLIP-0075, whose author checked two); search is strictly sequential, not "in parallel", which closes SLIP-0045; and `Pillow >= 12.0` against `requirements.txt`'s `12.1.1`. **Two Q3s**: § 4 stated no output-width ceiling though the renderer bounds it and cites § 4 as its authority, and `_ALLOWED_IMAGE_FORMATS` (SLIP-0066) was recorded in no document, so a conformer could widen the decoder surface without breaching anything. **4a step 3's refute case caught a false claim in one of this run's own fixes** — "a wider request is refused" when `BoxRenderer` clamps; the project's own `test_a_width_past_the_ceiling_is_clamped` settles it. Collateral fixed in `CLAUDE.md`: a stale test count, and the same `np.pad` claim § 11 carried. This section did not exist before this run; the skeleton requires it. |
