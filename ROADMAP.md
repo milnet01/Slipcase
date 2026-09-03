@@ -1361,3 +1361,47 @@ building.
   Kind: fix.
   Source: verify-delivery-2026-09-02.
   Lanes: api.
+
+- 📋 [SLIP-0090] **The JSON API path follows redirects without re-checking the allowlist.**
+  APIClient.get validates full_url once with _is_allowed_url and then calls
+  self._session.get(full_url, ...) with requests' default allow_redirects=True,
+  so every hop after the first is followed inside requests and checked by
+  nothing. self._session.max_redirects = MAX_REDIRECTS bounds the COUNT, not the
+  destination.
+  The download path already does this correctly: _get_validated loops with
+  allow_redirects=False and re-checks each hop, and its docstring says that is
+  exactly why it exists. So the mechanism is written and simply is not used by
+  get().
+  An allowlisted API host returning a 302 to another host, or to http://, is
+  followed today. That is the same class as SLIP-0064, which closed the
+  "validated once, on the URL requested rather than the one fetched" gap on the
+  download path and left this one open.
+  Both CLAUDE.md and STANDARDS.md section 10 asserted per-hop re-validation for
+  every request. STANDARDS.md section 10 has been corrected to say the JSON path
+  does not do it yet and to cite this item; CLAUDE.md still overstates it and
+  should be corrected when this is fixed or when the wording is next touched.
+  Likely fix: route get() through the same hop-validating loop as
+  _get_validated, or give that loop a non-streaming mode and call it from both.
+  **Layman:** One of the two network paths can be redirected somewhere it should not go.
+  Kind: security.
+  Source: review-contract-2026-09-03 SLIP-0081 loop 3, lanes G and H.
+
+- 📋 [SLIP-0091] **Batch rendering ignores the rendering.compress_level config key.**
+  BatchWorker._run_sequential calls save_optimized_png(result, out_path) with no
+  third argument (ui/workers.py:199), so the level falls back to the signature
+  default of 6. The pooled path cannot supply it either: _renderer_kwargs carries
+  angle, output_width, show_reflection, show_shadow, show_texture, supersample
+  and background, and no compression level, so _render_single_image's _save call
+  has nothing to pass.
+  The interactive paths do read it -- ui/main_window.py:971 and :1038 both pass
+  compress_level=self._compress_level().
+  So a user who sets rendering.compress_level to 9 gets it on single and split
+  export and silently does not get it on batch, which is the case where output
+  size matters most. AnimationWorker separately hardcodes compress_level=6
+  (ui/workers.py:339), which may or may not be intended.
+  STANDARDS.md section 11 item 4 has been corrected to record the gap and cite
+  this item. Fixing the code should let that qualification be deleted.
+  All three loop-3 lanes found this independently.
+  **Layman:** A compression setting is applied to single exports but silently skipped for batches.
+  Kind: fix.
+  Source: review-contract-2026-09-03 SLIP-0081 loop 3, lanes G, H and I.

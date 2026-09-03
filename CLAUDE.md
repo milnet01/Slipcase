@@ -66,8 +66,10 @@ These MUST be maintained in all code changes:
 - **URL allowlist**: `api/base.py` restricts every request -- image downloads
   and JSON API calls alike -- to known domains over HTTPS
   (`ALLOWED_IMAGE_DOMAINS`, checked by `_is_allowed_url`). The name is
-  historical: the check covers both paths, and is re-run on every redirect
-  hop so a 302 cannot move the fetch to another host or drop TLS
+  historical: the check covers both paths. It is re-run on every redirect hop
+  on the DOWNLOAD path only (`_get_validated`), so a 302 cannot move that
+  fetch to another host or drop TLS. The JSON path (`get()`) validates once
+  and lets `requests` follow hops unchecked -- SLIP-0090
 - **Credential scrubbing**: API errors strip passwords/keys before display (`_sanitize_message`)
 - **Download limit**: 50MB max per image download (`MAX_DOWNLOAD_BYTES`), and
   a wall-clock budget per download (`MAX_DOWNLOAD_SECONDS`). The byte cap

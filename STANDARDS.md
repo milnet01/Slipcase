@@ -64,7 +64,9 @@ exceptions are bounded waits when a window or dialog closes: `closeEvent` and
 interruption request (see § 12).
 
 `BatchWorker` additionally fans out across a `ProcessPoolExecutor` (spawn
-context), falling back to sequential rendering if the pool cannot start.
+context) for batches of four or more on a machine with more than one usable
+worker. Anything smaller, and any pool that fails to start or fails mid-run,
+falls back to sequential rendering.
 
 Every worker declares `error(str)`.
 
@@ -318,9 +320,11 @@ ui/
 
 All API clients extend `APIClient` base class with configurable `min_request_interval`
 (default 1.0 second between requests). The last-request timestamps are
-module-level and keyed by host, shared across client instances: each worker
-builds its own client, so per-instance state resets the interval to zero and
-does not satisfy this rule.
+module-level and shared across client instances: each worker builds its own
+client, so per-instance state resets the interval to zero and does not satisfy
+this rule. The key is the client's `base_url` (its class name when empty),
+not the host -- two clients on one host under different base URLs get
+independent slots.
 
 ### Client Configuration
 
@@ -395,9 +399,15 @@ All security measures are **mandatory** and must be preserved in any code change
 ### Image Downloads
 - **Domain allowlist**: `api/base.py` defines `ALLOWED_IMAGE_DOMAINS`, and
   `_is_allowed_url` gates **every** request -- JSON API calls as well as image
-  downloads. It is re-checked on each redirect hop, so a 302 cannot move the
-  fetch to another host or drop TLS. The constant's name is historical. New
-  domains require explicit addition.
+  downloads. The constant's name is historical. New domains require explicit
+  addition.
+- **Redirect re-validation**: the image-download path (`_get_validated`, used
+  by `download_image`) follows redirects itself with `allow_redirects=False`
+  and re-checks each hop, so a 302 cannot move the fetch to another host or
+  drop TLS. **The JSON path does not do this yet**: `get()` validates once and
+  lets `requests` follow hops unchecked, bounded in count by `MAX_REDIRECTS`
+  but not in destination. SLIP-0090 covers closing that gap; until it lands,
+  treat per-hop re-validation as met on the download path only.
 - **Decoder surface**: `_ALLOWED_IMAGE_FORMATS` limits decoding to PNG, JPEG
   and WEBP. Every accepted format is one more Pillow decoder reachable from a
   remote response, so adding one back is a deliberate decision.
@@ -443,6 +453,9 @@ Applies three imperceptible optimisations, plus compression:
 3. **RGB conversion**: Drops alpha channel when all pixels are fully opaque (~15% smaller)
 4. **Compression**: zlib level from the `rendering.compress_level` config key.
    Default 6 (balances speed and size); 9 is ~5% smaller and 2-4x slower.
+   The interactive export paths read the key; **batch does not** -- neither the
+   sequential nor the pooled path passes it, so a batch render always uses the
+   function default. SLIP-0091 covers it.
 
 ### Rendering Engine
 - **No intermediate canvas in `_perspective_quad`**: Transform padded source directly to canvas-sized output, transparent outside the quad (`borderValue` under OpenCV, `fillcolor` under PIL). Never allocate an intermediate `src_canvas`.
@@ -465,8 +478,8 @@ All memory patterns listed here are **mandatory** and must be followed in any co
 ### Renderer (`core/renderer.py`)
 - **`del` large intermediates** immediately after their last use in `render()`:
   `front_tex`, `spine_tex`, `spine`, `front`, `spine_shaded`, `front_shaded`,
-  `spine_dst`, `front_dst`, `faces`, `shadow`, `shadow_canvas`, `reflection`,
-  `refl_canvas`, `bg`.
+  `spine_dst`, `front_dst`, `faces`, `shadow`, `shadow_canvas`, `box_region`,
+  `reflection`, `refl_canvas`, `bg`.
 - **`_render_shadow`** returns cropped shadow directly — no extra canvas-sized allocation.
 
 ### Workers (`ui/workers.py`)
@@ -526,7 +539,10 @@ Runtime dependencies and their minimum versions are in `requirements.txt`.
 | opencv-python-headless >= 4.9 | Image processing support |
 | scipy >= 1.12 | Image analysis (ndimage for spine detection) |
 
-No additional runtime dependencies. No build system required beyond pip.
+The table covers pip packages. PyQt6 also needs system libraries pip does not
+install: CI installs `libegl1`, `libgl1`, `libxkbcommon0` and `libdbus-1-3`,
+without which importing `QtWidgets` fails before any test runs. No build
+system is required beyond pip.
 
 ---
 
@@ -539,3 +555,4 @@ four questions; Q4 is not asked of a standard.
 |------|------|-------|----|----|----|----|---------|
 | 1 | 2026-09-03 | 3, cold — genre pinned `standard` | 9 | 3 | 2 | n/a | **14 verified, 14 fixed; 2 dismissed as true-but-immaterial.** First gate on this document (SLIP-0081), armed by the § 12 `closeEvent` rewrite — and **§ 12 verified clean**, so the trigger section was the one thing that held. **All three lanes independently found the same five**, the strongest signal in the run: `MAX_IMAGE_PIXELS` attributed to `main.py` when `api/base.py` is the sole definition *and* applies it (a conformer could delete the only copy protecting a test or a spawned batch child); "30-second timeout" where the code is a per-read bound plus a 60s wall clock, with `MAX_DOWNLOAD_SECONDS` unmentioned (deleting the deadline check restores SLIP-0065); the allowlist described as image-only when `_is_allowed_url` gates every request and re-checks each redirect hop (SLIP-0064); "all PNG saves … animation" against `CLAUDE.md`'s animation exemption, both marked mandatory; and `results_ready(list)` against `pyqtSignal(list, int)`. **Three findings came from the orchestrator rather than a lane** — two lanes raised them as open questions the packet could not settle: seven themes ship and five use white `accent_text`, so "dark in both themes" was false (it was introduced by SLIP-0075, whose author checked two); search is strictly sequential, not "in parallel", which closes SLIP-0045; and `Pillow >= 12.0` against `requirements.txt`'s `12.1.1`. **Two Q3s**: § 4 stated no output-width ceiling though the renderer bounds it and cites § 4 as its authority, and `_ALLOWED_IMAGE_FORMATS` (SLIP-0066) was recorded in no document, so a conformer could widen the decoder surface without breaching anything. **4a step 3's refute case caught a false claim in one of this run's own fixes** — "a wider request is refused" when `BoxRenderer` clamps; the project's own `test_a_width_past_the_ceiling_is_clamped` settles it. Collateral fixed in `CLAUDE.md`: a stale test count, and the same `np.pad` claim § 11 carried. This section did not exist before this run; the skeleton requires it. |
 | 2 | 2026-09-03 | 3, cold — identical brief, packet rebuilt from disk | 4 | 3 | 4 | n/a | **11 verified, 11 fixed; none dismissed.** **Loop 1's fixes held** — not one of its fourteen came back. **Four of the eleven were loop 1's own collateral, and two of those were false sentences loop 1 itself wrote**: `MAX_DOWNLOAD_SECONDS` was said to cap "one download's wall clock" when the deadline is set after `_get_validated` returns, so the connect and redirect phases sit outside it; and a flat "no network" rule forbade `TestLibretroLive`, which is deliberately opt-in behind `SLIPCASE_LIVE_API`. The other two were rules loop 1 made newly reachable: § 4's blanket "RGBA where present" note contradicted the animation exemption loop 1 added to § 11, and § 2's dependency diagram omitted the `main.py` → `api/base.py` edge that loop 1's § 10 fix leans on. **All three lanes independently found the same defect**: § 1 cited § 6 for the never-block bar, which § 6 does not contain — the rule is § 2's. **Two Q1s were pre-existing and subtle.** § 2 called shutdown the *one* exception to never blocking, while `SearchDialog._cleanup` waits up to three times two seconds from `accept()` and `reject()`. And § 11 described alpha quantization as rounding to multiples of 4: executed, the outputs are `[0, 1, 4, 128, 252, 252, 254, 255]`, so 1 and 254 are not multiples, and the `uint16` widen is load-bearing rather than incidental — without it `254 + 2` wraps to 0 and an opaque pixel becomes transparent. **Four Q3s, each a rule a conformer could breach undetectably**: the rate-limit state is module-level and keyed by host, and per-instance state silently restores zero throttling; `SearchDialog`'s caches must be cleared *after* its workers are stopped; nothing required the OpenCV and PIL branches to agree, though `generate_shadow`'s own comment records a visible shadow difference between them; and § 3 promised a 120-character hard limit while `ruff.toml` sets `line-length = 100` with E501 active — measured, `E501 Line too long (110 > 100)`. `ruff.toml`'s own comment repeated the wrong split and was corrected with it. |
+| 3 | 2026-09-03 | 3, cold — identical brief, packet rebuilt and widened to the windows loops 1-2 kept raising as open questions | 6 | 0 | 0 | n/a | **6 verified, 6 fixed. Cap reached (3 for a standard); the run files its tail and exits — the tail is empty.** **Every finding was a Q1: this loop found no contradictions and no unstated obligations, only false claims.** **Two are live CODE defects, filed rather than fixed** (a docs skill does not edit code): § 10 claimed per-hop redirect re-validation for *every* request, and it exists only on the download path — `get()` validates once and lets `requests` follow hops unchecked, so an allowlisted API host can redirect the JSON fetch to another host or to `http://` (**SLIP-0090**, the same class as the already-closed SLIP-0064); and § 11 item 4's `rendering.compress_level` key is read by the interactive export paths but by neither batch path, so a user setting 9 silently gets 6 on batch (**SLIP-0091**, found independently by all three lanes). **All three lanes also found the rate-limit key**: loop 2 wrote "keyed by host", and the key is `self.base_url or self.__class__.__name__`, so two clients on one host under different base URLs get independent slots — the very failure the paragraph says the module-level state prevents. **Three pre-existing Q1s**: § 12's mandatory `del` list omitted `box_region`, which a conformer auditing `render()` would drop as surplus; § 14 said "No additional runtime dependencies" while CI installs `libegl1`, `libgl1`, `libxkbcommon0` and `libdbus-1-3`, without which `QtWidgets` cannot import; and § 2 gave pool failure as the only route to sequential batching, where `total >= 4 and workers > 1` gates it. **Cap verdict: CALM.** Two of the six landed on text this run wrote (loop 1's redirect sentence, loop 2's rate-limit key); the other four were defects the document had held all along. **The gate found nothing wrong with what armed it: across all three loops, 0 of 31 verified findings fell inside the § 12 `closeEvent` span recorded at 1c.** This run was an audit that happened to be triggered by a gate. Collateral: `CLAUDE.md`'s allowlist bullet carried the same over-scoped redirect claim and was corrected. |
