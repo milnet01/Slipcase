@@ -34,6 +34,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The standards document now matches the code it governs** (SLIP-0081)
+  An independent cold review of STANDARDS.md, run because the shutdown rule in
+  section 12 had been rewritten without one. That section turned out to be
+  correct; thirty-one other claims were not. Among them: the decompression-bomb
+  ceiling was credited to the wrong file, so following the document could have
+  removed the only copy that protects a test or a batch child; the download
+  allowlist was described as covering image downloads when it gates every
+  request; the test suite was said to finish in under five seconds when it takes
+  about twenty; and the status-bar colour rule described two themes when seven
+  ship. The review also surfaced two real defects in the code, filed as
+  SLIP-0090 and SLIP-0091.
+
 - **The export width is capped at a size the app documents** (SLIP-0037)
   The width box accepted values that could use all available memory before anything was saved.
 

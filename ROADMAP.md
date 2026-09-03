@@ -635,6 +635,29 @@ making a build reproducible.
   Source: verify-delivery-2026-09-01.
   Lanes: api, tests.
 
+- 💭 [SLIP-0092] **CLAUDE.md and STANDARDS.md both state the security and performance rules; neither is the owner.**
+  CLAUDE.md's Security, Performance and Memory sections and STANDARDS.md
+  sections 10, 11 and 12 cover the same ground, and both declare their contents
+  mandatory. Nothing says which is authoritative.
+  This is not hypothetical. The SLIP-0081 gate found four defects that exist
+  only because there are two copies: the PNG animation exemption was in CLAUDE.md
+  and not STANDARDS; the redirect re-validation scope was wrong in both, and had
+  to be fixed twice on the same day; the np.pad claim was wrong in both; and the
+  test-count sentence in CLAUDE.md had gone stale on its own. Every one was a
+  copy disagreeing with its twin rather than a rule being wrong in itself.
+  The gate deliberately did NOT resolve it. Making the two agree is what that
+  run did, and reconciling copies is the fix that fails next time -- they diverge
+  again on the next edit. The real options are to make one file the owner and
+  have the other point at it, or to accept the duplication knowingly and add a
+  check that compares them.
+  Deciding which needs a human: CLAUDE.md is read by every agent session and
+  STANDARDS.md is the contract a human contributor reads, so neither is obviously
+  the one to hollow out. Raised by review-contract, which reports cross-document
+  structure but does not choose.
+  **Layman:** Two files give the same rules, so they can drift apart and one will be wrong.
+  Kind: doc.
+  Source: review-contract-2026-09-03 SLIP-0081, surfaced not decided.
+
 ## Feature ideas
 
 Suggested rather than requested. Each is worth a decision before it is worth
@@ -1399,6 +1422,15 @@ building.
   should be corrected when this is fixed or when the wording is next touched.
   Likely fix: route get() through the same hop-validating loop as
   _get_validated, or give that loop a non-streaming mode and call it from both.
+  Scope note (2026-09-03): SECURITY.md's "What is in scope" list was NOT
+  widened for this, deliberately. Its first bullet is worded around the download
+  allowlist -- "image downloads are restricted to known service domains ... A way
+  to make the app fetch a URL outside that list, including through a redirect, is
+  a finding." A JSON request reaching an arbitrary host is arguably that, and
+  arguably a different thing the list does not name. Widening a published
+  disclosure policy is a decision rather than a correction, so the gate that
+  found this left it alone. Worth settling when this is fixed: if the JSON path
+  gains hop validation, the ambiguity disappears on its own.
   **Layman:** One of the two network paths can be redirected somewhere it should not go.
   Kind: security.
   Source: review-contract-2026-09-03 SLIP-0081 loop 3, lanes G and H.
