@@ -844,7 +844,7 @@ building.
   Kind: doc-fix.
   Source: review-code-2026-09-01 lane-1.
 
-- 📋 [SLIP-0081] **STANDARDS section 12's rewritten shutdown rule owes a cold review.**
+- ✅ [SLIP-0081] **STANDARDS section 12's rewritten shutdown rule owes a cold review.**
   The 2026-09-01 fix pass rewrote section 12's closeEvent clause. The old text
   prescribed worker.quit() plus worker.wait(2000) -- the exact handshake that
   caused the crash, since every worker overrides run() without calling exec(),
@@ -857,6 +857,23 @@ building.
   `review-contract STANDARDS.md --genre standard` before anyone implements
   against that section.
   Recorded in commit 9e04017's body.
+  Resolved (2026-09-03): `review-contract STANDARDS.md --genre standard` ran
+  to its cap. Three loops, three cold lanes each, 31 verified findings, all
+  fixed; two dismissed as true but changing nothing anyone builds. The loop log
+  is now section 15 of STANDARDS.md.
+  The section that armed this gate came back clean. Section 12's closeEvent
+  rules -- requestInterruption over quit(), and never clearing a reference to a
+  live QThread -- verified against ui/main_window.py in every loop, and 0 of the
+  31 findings fell inside the span that triggered the gate. Everything found was
+  elsewhere, so the run was an audit with a gate as its trigger.
+  Two live code defects came out of it and are filed: SLIP-0090 (the JSON API
+  path follows redirects without re-checking the allowlist) and SLIP-0091 (batch
+  rendering ignores rendering.compress_level). Both were found by the cold read
+  rather than by the 2026-09-01 code audit.
+  Also closed SLIP-0045 from the same run, and annotated SLIP-0075, whose own
+  fix introduced a claim this gate falsified.
+  Cap verdict: calm. Two of the final loop's six findings landed on text this
+  run wrote; the rest were long-standing.
   **Layman:** A rule that was changed needs an independent read before anyone builds to it.
   Kind: doc.
   Source: in-session-2026-09-01.
