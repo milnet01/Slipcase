@@ -235,6 +235,8 @@ class SearchDialog(QDialog):
         search_row = QHBoxLayout()
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Enter game name...")
+        # A placeholder is not a name; screen readers need one (SLIP-0046).
+        self.search_input.setAccessibleName("Game name")
         self.search_input.returnPressed.connect(self._do_search)
         search_row.addWidget(self.search_input)
 
@@ -262,6 +264,8 @@ class SearchDialog(QDialog):
         bottom = QHBoxLayout()
         self.preview_label = QLabel("Select a result to preview")
         self.preview_label.setFixedSize(150, 200)
+        # Wrap rather than clip the prompt at large font sizes (SLIP-0046).
+        self.preview_label.setWordWrap(True)
         self.preview_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.preview_label.setStyleSheet(themed_thumbnail_style())
         bottom.addWidget(self.preview_label)

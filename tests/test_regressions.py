@@ -602,5 +602,40 @@ class TestVisibleTextIsTranslatable(unittest.TestCase):
                     bare.append(f"{node.name}:{call.lineno} {arg.value!r}")
         self.assertEqual(bare, [])
 
+
+class TestFieldsAreNamedForScreenReaders(unittest.TestCase):
+    """Every labelled field is linked to its label and carries a name a
+    screen reader can announce (SLIP-0046)."""
+
+    FIELDS = ("platform_combo", "case_combo", "title_input", "serial_input",
+              "color_btn", "case_color_btn", "spine_left_slider",
+              "spine_right_slider", "angle_slider", "width_spin", "bg_combo")
+
+    @classmethod
+    def setUpClass(cls):
+        from PyQt6.QtWidgets import QApplication
+        cls._app = QApplication.instance() or QApplication([])
+
+    def test_each_field_has_a_linked_label_and_an_accessible_name(self):
+        from PyQt6.QtWidgets import QLabel
+        with tempfile.TemporaryDirectory() as d:
+            window = MainWindow(Config(config_path=os.path.join(d, "c.json")))
+            buddies = {id(lbl.buddy()) for lbl in window.findChildren(QLabel)
+                       if lbl.buddy() is not None}
+            for name in self.FIELDS:
+                control = getattr(window, name)
+                with self.subTest(field=name):
+                    self.assertTrue(control.accessibleName(), "no accessible name")
+                    self.assertIn(id(control), buddies, "no label is linked to it")
+            window.deleteLater()
+
+    def test_the_search_box_has_an_accessible_name(self):
+        from ui.search_dialog import SearchDialog
+        with tempfile.TemporaryDirectory() as d:
+            dialog = SearchDialog(Config(config_path=os.path.join(d, "c.json")))
+            self.assertTrue(dialog.search_input.accessibleName())
+            self.assertTrue(dialog.preview_label.wordWrap())
+            dialog.deleteLater()
+
 if __name__ == "__main__":
     unittest.main()

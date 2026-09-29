@@ -376,7 +376,7 @@ making a build reproducible.
   Kind: doc-fix.
   Source: review-code-2026-09-01 lanes 3 and 6.
 
-- 📋 [SLIP-0046] **Field labels are not linked to their controls for screen readers.**
+- ✅ [SLIP-0046] **Field labels are not linked to their controls for screen readers.**
   No setBuddy links any label to its control and none carries a mnemonic, so a
   screen reader announces an unnamed edit box; the search field has a
   placeholder and no accessible name. The preview label is fixed at 150x200 and
@@ -385,6 +385,13 @@ making a build reproducible.
   STANDARDS.md section 6 claims only a shortcut table -- all ten of which are
   implemented -- so this is filed on general principles rather than against a
   named standard.
+  Resolved (2026-09-29): _link_label() gives each of the main window's
+  eleven labelled fields a buddy and an accessible name; nine labels carry an
+  Alt+letter mnemonic chosen clear of the File, Tools and Help menus (the two
+  spine sliders, shown only for full covers, carry none). The search box has
+  an accessible name, and the preview label wraps instead of clipping. Test
+  red before the fix. NOT done: the busy spinner still ignores a
+  reduced-motion preference; Qt 6.10 exposes no portable signal for one.
   **Layman:** Screen-reader users hear unnamed boxes instead of field names.
   Kind: accessibility.
   Source: review-code-2026-09-01 lanes 4 and 6.

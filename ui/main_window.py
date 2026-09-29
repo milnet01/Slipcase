@@ -53,6 +53,17 @@ def _restore_geometry(widget, value) -> bool:
     return bool(blob) and widget.restoreGeometry(blob)
 
 
+def _link_label(label, control) -> None:
+    """Tie a field label to its control (SLIP-0046).
+
+    The buddy link makes the label's Alt+letter move focus to the control;
+    the accessible name is what a screen reader announces for it, instead of
+    an unnamed box.
+    """
+    label.setBuddy(control)
+    control.setAccessibleName(label.text().replace("&", "").rstrip(":"))
+
+
 class MainWindow(QMainWindow):
     """Main application window."""
 
@@ -179,16 +190,20 @@ class MainWindow(QMainWindow):
         # Top toolbar row
         toolbar = QHBoxLayout()
 
-        toolbar.addWidget(QLabel(self.tr("Platform:")))
+        platform_label = QLabel(self.tr("&Platform:"))
+        toolbar.addWidget(platform_label)
         self.platform_combo = QComboBox()
         self.platform_combo.addItems(ALL_PLATFORMS)
         self.platform_combo.currentTextChanged.connect(self._on_platform_changed)
         toolbar.addWidget(self.platform_combo)
+        _link_label(platform_label, self.platform_combo)
 
-        toolbar.addWidget(QLabel(self.tr("Case Type:")))
+        case_label = QLabel(self.tr("Cas&e Type:"))
+        toolbar.addWidget(case_label)
         self.case_combo = QComboBox()
         self.case_combo.addItems(CASE_TYPES.keys())
         toolbar.addWidget(self.case_combo)
+        _link_label(case_label, self.case_combo)
 
         search_btn = QPushButton(self.tr("Search Online..."))
         search_btn.clicked.connect(self._search_online)
@@ -258,26 +273,32 @@ class MainWindow(QMainWindow):
         spine_layout = QVBoxLayout()
 
         title_row = QHBoxLayout()
-        title_row.addWidget(QLabel(self.tr("Title:")))
+        title_label = QLabel(self.tr("T&itle:"))
+        title_row.addWidget(title_label)
         self.title_input = QLineEdit()
         self.title_input.setPlaceholderText(self.tr("Game title for spine text"))
         title_row.addWidget(self.title_input)
+        _link_label(title_label, self.title_input)
         spine_layout.addLayout(title_row)
 
         serial_row = QHBoxLayout()
-        serial_row.addWidget(QLabel(self.tr("Serial:")))
+        serial_label = QLabel(self.tr("&Serial:"))
+        serial_row.addWidget(serial_label)
         self.serial_input = QLineEdit()
         self.serial_input.setPlaceholderText(self.tr("e.g. SLUS-20946"))
         serial_row.addWidget(self.serial_input)
+        _link_label(serial_label, self.serial_input)
         spine_layout.addLayout(serial_row)
 
         color_row = QHBoxLayout()
-        color_row.addWidget(QLabel(self.tr("Color:")))
+        color_label = QLabel(self.tr("C&olor:"))
+        color_row.addWidget(color_label)
         self.color_btn = QPushButton(self.tr("Auto"))
         self.color_btn.setFixedWidth(80)
         self.color_btn.setToolTip(self.tr("Uses platform template color by default"))
         self.color_btn.clicked.connect(self._pick_spine_color)
         color_row.addWidget(self.color_btn)
+        _link_label(color_label, self.color_btn)
         color_row.addStretch()
         spine_layout.addLayout(color_row)
 
@@ -286,7 +307,8 @@ class MainWindow(QMainWindow):
 
         # Case color
         case_color_row = QHBoxLayout()
-        case_color_row.addWidget(QLabel(self.tr("Case Color:")))
+        case_color_label = QLabel(self.tr("Case Co&lor:"))
+        case_color_row.addWidget(case_color_label)
         self.case_color_btn = QPushButton(self.tr("Auto"))
         self.case_color_btn.setFixedWidth(80)
         self.case_color_btn.setToolTip(
@@ -297,6 +319,7 @@ class MainWindow(QMainWindow):
         )
         self.case_color_btn.clicked.connect(self._pick_case_color)
         case_color_row.addWidget(self.case_color_btn)
+        _link_label(case_color_label, self.case_color_btn)
         case_color_row.addStretch()
         left_layout.addLayout(case_color_row)
 
@@ -333,7 +356,8 @@ class MainWindow(QMainWindow):
 
         # Left boundary slider (start of spine)
         left_row = QHBoxLayout()
-        left_row.addWidget(QLabel(self.tr("Left:")))
+        left_label = QLabel(self.tr("Left:"))
+        left_row.addWidget(left_label)
         self.spine_left_slider = QSlider(Qt.Orientation.Horizontal)
         self.spine_left_slider.setRange(-80, 80)
         self.spine_left_slider.setValue(0)
@@ -347,6 +371,7 @@ class MainWindow(QMainWindow):
             )
         )
         left_row.addWidget(self.spine_left_slider)
+        _link_label(left_label, self.spine_left_slider)
         self.spine_left_label = QLabel("0 px")
         self.spine_left_label.setFixedWidth(50)
         left_row.addWidget(self.spine_left_label)
@@ -354,7 +379,8 @@ class MainWindow(QMainWindow):
 
         # Right boundary slider (end of spine)
         right_row = QHBoxLayout()
-        right_row.addWidget(QLabel(self.tr("Right:")))
+        right_label = QLabel(self.tr("Right:"))
+        right_row.addWidget(right_label)
         self.spine_right_slider = QSlider(Qt.Orientation.Horizontal)
         self.spine_right_slider.setRange(-80, 80)
         self.spine_right_slider.setValue(0)
@@ -368,6 +394,7 @@ class MainWindow(QMainWindow):
             )
         )
         right_row.addWidget(self.spine_right_slider)
+        _link_label(right_label, self.spine_right_slider)
         self.spine_right_label = QLabel("0 px")
         self.spine_right_label.setFixedWidth(50)
         right_row.addWidget(self.spine_right_label)
@@ -470,13 +497,15 @@ class MainWindow(QMainWindow):
         controls = QVBoxLayout()
 
         angle_row = QHBoxLayout()
-        angle_row.addWidget(QLabel(self.tr("Angle:")))
+        angle_label = QLabel(self.tr("&Angle:"))
+        angle_row.addWidget(angle_label)
         self.angle_slider = QSlider(Qt.Orientation.Horizontal)
         self.angle_slider.setRange(5, 60)
         self.angle_slider.setValue(30)
         self.angle_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
         self.angle_slider.setTickInterval(5)
         angle_row.addWidget(self.angle_slider)
+        _link_label(angle_label, self.angle_slider)
         self.angle_label = QLabel("30\u00b0")
         self.angle_label.setFixedWidth(40)
         self.angle_slider.valueChanged.connect(
@@ -486,7 +515,8 @@ class MainWindow(QMainWindow):
         controls.addLayout(angle_row)
 
         size_row = QHBoxLayout()
-        size_row.addWidget(QLabel(self.tr("Output Width:")))
+        size_label = QLabel(self.tr("Output &Width:"))
+        size_row.addWidget(size_label)
         self.width_spin = QSpinBox()
         self.width_spin.setRange(128, MAX_OUTPUT_WIDTH)
         self.width_spin.setToolTip(
@@ -498,14 +528,17 @@ class MainWindow(QMainWindow):
         self.width_spin.setValue(512)
         self.width_spin.setSuffix(" px")
         size_row.addWidget(self.width_spin)
+        _link_label(size_label, self.width_spin)
         size_row.addStretch()
         controls.addLayout(size_row)
 
         bg_row = QHBoxLayout()
-        bg_row.addWidget(QLabel(self.tr("Background:")))
+        bg_label = QLabel(self.tr("&Background:"))
+        bg_row.addWidget(bg_label)
         self.bg_combo = QComboBox()
         self.bg_combo.addItems(["Transparent", "White", "Black"])
         bg_row.addWidget(self.bg_combo)
+        _link_label(bg_label, self.bg_combo)
         bg_row.addStretch()
         controls.addLayout(bg_row)
 

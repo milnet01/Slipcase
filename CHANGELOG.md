@@ -78,6 +78,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Screen readers now announce each field by name** (SLIP-0046)
+  Fields such as Title, Serial and Angle were read out as unnamed boxes.
+  Most can also be reached with Alt and the underlined letter of their label.
+
 - **The progress bar no longer vanishes early when one job ends while another runs** (SLIP-0059)
 
 - **The spine finder no longer moves the spine edge to a faint smudge** (SLIP-0058)
