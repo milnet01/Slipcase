@@ -453,6 +453,10 @@ making a build reproducible.
   Config hardcodes Path.home() / ".config" / "slipcase" and ignores
   $XDG_CONFIG_HOME. That conforms to STANDARDS.md section 7 as written, so the
   document is the thing to change first if this is wanted.
+  Decided by the user (2026-09-29): honour XDG_CONFIG_HOME, falling back
+  to ~/.config. Not yet done. STANDARDS.md section 7 names the fixed path, so
+  change it first; that is a direction change and takes a review-contract
+  gate before the code. Nothing moves for this user: the variable is unset.
   **Layman:** Put settings where the user's system says they should go.
   Kind: enhancement.
   Source: review-code-2026-09-01 lane-2.
@@ -695,6 +699,10 @@ making a build reproducible.
   empty), so neither the live run nor the agreed fixture recording can
   be made. Recording needs the user's credentials once. Kept open for
   those two thirds.
+  Approved by the user (2026-09-29): run a few read-only live searches
+  (ScreenScraper, TheGamesDB, libretro) using the credentials already saved
+  in ~/.config/slipcase/config.json, through the app's own API clients. Never
+  print the credentials; api/base.py's _sanitize_message scrubs errors.
   **Layman:** The one feature nobody has actually run end to end against the real services.
   Kind: test.
   Source: verify-delivery-2026-09-01.
@@ -719,6 +727,11 @@ making a build reproducible.
   STANDARDS.md is the contract a human contributor reads, so neither is obviously
   the one to hollow out. Raised by review-contract, which reports cross-document
   structure but does not choose.
+  Decided by the user (2026-09-29): STANDARDS.md owns the security,
+  performance and memory rules; CLAUDE.md's sections become one-line
+  pointers to the STANDARDS.md sections. Not yet done. Editing CLAUDE.md and
+  STANDARDS.md this way changes what a conformer reads, so CLAUDE.md rule 14
+  expects a review-contract gate on STANDARDS.md.
   **Layman:** Two files give the same rules, so they can drift apart and one will be wrong.
   Kind: doc.
   Source: review-contract-2026-09-03 SLIP-0081, surfaced not decided.
