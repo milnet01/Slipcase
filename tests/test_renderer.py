@@ -65,6 +65,20 @@ class TestImageUtils(unittest.TestCase):
         self.assertEqual(shaded.mode, "RGBA")
 
 
+class TestCaseTexture(unittest.TestCase):
+    def test_every_case_type_gets_a_front_and_spine_texture(self):
+        # The dispatch fell through to a fully transparent overlay for six
+        # case types, silently (SLIP-0034). getbbox() is None only for an
+        # image with nothing drawn on it.
+        from core.case_texture import generate_front_texture, generate_spine_texture
+        for name, case_type in CASE_TYPES.items():
+            with self.subTest(case=name):
+                front = generate_front_texture(case_type, 300, 420)
+                spine = generate_spine_texture(case_type, 40, 420)
+                self.assertIsNotNone(front.getbbox(), "front overlay is empty")
+                self.assertIsNotNone(spine.getbbox(), "spine overlay is empty")
+
+
 class TestSpineGenerator(unittest.TestCase):
     def test_generate_spine_basic(self):
         spine = generate_spine("Test Game", spine_width=30, spine_height=400)

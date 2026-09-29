@@ -56,6 +56,11 @@ def generate_spine_texture(case_type: CaseType, width: int, height: int) -> Imag
                    "N64 Cartridge Box", "Genesis Clamshell",
                    "Game Boy Box", "GBA Box", "Universal Cart Case"):
         _draw_cardboard_spine(draw, width, height)
+    elif name == "CD Jewel Case":
+        _draw_jewel_spine(draw, width, height)
+    elif name in ("Switch Case", "DS Case", "3DS Case",
+                  "PSP Case", "PS Vita Case"):
+        _draw_keepcase_spine(draw, width, height)
 
     return overlay
 
@@ -144,6 +149,25 @@ def _draw_jewel_front(draw: ImageDraw.ImageDraw, w: int, h: int) -> None:
     # Inner ring
     r2 = int(r * 0.4)
     _draw_circle_indent(draw, cx, cy, r2, lw)
+
+
+def _draw_jewel_spine(draw: ImageDraw.ImageDraw, w: int, h: int) -> None:
+    """Jewel case spine: the hinge knuckles at top and bottom."""
+    lw = max(1, w // 10)
+    knuckle_h = max(2, int(h * 0.04))
+    for y in (0, h - knuckle_h):
+        draw.rectangle([(0, y), (w, y + knuckle_h)], fill=(255, 255, 255, 10))
+        draw.line([(0, y + knuckle_h), (w, y + knuckle_h)],
+                  fill=(0, 0, 0, 15), width=lw)
+
+
+# --- Small plastic keep cases (Switch, DS, 3DS, PSP, Vita) ---
+
+def _draw_keepcase_spine(draw: ImageDraw.ImageDraw, w: int, h: int) -> None:
+    """Keep-case spine: a moulded groove along each edge."""
+    lw = max(1, w // 10)
+    draw.line([(lw, 0), (lw, h)], fill=(0, 0, 0, 12), width=lw)
+    draw.line([(w - lw, 0), (w - lw, h)], fill=(255, 255, 255, 8), width=lw)
 
 
 # --- Cartridge/Cardboard boxes ---

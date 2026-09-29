@@ -68,6 +68,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Every case type now has moulded detail on its spine** (SLIP-0034)
+  Jewel, Switch, DS, 3DS, PSP and Vita cases had a plain spine while the
+  others had grooves or fold lines.
+
 - **The shadow under the box fades softly instead of ending in a hard edge** (SLIP-0032)
   It sat too far right and down and was cut off square at the image
   edge. It now sits where intended and fades out on every side.

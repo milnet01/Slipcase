@@ -1127,11 +1127,15 @@ building.
   Kind: fix.
   Source: review-code-2026-09-01 lane-1.
 
-- 📋 [SLIP-0034] **Six of fifteen case types get an empty spine texture overlay.**
+- ✅ [SLIP-0034] **Six of fifteen case types get an empty spine texture overlay.**
   generate_spine_texture dispatches DVD, Blu-ray and the cardboard group only.
   CD Jewel, Switch, DS, 3DS, PSP and PS Vita fall through to a fully
   transparent overlay, which is then composited for no effect. Silent no-op
   rather than an error, so nothing reports it.
+  Resolved (2026-09-29): CD Jewel gets hinge knuckles at top and bottom;
+  Switch, DS, 3DS, PSP and Vita share a keep-case spine with an edge groove
+  each side. A test checks every case type gets a non-empty front and spine
+  overlay; it failed on exactly these six before the fix.
   **Layman:** Some case types are missing the moulded detail on the spine that others have.
   Kind: fix.
   Source: review-code-2026-09-01 lane-1.
