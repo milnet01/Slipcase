@@ -6,16 +6,20 @@ from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtWidgets import (
     QDialog, QHBoxLayout, QLabel, QLineEdit,
     QListWidget, QListWidgetItem, QPushButton, QVBoxLayout,
-    QProgressBar, QGroupBox,
+    QProgressBar, QGroupBox, QWidget,
 )
 from PIL import Image
 
 from core.config import Config
-from api.screenscraper import ScreenScraperAPI, SCREENSCRAPER_SYSTEMS
-from api.thegamesdb import TheGamesDBAPI, THEGAMESDB_PLATFORMS
+from api.screenscraper import ScreenScraperAPI, ScreenScraperResult, SCREENSCRAPER_SYSTEMS
+from api.thegamesdb import TheGamesDBAPI, TheGamesDBResult, THEGAMESDB_PLATFORMS
 from api.libretro import LibretroThumbnails, LIBRETRO_SYSTEMS
 from ui.preview_widget import pil_to_qpixmap
 from ui.themes import get_active_theme, themed_thumbnail_style
+
+
+# One search hit: an API result record, or libretro's image itself.
+SearchResult = ScreenScraperResult | TheGamesDBResult | Image.Image
 
 
 def _create_ss_client(config: Config) -> ScreenScraperAPI:
@@ -47,7 +51,7 @@ class SearchWorker(QThread):
         self.platform = platform
         self.config = config
 
-    def run(self):
+    def run(self) -> None:
         """Query every source available for this platform.
 
         The whole body is guarded and both signals are emitted from a
@@ -62,7 +66,7 @@ class SearchWorker(QThread):
         zero and "no results" would blame the user's search term
         (SLIP-0038).
         """
-        all_results = []
+        all_results: list[tuple[str, str, str, SearchResult]] = []
         sources_queried = 0
 
         try:
@@ -124,14 +128,15 @@ class PreviewWorker(QThread):
     preview_ready = pyqtSignal(object, int)  # PIL Image, row index
     error = pyqtSignal(str)
 
-    def __init__(self, source: str, result_obj, config: Config, row: int):
+    def __init__(self, source: str, result_obj: SearchResult, config: Config, row: int) -> None:
         super().__init__()
         self.source = source
         self.result_obj = result_obj
         self.config = config
         self.row = row
 
-    def run(self):
+    def run(self) -> None:
+        """Download the result's front cover and emit it for the preview."""
         try:
             img = None
             if self.source == "ScreenScraper":
@@ -164,7 +169,10 @@ class DownloadWorker(QThread):
     image_ready = pyqtSignal(object, object)  # front_image, back_image (PIL Images or None)
     error = pyqtSignal(str)
 
-    def __init__(self, source: str, result_obj, config: Config, front=None):
+    def __init__(
+        self, source: str, result_obj: SearchResult, config: Config,
+        front: Image.Image | None = None,
+    ) -> None:
         super().__init__()
         self.source = source
         self.result_obj = result_obj
@@ -174,7 +182,8 @@ class DownloadWorker(QThread):
         # as-is so selecting a result does not fetch it again (SLIP-0035).
         self.front = front
 
-    def run(self):
+    def run(self) -> None:
+        """Fetch the front (unless given) and back, and emit them."""
         front = self.front
         back = None
 
@@ -217,7 +226,9 @@ class SearchDialog(QDialog):
     # Emitted when user selects a pre-rendered 3D boxart: (image, game_name)
     boxart3d_selected = pyqtSignal(object, str)
 
-    def __init__(self, config: Config, platform: str = "", parent=None):
+    def __init__(
+        self, config: Config, platform: str = "", parent: QWidget | None = None
+    ) -> None:
         super().__init__(parent)
         self.config = config
         self.platform = platform
@@ -363,7 +374,7 @@ class SearchDialog(QDialog):
         self.progress.hide()
 
     @staticmethod
-    def _result_has_3d(source: str, obj) -> bool:
+    def _result_has_3d(source: str, obj: SearchResult) -> bool:
         """Whether one result offers a pre-rendered 3D boxart."""
         return bool(source == "ScreenScraper" and getattr(obj, "box3d_url", None))
 
@@ -470,7 +481,9 @@ class SearchDialog(QDialog):
         self._dl_worker.finished.connect(self._dl_worker.deleteLater)
         self._dl_worker.start()
 
-    def _on_download(self, front, back, name: str) -> None:
+    def _on_download(
+        self, front: Image.Image | None, back: Image.Image | None, name: str
+    ) -> None:
         self.progress.hide()
         self.download_btn.setEnabled(True)
         if front is None:
@@ -503,7 +516,7 @@ class SearchDialog(QDialog):
         self._dl_worker.download_3d = True
         self._dl_worker.start()
 
-    def _on_3d_download(self, image, name: str) -> None:
+    def _on_3d_download(self, image: Image.Image | None, name: str) -> None:
         self.progress.hide()
         self.download_btn.setEnabled(True)
         # Re-derive from whatever is selected NOW. Enabling unconditionally

@@ -2,7 +2,9 @@
 
 from PIL import Image
 from PyQt6.QtCore import Qt, QTimer, QRectF
-from PyQt6.QtGui import QColor, QConicalGradient, QImage, QPainter, QPen, QPixmap
+from PyQt6.QtGui import (
+    QColor, QConicalGradient, QImage, QPainter, QPaintEvent, QPen, QPixmap, QResizeEvent,
+)
 from PyQt6.QtWidgets import QLabel, QSizePolicy, QWidget
 
 from ui.themes import get_active_theme, themed_preview_style
@@ -45,7 +47,7 @@ class BusyOverlay(QWidget):
         self._angle = (self._angle + 8) % 360
         self.update()
 
-    def paintEvent(self, event) -> None:
+    def paintEvent(self, event: QPaintEvent | None) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
@@ -86,7 +88,7 @@ class BusyOverlay(QWidget):
 class PreviewWidget(QLabel):
     """Widget that displays a 3D boxart preview, scaled to fit."""
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -120,7 +122,7 @@ class PreviewWidget(QLabel):
         """Get the current rendered PIL Image."""
         return self._rendered_image
 
-    def resizeEvent(self, event) -> None:
+    def resizeEvent(self, event: QResizeEvent | None) -> None:
         """Re-scale the pixmap once the resizing pauses."""
         super().resizeEvent(event)
         self._rescale_timer.start()

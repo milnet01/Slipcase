@@ -592,7 +592,7 @@ making a build reproducible.
   Source: review-code-2026-09-01 lane-1.
   Lanes: core.
 
-- 📋 [SLIP-0069] **Bring the workers and the animation dialog up to the project's own conventions.**
+- ✅ [SLIP-0069] **Bring the workers and the animation dialog up to the project's own conventions.**
   Three STANDARDS.md section 3 breaches, none behavioural:
   AnimationDialog builds its entire UI inline in __init__, where both sibling
   dialogs use the required _build_<component>() methods.
@@ -602,6 +602,14 @@ making a build reproducible.
   all public classes and functions". Same for the front/back/image parameters of
   three main_window handlers.
   A mypy run with --disallow-untyped-defs would enumerate the full set.
+  Resolved (2026-09-29): AnimationDialog's UI moved into _build_ui and
+  _build_angle/frames/output_group, like its siblings. Every function in
+  ui/ is now annotated (mypy --disallow-untyped-defs reports none) and each
+  worker run() has a return annotation and a docstring. Annotating let mypy
+  check bodies it had skipped: 14 new errors, all stub or tag-dispatch
+  artifacts; the search-dispatch class is logged in
+  .ants_review_falsepos.jsonl. No behaviour change; no new test, since
+  nothing observable changed.
   **Layman:** Some code does not follow the style rules the project wrote down for itself.
   Kind: refactor.
   Source: review-code-2026-09-01 lanes 5 and 6.

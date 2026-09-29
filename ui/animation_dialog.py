@@ -2,7 +2,7 @@
 
 from PyQt6.QtWidgets import (
     QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFormLayout,
-    QGroupBox, QLabel, QSpinBox, QVBoxLayout,
+    QGroupBox, QLabel, QSpinBox, QVBoxLayout, QWidget,
 )
 
 
@@ -22,14 +22,28 @@ def frames_in_file(frame_count: int, bounce: bool) -> int:
 class AnimationDialog(QDialog):
     """Dialog for configuring animation export parameters."""
 
-    def __init__(self, current_width: int = 512, parent=None):
+    def __init__(self, current_width: int = 512, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle(self.tr("Export Animation"))
         self.setMinimumWidth(350)
+        self._build_ui(current_width)
 
+    def _build_ui(self, current_width: int) -> None:
         layout = QVBoxLayout(self)
+        # Angle first: the frames group reads its Bounce box.
+        layout.addWidget(self._build_angle_group())
+        layout.addWidget(self._build_frames_group())
+        layout.addWidget(self._build_output_group(current_width))
 
-        # Angle range
+        # Buttons
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def _build_angle_group(self) -> QGroupBox:
         angle_group = QGroupBox(self.tr("Angle Range"))
         angle_layout = QFormLayout()
 
@@ -56,9 +70,9 @@ class AnimationDialog(QDialog):
         angle_layout.addRow(self.bounce_check)
 
         angle_group.setLayout(angle_layout)
-        layout.addWidget(angle_group)
+        return angle_group
 
-        # Frames
+    def _build_frames_group(self) -> QGroupBox:
         frames_group = QGroupBox(self.tr("Frames"))
         frames_layout = QFormLayout()
 
@@ -87,9 +101,9 @@ class AnimationDialog(QDialog):
         frames_layout.addRow(self.tr("Frame delay:"), self.frame_delay)
 
         frames_group.setLayout(frames_layout)
-        layout.addWidget(frames_group)
+        return frames_group
 
-        # Output
+    def _build_output_group(self, current_width: int) -> QGroupBox:
         output_group = QGroupBox(self.tr("Output"))
         output_layout = QFormLayout()
 
@@ -113,15 +127,7 @@ class AnimationDialog(QDialog):
         output_layout.addRow(self.info_label)
 
         output_group.setLayout(output_layout)
-        layout.addWidget(output_group)
-
-        # Buttons
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        )
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
-        layout.addWidget(buttons)
+        return output_group
 
     def _update_total_frames(self) -> None:
         total = frames_in_file(self.frame_count.value(), self.bounce_check.isChecked())

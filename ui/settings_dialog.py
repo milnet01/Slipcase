@@ -12,7 +12,7 @@ from ui.themes import themed_dim_text_style
 class SettingsDialog(QDialog):
     """Dialog for configuring API keys and preferences."""
 
-    def __init__(self, config: Config, parent=None):
+    def __init__(self, config: Config, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.config = config
         self.setWindowTitle(self.tr("Settings"))

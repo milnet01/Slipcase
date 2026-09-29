@@ -64,10 +64,12 @@ class RenderWorker(QThread):
     rendered = pyqtSignal(object)  # PIL Image
     error = pyqtSignal(str)
 
-    def __init__(self, renderer: BoxRenderer, front, back, title, serial,
-                 platform, spine_color, case_color=None, spine_left_offset=0,
-                 spine_right_offset=0, full_cover: bool | None = None,
-                 view: str = "front"):
+    def __init__(self, renderer: BoxRenderer, front: Image.Image,
+                 back: Image.Image | None, title: str, serial: str,
+                 platform: str, spine_color: tuple[int, int, int] | None,
+                 case_color: tuple[int, int, int] | None = None,
+                 spine_left_offset: int = 0, spine_right_offset: int = 0,
+                 full_cover: bool | None = None, view: str = "front") -> None:
         super().__init__()
         self.view = view
         self.renderer = renderer
@@ -82,7 +84,8 @@ class RenderWorker(QThread):
         self.spine_right_offset = spine_right_offset
         self.full_cover = full_cover
 
-    def run(self):
+    def run(self) -> None:
+        """Render once and emit the image, or the error message."""
         try:
             result = self.renderer.render(
                 front_image=self.front,
@@ -132,7 +135,7 @@ class BatchWorker(QThread):
             "background": renderer.background,
         }
 
-    def run(self):
+    def run(self) -> None:
         """Render every selected file, emitting progress and per-file errors.
 
         The whole body is guarded: an unhandled exception here would leave
@@ -279,7 +282,8 @@ class AnimationWorker(QThread):
         self.supersample = supersample
         self.full_cover = full_cover
 
-    def run(self):
+    def run(self) -> None:
+        """Render each angle of the sweep and write the animated file."""
         try:
             # One render per angle of the sweep. Bounce replays the sweep
             # backwards, so it reuses those frames rather than rendering and

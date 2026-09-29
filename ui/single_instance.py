@@ -13,6 +13,7 @@ Both live in the user's runtime directory, which only that user can reach.
 
 import logging
 import os
+from collections.abc import Callable
 
 from PyQt6.QtCore import QLockFile, QStandardPaths
 from PyQt6.QtNetwork import QLocalServer, QLocalSocket
@@ -44,9 +45,9 @@ class SingleInstance:
         self._lock = QLockFile(os.path.join(directory, "slipcase.lock"))
         self._socket_path = os.path.join(directory, "slipcase.sock")
         self._server: QLocalServer | None = None
-        self._on_activate = None
+        self._on_activate: Callable[[], None] | None = None
 
-    def acquire(self, on_activate=None) -> bool:
+    def acquire(self, on_activate: Callable[[], None] | None = None) -> bool:
         """Become the running copy. False if another copy already is.
 
         `on_activate` is called when a later launch asks this copy to show
@@ -93,6 +94,6 @@ class SingleInstance:
             conn.readyRead.connect(lambda c=conn: self._on_message(c))
             conn.disconnected.connect(conn.deleteLater)
 
-    def _on_message(self, conn) -> None:
+    def _on_message(self, conn: QLocalSocket) -> None:
         if bytes(conn.readAll()).startswith(_ACTIVATE.strip()) and self._on_activate:
             self._on_activate()

@@ -1,12 +1,14 @@
 """Main application window for Slipcase."""
 
 import re
+from collections.abc import Callable
 from functools import partial
+from typing import Any
 from pathlib import Path
 
 from PIL import Image
-from PyQt6.QtCore import QByteArray, Qt, QTimer
-from PyQt6.QtGui import QAction, QKeySequence, QPixmap, QImage
+from PyQt6.QtCore import QByteArray, Qt, QThread, QTimer
+from PyQt6.QtGui import QAction, QCloseEvent, QKeySequence, QPixmap, QImage
 from PyQt6.QtWidgets import (
     QApplication, QCheckBox, QColorDialog, QComboBox, QFileDialog,
     QFrame, QGroupBox, QHBoxLayout, QLabel, QLineEdit, QMainWindow,
@@ -33,12 +35,12 @@ from ui.themes import (
 from ui.workers import RenderWorker, BatchWorker, AnimationWorker
 
 
-def _geometry_for_config(widget) -> str:
+def _geometry_for_config(widget: QWidget) -> str:
     """The widget's saveGeometry() blob, base64 so it can live in JSON."""
     return bytes(widget.saveGeometry().toBase64()).decode("ascii")
 
 
-def _restore_geometry(widget, value) -> bool:
+def _restore_geometry(widget: QWidget, value: object) -> bool:
     """Restore a geometry saved by _geometry_for_config; False if unusable.
 
     saveGeometry()/restoreGeometry() replace a stored [x, y, w, h]. Reading
@@ -53,7 +55,7 @@ def _restore_geometry(widget, value) -> bool:
     return bool(blob) and widget.restoreGeometry(blob)
 
 
-def _link_label(label, control) -> None:
+def _link_label(label: QLabel, control: QWidget) -> None:
     """Tie a field label to its control (SLIP-0046).
 
     The buddy link makes the label's Alt+letter move focus to the control;
@@ -641,7 +643,7 @@ class MainWindow(QMainWindow):
         else:
             self.status.showMessage(self.tr("Ready"))
 
-    def _cfg(self, section: str, key: str, default, kind):
+    def _cfg[T](self, section: str, key: str, default: T, kind: Callable[[Any], T]) -> T:
         """Read a config value, falling back to `default` on a bad type.
 
         A hand-edited config could otherwise put a string or null straight
@@ -732,7 +734,7 @@ class MainWindow(QMainWindow):
             self._progress_owner = None
             self.progress_bar.hide()
 
-    def _busy_worker(self):
+    def _busy_worker(self) -> QThread | None:
         """Return a running worker, or None. Tolerates a deleted C++ object."""
         for attr in ("_render_worker", "_batch_worker", "_anim_worker"):
             worker = getattr(self, attr, None)
@@ -745,7 +747,7 @@ class MainWindow(QMainWindow):
                 pass  # C++ object already deleted by deleteLater
         return None
 
-    def closeEvent(self, event) -> None:
+    def closeEvent(self, event: QCloseEvent | None) -> None:
         self._save_state()
         # Ask every running worker to stop and wait for it.
         #
@@ -1316,7 +1318,9 @@ class MainWindow(QMainWindow):
         dialog.boxart3d_selected.connect(self._on_search_3d_boxart)
         dialog.exec()
 
-    def _on_search_images(self, front, back, name: str) -> None:
+    def _on_search_images(
+        self, front: Image.Image | None, back: Image.Image | None, name: str
+    ) -> None:
         if front:
             self._front_image_path = None
             self._set_front_image(front)
@@ -1326,7 +1330,7 @@ class MainWindow(QMainWindow):
             self.title_input.setText(name)
         self.status.showMessage(self.tr("Downloaded: {0}").format(name))
 
-    def _on_search_3d_boxart(self, image, name: str) -> None:
+    def _on_search_3d_boxart(self, image: Image.Image, name: str) -> None:
         """Handle pre-rendered 3D boxart from ScreenScraper — show directly in preview."""
         self.preview.set_image(image)
         if name:
