@@ -373,6 +373,7 @@ def split_full_cover(
     image: Image.Image, case_type: CaseType,
     left_offset: int = 0,
     right_offset: int = 0,
+    bounds: tuple[int, int] | None = None,
 ) -> tuple[Image.Image, Image.Image, Image.Image]:
     """Split a full cover image into back, spine, and front portions.
 
@@ -389,12 +390,15 @@ def split_full_cover(
             Positive moves the boundary right (wider spine, narrower back).
         right_offset: Pixel offset for the right spine boundary (end).
             Positive moves the boundary right (narrower spine, wider front).
+        bounds: detect_spine_bounds' result, if the caller already has it.
+            It does not depend on the offsets, so a caller splitting one
+            image repeatedly need not re-run the detector (SLIP-0067).
 
     Returns:
         (back, spine, front) as three separate RGBA images.
     """
     w, h = image.size
-    left_x, right_x = detect_spine_bounds(image, case_type)
+    left_x, right_x = bounds or detect_spine_bounds(image, case_type)
 
     left_x = max(0, min(left_x + left_offset, w - 2))
     right_x = max(left_x + 1, min(right_x + right_offset, w))

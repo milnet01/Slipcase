@@ -529,7 +529,7 @@ making a build reproducible.
   Source: review-code-2026-09-01 lane-3.
   Lanes: api, security.
 
-- 📋 [SLIP-0067] **Dragging the spine slider re-runs the whole detector on the GUI thread.**
+- ✅ [SLIP-0067] **Dragging the spine slider re-runs the whole detector on the GUI thread.**
   Every valueChanged calls _update_split_preview, which calls split_full_cover,
   which calls detect_spine_bounds unconditionally -- the full 16-band analysis.
   That result does not depend on the offsets at all. It is then followed by three
@@ -538,6 +538,13 @@ making a build reproducible.
   Against STANDARDS.md section 2, "the main thread is never blocked".
   Compute detect_spine_bounds once in _set_front_image and cache it; have
   _update_split_preview only re-crop; add a ~100ms debounce.
+  Resolved (2026-09-29): MainWindow keeps (front image, case name, bounds)
+  and passes the bounds to split_full_cover's new `bounds` argument, so the
+  detector runs once per image and case type. Slider moves restart a 100 ms
+  single-shot timer instead of redrawing per step. On a 2989x2000 full cover
+  one split took 60 ms with detection and 12 ms with cached bounds. Two tests
+  red before the fix (22 detector runs and 29 redraws where 1 of each now).
+  The three crops per redraw remain full resolution.
   **Layman:** Adjusting the spine position feels sluggish because the app redoes work that cannot have changed.
   Kind: perf.
   Source: review-code-2026-09-01 lane-5.

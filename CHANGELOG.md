@@ -34,6 +34,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Dragging the spine adjustment sliders is smooth** (SLIP-0067)
+  The app no longer re-searches the whole cover for the spine on every
+  step; it redraws the split preview once you pause.
+
 - **Spines are drawn about twice as fast, and resizing the window is smoother** (SLIP-0047)
   Fonts are loaded once instead of about thirty times per spine, and the
   preview is re-scaled once you stop dragging rather than on every step.

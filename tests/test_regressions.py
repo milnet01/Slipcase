@@ -719,5 +719,58 @@ class TestSpineFontDiscovery(unittest.TestCase):
         self.assertIsNone(self.sg._font_path_cache[True])
         self.assertGreater(font.getbbox("Hg")[3], 20)
 
+
+class TestSpineSliderStaysCheap(unittest.TestCase):
+    """Each slider step re-ran the whole spine detector on the GUI thread,
+    though its result does not depend on the offsets (SLIP-0067)."""
+
+    @classmethod
+    def setUpClass(cls):
+        from PyQt6.QtWidgets import QApplication
+        cls._app = QApplication.instance() or QApplication([])
+
+    def _window_with_full_cover(self, d):
+        case = CASE_TYPES["DVD Case"]
+        h = 300
+        w = round(h * (2 * case.width + case.depth) / case.height)
+        window = MainWindow(Config(config_path=os.path.join(d, "c.json")))
+        window.case_combo.setCurrentText("DVD Case")
+        window._set_front_image(Image.new("RGB", (w, h), (90, 120, 200)))
+        return window
+
+    def test_the_detector_runs_once_for_many_offsets(self):
+        from unittest.mock import patch
+        from core import image_utils
+        import ui.main_window as mw
+        real = image_utils.detect_spine_bounds
+        with tempfile.TemporaryDirectory() as d:
+            window = self._window_with_full_cover(d)
+            # Counted wherever it is called from: the window's own import or
+            # split_full_cover's.
+            with patch.object(image_utils, "detect_spine_bounds", wraps=real) as a, \
+                    patch.object(mw, "detect_spine_bounds", wraps=real) as b:
+                window._spine_bounds = None
+                for offset in range(-5, 6):
+                    window.spine_left_slider.setValue(offset)
+                    window._update_split_preview()
+            self.assertEqual(a.call_count + b.call_count, 1)
+            window.deleteLater()
+
+    def test_a_slider_drag_updates_the_preview_once(self):
+        import time
+        from unittest.mock import patch
+        from PyQt6.QtCore import QCoreApplication
+        with tempfile.TemporaryDirectory() as d:
+            window = self._window_with_full_cover(d)
+            with patch.object(window, "_update_split_preview") as update:
+                for offset in range(1, 30):
+                    window.spine_left_slider.setValue(offset)
+                deadline = time.monotonic() + 1.0
+                while time.monotonic() < deadline:
+                    QCoreApplication.processEvents()
+                    time.sleep(0.01)
+            self.assertEqual(update.call_count, 1)
+            window.deleteLater()
+
 if __name__ == "__main__":
     unittest.main()

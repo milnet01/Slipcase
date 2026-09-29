@@ -5,7 +5,7 @@ from functools import partial
 from pathlib import Path
 
 from PIL import Image
-from PyQt6.QtCore import QByteArray, Qt
+from PyQt6.QtCore import QByteArray, Qt, QTimer
 from PyQt6.QtGui import QAction, QKeySequence, QPixmap, QImage
 from PyQt6.QtWidgets import (
     QApplication, QCheckBox, QColorDialog, QComboBox, QFileDialog,
@@ -16,7 +16,7 @@ from PyQt6.QtWidgets import (
 
 from core.case_types import CASE_TYPES, ALL_PLATFORMS, PLATFORM_CASE_MAP
 from core.config import Config
-from core.image_utils import is_full_cover, split_full_cover
+from core.image_utils import detect_spine_bounds, is_full_cover, split_full_cover
 from core.png_utils import save_optimized_png
 from core.renderer import MAX_OUTPUT_WIDTH, BoxRenderer
 from core.spine_generator import CASE_COLORS_ERROR
@@ -84,6 +84,10 @@ class MainWindow(QMainWindow):
         # Which job ("batch" or "anim") the shared progress bar belongs to;
         # only that job may hide it (SLIP-0059).
         self._progress_owner: str | None = None
+        # (front image, case name, detected spine bounds): the detector's
+        # answer does not depend on the offset sliders, so it is computed
+        # once per image and case type, not per slider step (SLIP-0067).
+        self._spine_bounds: tuple | None = None
 
         self._build_menu()
         self._build_ui()
@@ -437,6 +441,11 @@ class MainWindow(QMainWindow):
         parent_layout.addWidget(self.spine_adjust_group)
 
         # Connect sliders
+        # A drag sends a value per step; redraw the split once it pauses.
+        self._split_preview_timer = QTimer(self)
+        self._split_preview_timer.setSingleShot(True)
+        self._split_preview_timer.setInterval(100)
+        self._split_preview_timer.timeout.connect(lambda: self._update_split_preview())
         self.spine_left_slider.valueChanged.connect(self._on_spine_left_changed)
         self.spine_right_slider.valueChanged.connect(self._on_spine_right_changed)
 
@@ -867,9 +876,15 @@ class MainWindow(QMainWindow):
         left_off = self.spine_left_slider.value()
         right_off = self.spine_right_slider.value()
         try:
+            cached = self._spine_bounds
+            if cached and cached[0] is self._front_image and cached[1] == case_name:
+                bounds = cached[2]
+            else:
+                bounds = detect_spine_bounds(self._front_image, case_type)
+                self._spine_bounds = (self._front_image, case_name, bounds)
             back, spine, front = split_full_cover(
                 self._front_image, case_type,
-                left_offset=left_off, right_offset=right_off,
+                left_offset=left_off, right_offset=right_off, bounds=bounds,
             )
             # Update thumbnails
             self._set_thumbnail(self.split_back_thumb, back)
@@ -880,11 +895,11 @@ class MainWindow(QMainWindow):
 
     def _on_spine_left_changed(self, value: int) -> None:
         self.spine_left_label.setText(f"{value:+d} px")
-        self._update_split_preview()
+        self._split_preview_timer.start()
 
     def _on_spine_right_changed(self, value: int) -> None:
         self.spine_right_label.setText(f"{value:+d} px")
-        self._update_split_preview()
+        self._split_preview_timer.start()
 
     def _reset_spine_offset(self) -> None:
         self.spine_left_slider.setValue(0)
