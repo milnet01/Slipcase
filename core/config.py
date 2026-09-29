@@ -10,7 +10,7 @@ from typing import Any, Callable
 # type or meaning, and add to _MIGRATIONS the step that upgrades the version
 # before it. A file with no "version" key predates versioning and is 0
 # (SLIP-0042).
-CONFIG_VERSION = 1
+CONFIG_VERSION = 2
 
 
 def _migrate_0_to_1(data: dict) -> dict:
@@ -18,10 +18,21 @@ def _migrate_0_to_1(data: dict) -> dict:
     return data
 
 
+def _migrate_1_to_2(data: dict) -> dict:
+    """ui.window_geometry changed from [x, y, w, h] to a base64
+    saveGeometry() blob (SLIP-0040). A rectangle cannot be turned into that
+    blob, so it is dropped and the window opens at its default place once."""
+    ui = data.get("ui")
+    if isinstance(ui, dict) and not isinstance(ui.get("window_geometry"), str):
+        ui["window_geometry"] = None
+    return data
+
+
 # Step N upgrades a version-N file to N + 1. Steps run on the stored values
 # before they are merged over the defaults.
 _MIGRATIONS: dict[int, Callable[[dict], dict]] = {
     0: _migrate_0_to_1,
+    1: _migrate_1_to_2,
 }
 
 

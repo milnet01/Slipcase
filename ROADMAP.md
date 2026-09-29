@@ -1238,7 +1238,7 @@ building.
   Kind: fix.
   Source: review-code-2026-09-01 lane-5.
 
-- 📋 [SLIP-0040] **The window walks down-right on each restart and can reopen off-screen.**
+- ✅ [SLIP-0040] **The window walks down-right on each restart and can reopen off-screen.**
   On X11 geometry() returns the client rect excluding the frame while
   setGeometry positions the client area, so each close/reopen cycle shifts the
   window by the title-bar height. There is also no validation against the
@@ -1247,6 +1247,14 @@ building.
   Qt's answer is saveGeometry()/restoreGeometry(), which also handles maximised
   state. That changes the stored value's type, so it needs the config schema
   version item to land first.
+  Resolved (2026-09-29): window_geometry is now a base64 saveGeometry()
+  blob restored with restoreGeometry(), which also keeps the window on an
+  available screen and restores maximised state. Config version 2 drops the
+  old [x, y, w, h] value, so the window opens at its default place once.
+  Three tests red before the fix (round trip, bad values ignored, upgrade).
+  Not reproduced: the title-bar creep itself needs a real window manager,
+  which the test display lacks; worth a glance on the desktop after two
+  restarts.
   **Layman:** The window creeps across the screen every time you reopen it, and can vanish if you unplug a monitor.
   Kind: fix.
   Source: review-code-2026-09-01 lane-4.

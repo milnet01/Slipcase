@@ -73,6 +73,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The window reopens where you left it, and stays on a screen you can see** (SLIP-0040)
+  It crept down-right by the height of the title bar on every restart, and
+  could reopen on a monitor that was no longer connected. It also now
+  remembers being maximised. After this update the window opens at its
+  default place once, then remembers again.
+
 - **Large animations stop with a clear message instead of using up all your memory** (SLIP-0036)
   An animation that would need more than 1 GB is refused after its first
   frame, with a note to lower the width or frame count. Bounce animations

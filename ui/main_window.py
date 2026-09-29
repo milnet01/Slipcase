@@ -5,7 +5,7 @@ from functools import partial
 from pathlib import Path
 
 from PIL import Image
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QByteArray, Qt
 from PyQt6.QtGui import QAction, QKeySequence, QPixmap, QImage
 from PyQt6.QtWidgets import (
     QApplication, QCheckBox, QColorDialog, QComboBox, QFileDialog,
@@ -31,6 +31,26 @@ from ui.themes import (
     themed_secondary_text_style, themed_split_thumb_style, themed_thumbnail_style,
 )
 from ui.workers import RenderWorker, BatchWorker, AnimationWorker
+
+
+def _geometry_for_config(widget) -> str:
+    """The widget's saveGeometry() blob, base64 so it can live in JSON."""
+    return bytes(widget.saveGeometry().toBase64()).decode("ascii")
+
+
+def _restore_geometry(widget, value) -> bool:
+    """Restore a geometry saved by _geometry_for_config; False if unusable.
+
+    saveGeometry()/restoreGeometry() replace a stored [x, y, w, h]. Reading
+    that back with setGeometry() moved the window by the title-bar height on
+    X11 each restart, and nothing stopped it reopening on a monitor that was
+    gone; restoreGeometry() keeps the window on an available screen
+    (SLIP-0040).
+    """
+    if not isinstance(value, str) or not value:
+        return False
+    blob = QByteArray.fromBase64(value.encode("ascii", "ignore"))
+    return bool(blob) and widget.restoreGeometry(blob)
 
 
 class MainWindow(QMainWindow):
@@ -566,14 +586,8 @@ class MainWindow(QMainWindow):
         if bg_idx >= 0:
             self.bg_combo.setCurrentIndex(bg_idx)
 
-        # Restore window position and size
-        geo = self.config.get("ui", "window_geometry")
-        if (
-            isinstance(geo, list) and len(geo) == 4
-            and all(isinstance(v, int) for v in geo)
-            and geo[2] > 0 and geo[3] > 0
-        ):
-            self.setGeometry(geo[0], geo[1], geo[2], geo[3])
+        # Restore window position, size and maximised state
+        _restore_geometry(self, self.config.get("ui", "window_geometry"))
 
     def _save_config(self) -> None:
         """Persist config, reporting a write failure instead of aborting.
@@ -598,8 +612,7 @@ class MainWindow(QMainWindow):
         self.config.set("rendering", "texture", self.texture_check.isChecked())
         self.config.set("rendering", "background", self.bg_combo.currentText().lower())
         self.config.set("ui", "auto_filename", self.auto_filename_check.isChecked())
-        geo = self.geometry()
-        self.config.set("ui", "window_geometry", [geo.x(), geo.y(), geo.width(), geo.height()])
+        self.config.set("ui", "window_geometry", _geometry_for_config(self))
         self._save_config()
 
     def _reject_if_busy(self) -> bool:

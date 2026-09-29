@@ -206,9 +206,6 @@ class TestPlatformCaseMapping(unittest.TestCase):
         self.assertEqual(PLATFORM_CASE_MAP["PC"], "DVD Case")
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class TestCaseColoursDegradeGracefully(unittest.TestCase):
     """A damaged colour file must not stop the application starting.
@@ -416,3 +413,49 @@ class TestOutputWidthIsBounded(unittest.TestCase):
     def test_the_ceiling_covers_every_documented_target(self):
         # STANDARDS.md section 4: RetroArch max 512px, LaunchBox 800-1200px.
         self.assertGreaterEqual(MAX_OUTPUT_WIDTH, 1200)
+
+
+class TestWindowGeometry(unittest.TestCase):
+    """The window crept by the title-bar height on every restart, and could
+    reopen on a monitor that was gone (SLIP-0040)."""
+
+    @classmethod
+    def setUpClass(cls):
+        from PyQt6.QtWidgets import QApplication
+        cls._app = QApplication.instance() or QApplication([])
+
+    def test_geometry_round_trips_through_the_config_value(self):
+        from PyQt6.QtWidgets import QWidget
+        from ui.main_window import _geometry_for_config, _restore_geometry
+        first = QWidget()
+        first.setGeometry(40, 60, 700, 500)
+        value = _geometry_for_config(first)
+        self.assertIsInstance(value, str)  # JSON-safe
+        second = QWidget()
+        self.assertTrue(_restore_geometry(second, value))
+        self.assertEqual(second.size(), first.size())
+
+    def test_a_bad_stored_value_is_ignored(self):
+        from PyQt6.QtWidgets import QWidget
+        from ui.main_window import _restore_geometry
+        for value in (None, [10, 10, 800, 600], "not base64 !!", "", 42):
+            with self.subTest(value=value):
+                self.assertFalse(_restore_geometry(QWidget(), value))
+
+    def test_the_old_rectangle_is_cleared_by_the_version_2_upgrade(self):
+        import json
+        from core.config import Config
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "config.json")
+            with open(path, "w") as f:
+                json.dump({"version": 1, "ui": {
+                    "window_geometry": [10, 10, 800, 600], "theme": "Nord",
+                }}, f)
+            cfg = Config(config_path=path)
+        self.assertIsNone(cfg.get("ui", "window_geometry"))
+        self.assertEqual(cfg.get("ui", "theme"), "Nord")
+        self.assertGreaterEqual(cfg.get("version"), 2)
+
+
+if __name__ == "__main__":
+    unittest.main()
