@@ -198,6 +198,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **Cover-art searches can no longer be redirected off the allowed sites** (SLIP-0090)
+  Search requests followed any redirect a server sent, to any host or to
+  plain http. Every hop is now checked against the allowed list, as image
+  downloads already were, and login details are never re-sent to a
+  redirected address.
+
 - **A download now has a time limit, not only a size limit** (SLIP-0065)
   A server drip-feeding data could hold a search open indefinitely without ever reaching the 50MB cap.
 

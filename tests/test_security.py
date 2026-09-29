@@ -128,6 +128,66 @@ class TestRedirectValidation(unittest.TestCase):
                 client._get_validated("https://screenscraper.fr/a.png")
 
 
+class TestJsonPathRedirectValidation(unittest.TestCase):
+    """get() -- the JSON API path -- re-checks every redirect hop too.
+
+    It validated the requested URL once and let requests follow any 302 to
+    any host, or to plain http (SLIP-0090).
+    """
+
+    def _client(self):
+        client = APIClient(base_url="https://api.screenscraper.fr")
+        client.min_request_interval = 0
+        return client
+
+    @staticmethod
+    def _redirect(location):
+        return MagicMock(
+            is_redirect=True, is_permanent_redirect=False,
+            headers={"Location": location},
+        )
+
+    def test_redirects_are_not_followed_automatically(self):
+        client = self._client()
+        response = MagicMock(is_redirect=False, is_permanent_redirect=False)
+        with patch.object(client._session, "get", return_value=response) as get:
+            client.get("api2/jeuInfos.php")
+        self.assertIs(get.call_args.kwargs["allow_redirects"], False)
+
+    def test_redirect_to_disallowed_host_is_refused(self):
+        client = self._client()
+        redirect = self._redirect("https://evil.example/steal")
+        with patch.object(client._session, "get", return_value=redirect):
+            with self.assertRaises(requests.RequestException):
+                client.get("api2/jeuInfos.php")
+
+    def test_tls_downgrade_redirect_is_refused(self):
+        client = self._client()
+        redirect = self._redirect("http://api.screenscraper.fr/api2/x.php")
+        with patch.object(client._session, "get", return_value=redirect):
+            with self.assertRaises(requests.RequestException):
+                client.get("api2/jeuInfos.php")
+
+    def test_allowed_redirect_is_followed_without_resending_params(self):
+        # The query string rides on the first hop only. The Location a server
+        # returns carries its own query, and re-appending the original
+        # params (which hold credentials) to a new URL would leak them there.
+        client = self._client()
+        final = MagicMock(is_redirect=False, is_permanent_redirect=False)
+        redirect = self._redirect("https://www.screenscraper.fr/api2/moved.php")
+        with patch.object(
+            client._session, "get", side_effect=[redirect, final]
+        ) as get:
+            result = client.get("api2/jeuInfos.php", params={"ssid": "me"})
+        self.assertIs(result, final)
+        first, second = get.call_args_list
+        self.assertEqual(first.kwargs["params"], {"ssid": "me"})
+        self.assertEqual(
+            second.args[0], "https://www.screenscraper.fr/api2/moved.php"
+        )
+        self.assertIsNone(second.kwargs["params"])
+
+
 class TestCredentialScrubbing(unittest.TestCase):
     """CLAUDE.md: API errors strip passwords/keys before display."""
 
@@ -288,7 +348,7 @@ class TestJsonRequestsAreValidated(unittest.TestCase):
 
     @staticmethod
     def _willing_session(client):
-        response = MagicMock()
+        response = MagicMock(is_redirect=False, is_permanent_redirect=False)
         response.raise_for_status.return_value = None
         return patch.object(client._session, "get", return_value=response)
 

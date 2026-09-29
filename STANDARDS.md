@@ -401,13 +401,11 @@ All security measures are **mandatory** and must be preserved in any code change
   `_is_allowed_url` gates **every** request -- JSON API calls as well as image
   downloads. The constant's name is historical. New domains require explicit
   addition.
-- **Redirect re-validation**: the image-download path (`_get_validated`, used
-  by `download_image`) follows redirects itself with `allow_redirects=False`
-  and re-checks each hop, so a 302 cannot move the fetch to another host or
-  drop TLS. **The JSON path does not do this yet**: `get()` validates once and
-  lets `requests` follow hops unchecked, bounded in count by `MAX_REDIRECTS`
-  but not in destination. SLIP-0090 covers closing that gap; until it lands,
-  treat per-hop re-validation as met on the download path only.
+- **Redirect re-validation**: both paths -- image downloads and JSON API
+  calls (`get()`) -- go through `_get_validated`, which follows redirects
+  itself with `allow_redirects=False` and re-checks each hop, so a 302 cannot
+  move a fetch to another host or drop TLS. Request params go on the first
+  hop only, so credentials never follow a redirect (SLIP-0090).
 - **Decoder surface**: `_ALLOWED_IMAGE_FORMATS` limits decoding to PNG, JPEG
   and WEBP. Every accepted format is one more Pillow decoder reachable from a
   remote response, so adding one back is a deliberate decision.

@@ -1,4 +1,5 @@
 <!-- ants-roadmap-format: 1 -->
+<!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
 
 # Slipcase — Roadmap
 
@@ -17,7 +18,7 @@ and memory rules every item must comply with.
   `BoxArt3D` by decision, because that value identifies the client to a
   third-party API that may recognise it.
   Resolved (2026-08-27): product-name strings renamed across main.py, __init__.py, ui/main_window.py, api/base.py, core/config.py, tests/conftest.py and both documents. Domain term "3D boxart" and the ScreenScraper softname kept by decision. Suite green.
-  **Layman:** Change the app's name everywhere it shows to the user
+  **Layman:** Change the app's name everywhere it shows to the user.
   Kind: chore.
   Source: user-request-2026-08-27.
   Lanes: main, ui, api, core.
@@ -27,7 +28,7 @@ and memory rules every item must comply with.
   `~/.config/boxart3d/config.json` holds live settings and must be moved so
   themes, credentials and output paths survive the rename.
   Resolved (2026-08-27): ~/.config/boxart3d moved to ~/.config/slipcase; existing config.json carried across intact.
-  **Layman:** Carry your saved settings over so nothing is lost when the app is renamed
+  **Layman:** Carry your saved settings over so nothing is lost when the app is renamed.
   Kind: chore.
   Source: user-request-2026-08-27.
   Lanes: core.
@@ -38,7 +39,7 @@ and memory rules every item must comply with.
   project, so launching from the desktop cannot work. Rename the file to match
   the application and correct both paths.
   Resolved (2026-08-27): renamed to slipcase.desktop; Exec and Icon repointed at the current project root; Name and StartupWMClass updated.
-  **Layman:** The desktop shortcut points at a folder that no longer exists, so it cannot start the app
+  **Layman:** The desktop shortcut points at a folder that no longer exists, so it cannot start the app.
   Kind: fix.
   Source: in-session-2026-08-27.
 
@@ -47,7 +48,7 @@ and memory rules every item must comply with.
   `~/.local/share/applications/boxart3d.desktop`. It carries the same stale
   paths and the former application name.
   Resolved (2026-08-27): slipcase.desktop installed under ~/.local/share/applications and the old boxart3d entry removed.
-  **Layman:** Remove the old menu shortcut and install one under the new name
+  **Layman:** Remove the old menu shortcut and install one under the new name.
   Kind: chore.
   Source: in-session-2026-08-27.
 
@@ -59,7 +60,7 @@ and memory rules every item must comply with.
   `.claude/`. Copyright: verified 2026-08-27 — no logo artwork is shipped. `resources/` holds four app icons and a hex-colour table. Console names appear as short rendered text on spines, which is trademark use rather than copied artwork.
   Progress (2026-08-27): scan complete, decisions outstanding. Personal data — no email addresses and no hardcoded credentials found; the two password strings in `ui/settings_dialog.py` are form labels. Credentials live in `~/.config/slipcase/config.json`, outside the tree. `.claude/settings.local.json` is the one genuinely personal file, naming the user's home directory and an unrelated media drive; SLIP-0015 excludes it. Two stale absolute paths under the retired drive were found and fixed rather than published. Copyright — no logo artwork ships. Outstanding before SLIP-0006: SLIP-0014 licence, SLIP-0015 gitignore, SLIP-0016 icon provenance. Publication itself remains gated on the user.
   Resolved (2026-08-27): review complete and its three blockers closed (SLIP-0014 licence, SLIP-0015 gitignore, SLIP-0016 icon provenance). Final sweep was run over STAGED content rather than the working tree, which is the set that would actually publish. Personal data: no credentials and no addresses in the tree; the one personal file is excluded by gitignore. Four machine-specific absolute paths were found; three were removed by making the Claude Code hook paths derive from CLAUDE_PROJECT_DIR, the convention four sibling projects already use. The fourth is the desktop entry, where the freedesktop spec requires absolute paths and README documents editing them. Copyright: no logo artwork ships; icons confirmed original. Commit identity publishes the author's real name and email, raised explicitly and confirmed by the user as intended.
-  **Layman:** Check nothing private or owned by someone else is in the code before it goes public
+  **Layman:** Check nothing private or owned by someone else is in the code before it goes public.
   Kind: security.
   Source: user-request-2026-08-27.
 
@@ -68,7 +69,7 @@ and memory rules every item must comply with.
   is irreversible in practice once indexed.
   Progress (2026-08-27): repository initialised, branch main, one commit on it, working tree clean. Every blocker is closed and gh is authenticated as milnet01. Deliberately stopped before creating the remote and pushing: publication is the one step here that cannot be undone, and the user asked to see the state first. Remaining is the user's go-ahead, then gh repo create Slipcase --public --source . --push.
   Resolved (2026-08-27): published to github.com/milnet01/Slipcase as a public repository. Five commits pushed; main tracks origin/main.
-  **Layman:** Put the project on GitHub once it has been checked over
+  **Layman:** Put the project on GitHub once it has been checked over.
   Kind: release.
   Source: user-request-2026-08-27.
 
@@ -708,7 +709,7 @@ building.
   file was authored to bootstrap that migration, because both `roadmap_migrate`
   and `roadmap_log` refuse a project with no roadmap file.
   Resolved (2026-08-27): ROADMAP.md authored in ants-v1 to bootstrap, migrated to the store (project_id 20, slug slipcase), and re-rendered from it. roadmap_query now answers source: store.
-  **Layman:** Keep the to-do list in a shared database rather than only in a text file
+  **Layman:** Keep the to-do list in a shared database rather than only in a text file.
   Kind: chore.
   Source: user-request-2026-08-27.
 
@@ -717,7 +718,7 @@ building.
   locations. This project keeps its code in top-level packages rather than
   `src/`, which is the case inference handles worst.
   Resolved (2026-08-27): .ants/project.json written from project_settings op:detect — source_roots ["."], test_roots ["tests"], roadmap ROADMAP.md. detect confirmed the default walk indexed 3 of 26 source files. docs_dir, specs_dir and changelog left undeclared because those paths do not exist.
-  **Layman:** Tell the tools where the code, tests and docs actually live
+  **Layman:** Tell the tools where the code, tests and docs actually live.
   Kind: chore.
   Source: user-request-2026-08-27.
 
@@ -726,7 +727,7 @@ building.
   documents identified this as the most likely home of the answer it could not
   find, and a public repository needs one.
   Resolved (2026-08-27): README.md written for a non-technical reader — what the app does, who it is for, the case types, install and run steps, and where settings and logins are kept. Three drafted claims were checked against the code and corrected before landing: spine colours come from the per-platform table rather than from the cover, libretro is a boxart lookup rather than a search, and the Python floor is stated as 3.12 rather than assuming newer versions. The licence section records that none is chosen yet, matching SLIP-0014.
-  **Layman:** Write the front page that tells a newcomer what this is and how to run it
+  **Layman:** Write the front page that tells a newcomer what this is and how to run it.
   Kind: doc.
   Source: adopt-project-2026-08-27.
 
@@ -736,7 +737,7 @@ building.
   "realistic" carries none. The pipeline is documented in detail, but every
   such statement constrains the method rather than judging the result.
   Resolved (2026-08-27): user decided the bar is their own judgement by eye, with no written test. STANDARDS.md § 1 now states that explicitly, names the three dimensions that DO carry a checkable bar and where they live, and warns against reading the rendering pipeline as the quality bar since it constrains method rather than result. The gap adopt-project found was the silence, not the absence of a test — stating it closes the item.
-  **Layman:** Write down how we would know a finished box render actually looks good enough
+  **Layman:** Write down how we would know a finished box render actually looks good enough.
   Kind: doc.
   Source: adopt-project-2026-08-27.
 
@@ -744,7 +745,7 @@ building.
   `CLAUDE.md` gives the default as roughly 25-30 degrees; `STANDARDS.md` gives
   it as 30 degrees with a user-adjustable range. One of the two is the bar.
   Resolved (2026-08-27): settled from the code rather than by choosing between documents. The default is 30.0 in core/config.py, core/renderer.py and the ui/main_window.py label, so STANDARDS.md was already correct and CLAUDE.md carried the loose range. CLAUDE.md now states 30 degrees with the 5-60 adjustable range.
-  **Layman:** Two documents disagree about the default camera angle; pick one
+  **Layman:** Two documents disagree about the default camera angle; pick one.
   Kind: doc-fix.
   Source: adopt-project-2026-08-27.
 
@@ -1045,7 +1046,7 @@ building.
   then appends the same phrase again, so the suggested filename doubles it.
   Cosmetic, and only on the fallback path.
   Resolved (2026-08-27): the export dialog's fallback name was the same phrase it then appends, producing a doubled suggestion. The fallback is now Untitled, so the suggested filename reads Untitled 3D Boxart.png. Suite green.
-  **Layman:** With no title set, the suggested save name says "3D Boxart" twice
+  **Layman:** With no title set, the suggested save name says "3D Boxart" twice.
   Kind: fix.
   Source: in-session-2026-08-27.
   Lanes: ui.
@@ -1055,7 +1056,7 @@ building.
   That drive is retired, so the hook cannot fire. The script itself is present
   in `.claude/`.
   Resolved (2026-08-27): post-edit hook repointed from the retired /mnt/Storage path to the current project root.
-  **Layman:** An automatic check that runs after each code edit is pointed at a drive that no longer exists
+  **Layman:** An automatic check that runs after each code edit is pointed at a drive that no longer exists.
   Kind: fix.
   Source: in-session-2026-08-27.
 
@@ -1402,7 +1403,7 @@ building.
   Source: verify-delivery-2026-09-02.
   Lanes: api.
 
-- 📋 [SLIP-0090] **The JSON API path follows redirects without re-checking the allowlist.**
+- ✅ [SLIP-0090] **The JSON API path follows redirects without re-checking the allowlist.**
   APIClient.get validates full_url once with _is_allowed_url and then calls
   self._session.get(full_url, ...) with requests' default allow_redirects=True,
   so every hop after the first is followed inside requests and checked by
@@ -1431,6 +1432,11 @@ building.
   disclosure policy is a decision rather than a correction, so the gate that
   found this left it alone. Worth settling when this is fixed: if the JSON path
   gains hop validation, the ambiguity disappears on its own.
+  Resolved (2026-09-29): get() now goes through _get_validated, which
+  re-checks every hop; params ride the first hop only, so credentials never
+  follow a redirect. Four regression tests in TestJsonPathRedirectValidation,
+  red before the fix. CLAUDE.md and STANDARDS.md section 10 updated. The
+  SECURITY.md scope question closes on its own: both paths now behave alike.
   **Layman:** One of the two network paths can be redirected somewhere it should not go.
   Kind: security.
   Source: review-contract-2026-09-03 SLIP-0081 loop 3, lanes G and H.

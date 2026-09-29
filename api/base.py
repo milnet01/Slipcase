@@ -136,12 +136,14 @@ class APIClient:
         # by nothing (SLIP-0064). All three API hosts are subdomains of, or
         # exactly, an entry in ALLOWED_IMAGE_DOMAINS, so no second list is
         # needed.
+        # Every redirect hop is re-checked too, by the same loop the download
+        # path uses; letting requests follow them checked only the first
+        # URL (SLIP-0090).
         if not _is_allowed_url(full_url):
             raise requests.RequestException("URL not permitted by allowlist")
-        self._rate_limit()
         try:
-            response = self._session.get(
-                full_url, params=params, timeout=(10, 30), verify=True, **kwargs
+            response = self._get_validated(
+                full_url, params=params, stream=False, **kwargs
             )
             response.raise_for_status()
         except requests.RequestException as e:
@@ -154,13 +156,22 @@ class APIClient:
         """GET request returning parsed JSON."""
         return self.get(url, params=params).json()
 
-    def _get_validated(self, url: str) -> requests.Response:
-        """Stream a GET, re-validating the allowlist on every redirect hop.
+    def _get_validated(
+        self,
+        url: str,
+        params: dict | list[tuple[str, str]] | None = None,
+        stream: bool = True,
+        **kwargs,
+    ) -> requests.Response:
+        """GET, re-validating the allowlist on every redirect hop.
 
         `requests` follows redirects itself, which would let a 302 from an
         allowed host fetch the body from an arbitrary one -- and an
         https -> http hop would silently drop TLS. Both are checked here, so
         the URL that is actually fetched is always an allowed HTTPS URL.
+
+        `params` go on the first hop only. A Location carries its own query,
+        and the params hold credentials that must not follow it elsewhere.
         """
         current = url
         for _ in range(MAX_REDIRECTS + 1):
@@ -168,9 +179,10 @@ class APIClient:
                 raise requests.RequestException("URL not permitted by allowlist")
             self._rate_limit()
             response = self._session.get(
-                current, timeout=(10, 30), verify=True, stream=True,
-                allow_redirects=False,
+                current, params=params, timeout=(10, 30), verify=True,
+                stream=stream, allow_redirects=False, **kwargs,
             )
+            params = None
             if response.is_redirect or response.is_permanent_redirect:
                 location = response.headers.get("Location", "")
                 response.close()
