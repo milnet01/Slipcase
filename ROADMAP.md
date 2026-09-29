@@ -1378,21 +1378,29 @@ building.
   Kind: fix.
   Source: review-code-2026-09-01 lane-2.
 
-- 📋 [SLIP-0059] **The progress bar is shared by batch and animation, so one hides it for the other.**
+- ✅ [SLIP-0059] **The progress bar is shared by batch and animation, so one hides it for the other.**
   _on_batch_done and _on_anim_done both call progress_bar.hide() unconditionally.
   The 2026-09-01 re-entrancy guard makes the overlapping case much harder to
   reach from the UI, but the two handlers still share one widget with no owner,
   so the coupling is still there for any future path that starts both.
+  Resolved (2026-09-29): the bar has an owner (_progress_owner) set by
+  _start_progress; _finish_progress hides it only for that owner. The
+  animation bar now takes its maximum from the worker's own total, which
+  also fixes the bar stopping halfway with bounce on after SLIP-0036. Two
+  tests red before the fix.
   **Layman:** Running an export while a batch is going makes the progress bar disappear early.
   Kind: fix.
   Source: review-code-2026-09-01 lane-5.
 
-- 📋 [SLIP-0060] **Three workers can read the same PIL image object concurrently.**
+- ✅ [SLIP-0060] **Three workers can read the same PIL image object concurrently.**
   RenderWorker, BatchWorker and AnimationWorker all read self._front_image, and
   PIL images are not documented thread-safe. The 2026-09-01 re-entrancy guard
   makes concurrent starts much harder to reach, so this is latent rather than
   live -- but the guard is a UI-level check, not an ownership rule, and nothing
   in the workers says the image must not be shared.
+  Resolved (2026-09-29): RenderWorker and AnimationWorker get .copy() of
+  the front and back images; BatchWorker opens its own files and never saw
+  them. Test red before the fix (render path).
   **Layman:** Two long jobs running at once share one image in memory, which PIL does not promise is safe.
   Kind: fix.
   Source: review-code-2026-09-01 lane-5.

@@ -519,5 +519,54 @@ class TestSpineRefinement(unittest.TestCase):
         img = Image.new("RGB", (12, 40), (90, 90, 90))
         self.assertEqual(_refine_spine_bounds(img, 2, 9, 7), (2, 9))
 
+
+class TestProgressBarOwnership(unittest.TestCase):
+    """Batch and animation share one progress bar (SLIP-0059)."""
+
+    def _window(self):
+        from functools import partial
+        from unittest.mock import MagicMock
+        w = MagicMock()
+        w._progress_owner = None
+        w._start_progress = partial(MainWindow._start_progress, w)
+        w._finish_progress = partial(MainWindow._finish_progress, w)
+        return w
+
+    def test_a_job_that_does_not_own_the_bar_leaves_it_visible(self):
+        from unittest.mock import patch
+        w = self._window()
+        w._start_progress("batch", 10)
+        w.progress_bar.hide.reset_mock()
+        with patch("ui.main_window.QMessageBox"):
+            MainWindow._on_anim_error(w, "boom")
+            w.progress_bar.hide.assert_not_called()
+            MainWindow._on_batch_done(w, 10)
+        w.progress_bar.hide.assert_called_once()
+
+    def test_animation_progress_sets_the_bar_to_the_workers_own_total(self):
+        # The worker counts rendered frames; bounce reuses them, so the
+        # file's frame count would leave the bar stuck halfway.
+        w = self._window()
+        MainWindow._on_anim_progress(w, 3, 12)
+        w.progress_bar.setMaximum.assert_called_with(12)
+        w.progress_bar.setValue.assert_called_with(3)
+
+
+class TestWorkersGetTheirOwnImage(unittest.TestCase):
+    """A worker thread must not share the window's PIL image (SLIP-0060)."""
+
+    def test_render_worker_gets_a_copy_of_the_cover(self):
+        from unittest.mock import MagicMock, patch
+        w = MagicMock()
+        cover = Image.new("RGB", (40, 60), (10, 20, 30))
+        w._front_image = cover
+        w._back_image = None
+        w._reject_if_busy.return_value = False
+        with patch("ui.main_window.RenderWorker") as worker_cls:
+            MainWindow._generate(w)
+        given = worker_cls.call_args.kwargs["front"]
+        self.assertIsNot(given, cover)
+        self.assertEqual(given.tobytes(), cover.tobytes())
+
 if __name__ == "__main__":
     unittest.main()

@@ -21,7 +21,7 @@ from core.png_utils import save_optimized_png
 from core.renderer import MAX_OUTPUT_WIDTH, BoxRenderer
 from core.spine_generator import CASE_COLORS_ERROR
 from core.version import __version__
-from ui.animation_dialog import AnimationDialog, frames_in_file
+from ui.animation_dialog import AnimationDialog
 from ui.preview_widget import BusyOverlay, PreviewWidget, pil_to_qpixmap
 from ui.settings_dialog import SettingsDialog
 from ui.search_dialog import SearchDialog
@@ -70,6 +70,9 @@ class MainWindow(QMainWindow):
         self._render_worker: RenderWorker | None = None
         self._batch_worker: BatchWorker | None = None
         self._anim_worker: AnimationWorker | None = None
+        # Which job ("batch" or "anim") the shared progress bar belongs to;
+        # only that job may hide it (SLIP-0059).
+        self._progress_owner: str | None = None
 
         self._build_menu()
         self._build_ui()
@@ -627,6 +630,19 @@ class MainWindow(QMainWindow):
             return True
         return False
 
+    def _start_progress(self, owner: str, maximum: int) -> None:
+        """Show the progress bar for `owner`, taking it over."""
+        self._progress_owner = owner
+        self.progress_bar.setMaximum(maximum)
+        self.progress_bar.setValue(0)
+        self.progress_bar.show()
+
+    def _finish_progress(self, owner: str) -> None:
+        """Hide the progress bar, but only if `owner` still holds it."""
+        if self._progress_owner == owner:
+            self._progress_owner = None
+            self.progress_bar.hide()
+
     def _busy_worker(self):
         """Return a running worker, or None. Tolerates a deleted C++ object."""
         for attr in ("_render_worker", "_batch_worker", "_anim_worker"):
@@ -895,8 +911,11 @@ class MainWindow(QMainWindow):
 
         self._render_worker = RenderWorker(
             renderer=renderer,
-            front=self._front_image,
-            back=self._back_image,
+            # Copies: the window keeps using its own images on the GUI
+            # thread, and PIL does not promise one image is safe to share
+            # across threads (SLIP-0060).
+            front=self._front_image.copy(),
+            back=self._back_image.copy() if self._back_image else None,
             title=self.title_input.text() or "Game",
             serial=self.serial_input.text(),
             platform=self.platform_combo.currentText(),
@@ -1091,9 +1110,7 @@ class MainWindow(QMainWindow):
             return
 
         renderer = self._get_renderer()
-        self.progress_bar.show()
-        self.progress_bar.setMaximum(len(files))
-        self.progress_bar.setValue(0)
+        self._start_progress("batch", len(files))
 
         # Collect failures rather than showing them: the status bar is
         # overwritten by the very next progress message, so a batch where
@@ -1116,7 +1133,7 @@ class MainWindow(QMainWindow):
         self._batch_errors.append(msg)
 
     def _on_batch_done(self, count: int) -> None:
-        self.progress_bar.hide()
+        self._finish_progress("batch")
         errors = getattr(self, "_batch_errors", [])
         total = getattr(self, "_batch_total", count)
         if errors:
@@ -1199,16 +1216,14 @@ class MainWindow(QMainWindow):
         case_name = self.case_combo.currentText()
         case_type = CASE_TYPES[case_name]
 
-        self.progress_bar.show()
-        total = frames_in_file(params["frame_count"], params["bounce"])
-        self.progress_bar.setMaximum(total)
-        self.progress_bar.setValue(0)
+        # The worker renders one frame per angle; bounce reuses them.
+        self._start_progress("anim", params["frame_count"])
         self.status.showMessage("Rendering animation...")
 
         self._anim_worker = AnimationWorker(
             case_type=case_type,
-            front_image=self._front_image,
-            back_image=self._back_image,
+            front_image=self._front_image.copy(),
+            back_image=self._back_image.copy() if self._back_image else None,
             title=self.title_input.text() or "Game",
             serial=self.serial_input.text(),
             platform=self.platform_combo.currentText(),
@@ -1237,16 +1252,17 @@ class MainWindow(QMainWindow):
         self._anim_worker.start()
 
     def _on_anim_progress(self, current: int, total: int) -> None:
+        self.progress_bar.setMaximum(total)
         self.progress_bar.setValue(current)
         self.status.showMessage(f"Rendering frame {current}/{total}...")
 
     def _on_anim_done(self, path: str) -> None:
-        self.progress_bar.hide()
+        self._finish_progress("anim")
         self.status.showMessage(f"Animation exported: {path}")
         QMessageBox.information(self, "Animation Exported", f"Saved to:\n{path}")
 
     def _on_anim_error(self, msg: str) -> None:
-        self.progress_bar.hide()
+        self._finish_progress("anim")
         self.status.showMessage(f"Animation error: {msg}")
         QMessageBox.warning(self, "Animation Error", msg)
 

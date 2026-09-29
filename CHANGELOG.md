@@ -73,6 +73,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The progress bar no longer vanishes early when one job ends while another runs** (SLIP-0059)
+
 - **The spine finder no longer moves the spine edge to a faint smudge** (SLIP-0058)
   Where the cover had no detail at the expected spine edge, any faint mark
   nearby could pull the edge towards it.
