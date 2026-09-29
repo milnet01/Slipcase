@@ -7,6 +7,9 @@ from PyQt6.QtWidgets import QLabel, QSizePolicy, QWidget
 
 from ui.themes import get_active_theme, themed_preview_style
 
+# How long resizing must pause before the preview is re-scaled.
+_RESCALE_DELAY_MS = 60
+
 
 def pil_to_qpixmap(pil_image: Image.Image) -> QPixmap:
     """Convert a PIL RGBA Image to a QPixmap."""
@@ -92,6 +95,13 @@ class PreviewWidget(QLabel):
         self._source_pixmap: QPixmap | None = None
         self._rendered_image: Image.Image | None = None
         self.setText("No preview")
+        # A window drag sends a resize event per pixel, and each smooth
+        # re-scale of a full-size render ran on the GUI thread. Scale once
+        # the resizing pauses instead (SLIP-0047).
+        self._rescale_timer = QTimer(self)
+        self._rescale_timer.setSingleShot(True)
+        self._rescale_timer.setInterval(_RESCALE_DELAY_MS)
+        self._rescale_timer.timeout.connect(self._update_display)
 
     def set_image(self, image: Image.Image) -> None:
         """Set the preview image from a PIL Image."""
@@ -111,9 +121,9 @@ class PreviewWidget(QLabel):
         return self._rendered_image
 
     def resizeEvent(self, event) -> None:
-        """Re-scale the pixmap on resize."""
+        """Re-scale the pixmap once the resizing pauses."""
         super().resizeEvent(event)
-        self._update_display()
+        self._rescale_timer.start()
 
     def _update_display(self) -> None:
         """Scale and display the current pixmap."""

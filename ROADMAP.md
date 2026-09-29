@@ -396,13 +396,20 @@ making a build reproducible.
   Kind: accessibility.
   Source: review-code-2026-09-01 lanes 4 and 6.
 
-- 📋 [SLIP-0047] **Cache the font object, and debounce the preview rescale.**
+- ✅ [SLIP-0047] **Cache the font object, and debounce the preview rescale.**
   Only the font PATH is cached; ImageFont.truetype() is rebuilt on every probe
   of _fit_text's binary search, which is 30-40 font-file parses per spine and
   repeats per image in batch mode. An lru_cache on (path, size) closes it.
   Separately, PreviewWidget.resizeEvent re-scales the full-resolution pixmap
   with SmoothTransformation on every resize event, on the GUI thread. Coalesce
   with a single-shot timer and cache one downscaled pixmap.
+  Resolved (2026-09-29): loaded fonts are cached per thread by (path,
+  size), covering Pillow's fallback font too, which was the branch running
+  here. Measured over 20 spines: 30 font parses and 10.1 ms per spine before,
+  3.9 ms after. The preview re-scales once resizing pauses for 60 ms instead
+  of on every resize event (40 scales for a 40-event burst before, 1 after).
+  Two tests red before the fix. Found on the way: on openSUSE the spine font
+  list misses DejaVu, filed under SLIP-0070.
   **Layman:** Two small speedups: reusing loaded fonts, and not re-scaling the preview on every pixel of a window drag.
   Kind: perf.
   Source: review-code-2026-09-01 lanes 2 and 4.

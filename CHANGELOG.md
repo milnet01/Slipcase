@@ -34,6 +34,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Spines are drawn about twice as fast, and resizing the window is smoother** (SLIP-0047)
+  Fonts are loaded once instead of about thirty times per spine, and the
+  preview is re-scaled once you stop dragging rather than on every step.
+
 - **Only one copy of Slipcase runs at a time** (SLIP-0049)
   Opening it again brings the window that is already open to the front.
   Two copies used to overwrite each other's settings, which could lose login

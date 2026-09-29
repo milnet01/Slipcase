@@ -637,5 +637,54 @@ class TestFieldsAreNamedForScreenReaders(unittest.TestCase):
             self.assertTrue(dialog.preview_label.wordWrap())
             dialog.deleteLater()
 
+
+class TestSpineFontIsLoadedOnce(unittest.TestCase):
+    """_fit_text's search parsed the font file on every probe (SLIP-0047)."""
+
+    def test_repeat_spines_reuse_loaded_fonts(self):
+        from unittest.mock import patch
+        from PIL import ImageFont
+        from core.spine_generator import generate_spine
+        generate_spine(title="Warm Up", spine_width=60, spine_height=900)
+        # Both loaders: which one runs depends on the fonts installed.
+        with patch("core.spine_generator.ImageFont.truetype",
+                   side_effect=ImageFont.truetype) as tt, \
+                patch("core.spine_generator.ImageFont.load_default",
+                      side_effect=ImageFont.load_default) as ld:
+            for i in range(5):
+                generate_spine(title="Warm Up", spine_width=60, spine_height=900)
+        self.assertEqual(tt.call_count + ld.call_count, 0, "fonts were parsed again")
+
+
+class TestPreviewRescaleIsCoalesced(unittest.TestCase):
+    """Every resize event re-scaled the full image on the GUI thread
+    (SLIP-0047)."""
+
+    @classmethod
+    def setUpClass(cls):
+        from PyQt6.QtWidgets import QApplication
+        cls._app = QApplication.instance() or QApplication([])
+
+    def test_a_burst_of_resizes_scales_once(self):
+        import time
+        from unittest.mock import patch
+        from PyQt6.QtCore import QCoreApplication
+        from ui.preview_widget import PreviewWidget
+        # Patched before construction: the timer connects to the method then.
+        with patch.object(PreviewWidget, "_update_display") as update:
+            w = PreviewWidget()
+            w.set_image(Image.new("RGBA", (400, 600), (255, 0, 0, 255)))
+            update.reset_mock()
+            from PyQt6.QtCore import QSize
+            from PyQt6.QtGui import QResizeEvent
+            for size in range(300, 340):
+                w.resizeEvent(QResizeEvent(QSize(size, size), QSize(size - 1, size - 1)))
+            deadline = time.monotonic() + 1.0
+            while time.monotonic() < deadline:
+                QCoreApplication.processEvents()
+                time.sleep(0.01)
+        self.assertEqual(update.call_count, 1)
+        w.deleteLater()
+
 if __name__ == "__main__":
     unittest.main()

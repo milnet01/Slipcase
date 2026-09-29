@@ -1,6 +1,7 @@
 """Generate spine images from platform templates with game title and serial number."""
 
 import json
+import threading
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
@@ -72,6 +73,12 @@ def _hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
 
 _font_path_cache: dict[bool, str | None] = {}
 
+# Loaded fonts by (path, size). _fit_text's binary search asks for about 30
+# sizes per spine, and each ImageFont.truetype() parses the font file again
+# (SLIP-0047). Per thread: a FreeType face is not safe to share between the
+# GUI thread and a render worker.
+_loaded_fonts = threading.local()
+
 
 def _relative_luminance(c: tuple[int, int, int]) -> float:
     """WCAG relative luminance of an sRGB colour."""
@@ -115,12 +122,22 @@ def _get_font(size: int, bold: bool = True) -> ImageFont.FreeTypeFont | ImageFon
                 break
 
     path = _font_path_cache[bold]
-    if path:
-        return ImageFont.truetype(path, size)
-    # Pass the size: load_default() with no argument returns a fixed ~10px
-    # bitmap font, which makes _fit_text's binary search meaningless and
-    # renders every spine unreadably small on a system without the fonts above.
-    return ImageFont.load_default(size)
+    fonts = getattr(_loaded_fonts, "by_key", None)
+    if fonts is None:
+        fonts = _loaded_fonts.by_key = {}
+    font = fonts.get((path, size))
+    if font is None:
+        if path:
+            font = ImageFont.truetype(path, size)
+        else:
+            # Pass the size: load_default() with no argument returns a fixed
+            # ~10px bitmap font, which makes _fit_text's binary search
+            # meaningless and renders every spine unreadably small on a
+            # system without the fonts above. With a size it parses Pillow's
+            # bundled font, so it is cached like the others.
+            font = ImageFont.load_default(size)
+        fonts[(path, size)] = font
+    return font
 
 
 def _fit_text(
