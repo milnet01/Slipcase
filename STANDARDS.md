@@ -290,7 +290,9 @@ The application uses a centralized theme system (`ui/themes.py`):
 
 ### Storage
 
-- **Path**: `~/.config/slipcase/config.json`
+- **Path**: `$XDG_CONFIG_HOME/slipcase/config.json`. When `XDG_CONFIG_HOME`
+  is unset, empty, or not an absolute path, it is `~/.config/slipcase/config.json`
+  -- the XDG Base Directory rule, which says a relative value is ignored
 - **Permissions**: `chmod 600` (contains API credentials)
 - **Format**: JSON with nested sections
 
@@ -409,6 +411,10 @@ python3 -m pytest tests/ -v
 
 All security measures are **mandatory** and must be preserved in any code changes.
 
+Sections 10, 11 and 12 are the only statement of the project's security,
+performance and memory rules. `CLAUDE.md` points here instead of restating
+them, so a rule is changed here and nowhere else.
+
 ### Image Downloads
 - **Domain allowlist**: `api/base.py` defines `ALLOWED_IMAGE_DOMAINS`, and
   `_is_allowed_url` gates **every** request -- JSON API calls as well as image
@@ -427,7 +433,7 @@ All security measures are **mandatory** and must be preserved in any code change
 
 ### Credential Protection
 - **Scrubbing**: `_sanitize_message()` strips credential values from error messages and URLs before display or logging. Pattern: `(devpassword|devid|sspassword|ssid|apikey|api_key|password)=***`
-- **Config permissions**: Config directory `~/.config/slipcase/` created with `0o700`; config file saved with `chmod 600`.
+- **Config permissions**: the `slipcase/` config directory (§ 7 gives its location) is created with `0o700`; config file saved with `chmod 600`.
 - **No logging of secrets**: Never print, log, or emit API keys or passwords in status bar or error dialogs.
 
 ### Input Safety
@@ -464,9 +470,8 @@ Applies three imperceptible optimisations, plus compression:
 3. **RGB conversion**: Drops alpha channel when all pixels are fully opaque (~15% smaller)
 4. **Compression**: zlib level from the `rendering.compress_level` config key.
    Default 6 (balances speed and size); 9 is ~5% smaller and 2-4x slower.
-   The interactive export paths read the key; **batch does not** -- neither the
-   sequential nor the pooled path passes it, so a batch render always uses the
-   function default. SLIP-0091 covers it.
+   Every single-image path reads the key, batch included -- sequential and
+   pooled alike (SLIP-0091).
 
 ### Rendering Engine
 - **No intermediate canvas in `_perspective_quad`**: Transform padded source directly to canvas-sized output, transparent outside the quad (`borderValue` under OpenCV, `fillcolor` under PIL). Never allocate an intermediate `src_canvas`.

@@ -61,47 +61,21 @@ All tests must pass before any commit. The suite covers case types, image utils,
 spine generation, rendering and config (`test_renderer.py`), plus security,
 locked regressions, libretro and the search worker in their own files.
 
-## Security Requirements
-These MUST be maintained in all code changes:
-- **URL allowlist**: `api/base.py` restricts every request -- image downloads
-  and JSON API calls alike -- to known domains over HTTPS
-  (`ALLOWED_IMAGE_DOMAINS`, checked by `_is_allowed_url`). The name is
-  historical: the check covers both paths. It is re-run on every redirect hop
-  of both paths (`_get_validated`), so a 302 cannot move a fetch to another
-  host or drop TLS
-- **Credential scrubbing**: API errors strip passwords/keys before display (`_sanitize_message`)
-- **Download limit**: 50MB max per image download (`MAX_DOWNLOAD_BYTES`), and
-  a wall-clock budget per download (`MAX_DOWNLOAD_SECONDS`). The byte cap
-  alone does not bound a trickle: the request timeout is per-read, so a
-  slow drip never reaches either limit
-- **TLS only**: All API requests use HTTPS with `verify=True`
-- **Config permissions**: `~/.config/slipcase/` dir gets `0o700`, config file gets `chmod 600`
-- **Decompression bomb**: `MAX_IMAGE_PIXELS` (40M) defined and applied in
-  `api/base.py`, so the download path is protected without depending on
-  `main.py` having run; `download_image()` also checks the pixel count
-  explicitly, because Pillow only warns at that value
-- **No code execution**: User text (titles, serials) is rendered as image text only, never eval'd
+## Security, performance and memory rules
+These MUST hold in every code change. `STANDARDS.md` owns them, and this
+file does not restate them (SLIP-0092). Read the section before changing
+code it covers:
 
-## Performance Requirements
-These optimisations MUST be preserved in all code changes:
-- **PNG export**: Use `save_optimized_png()` for all PNG saves — LSB strip, alpha quantization, opaque RGB conversion, and a zlib level from the
-  `rendering.compress_level` config key (default 6; 9 is ~5% smaller and 2-4x
-  slower). The animated-export path is exempt: a multi-frame APNG/GIF cannot
-  route through a single-image saver.
-- **Shadow blur**: Blur alpha channel only (L mode), not full RGBA (~4x faster)
-- **Perspective transform**: `_perspective_quad` transforms padded source directly to canvas (no intermediate canvas allocation)
-- **Combined faces**: Top and bottom box faces rendered on single canvas layer
-- **Vectorized operations**: NumPy for shading gradients; replicate-edge padding
-  before the perspective transform — `cv2.copyMakeBorder(..., BORDER_REPLICATE)`,
-  or `np.pad(mode='edge')` on the PIL fallback
+- **Security** -- `STANDARDS.md` § 10: URL allowlist and per-hop redirect
+  checks, credential scrubbing, download size and time limits, TLS, config
+  permissions, decompression-bomb limit, no code execution.
+- **Performance** -- `STANDARDS.md` § 11: `save_optimized_png()` for every
+  single-image PNG, alpha-only shadow blur, no intermediate canvas in
+  `_perspective_quad`, combined top/bottom faces, vectorised shading and
+  edge padding.
+- **Memory** -- `STANDARDS.md` § 12: `del` intermediates in `render()`,
+  in-place frame handling, `deleteLater` on every worker, `img.load()` after
+  `Image.open()`, API clients closed in `finally`, caches cleared on close,
+  `closeEvent` stops workers before clearing images.
 
-## Memory Management Requirements
-These patterns MUST be followed in all code changes:
-- **`del` intermediates**: In `renderer.render()`, delete large PIL images immediately after their last use
-- **In-place operations**: AnimationWorker normalizes/converts frames in-place (no separate `normalized` or `rgb_frames` lists)
-- **Worker cleanup**: All QThread workers must connect `finished.connect(worker.deleteLater)`
-- **File handle release**: Always call `img.load()` after `Image.open(path)` to release the file handle
-- **API session cleanup**: Close API client sessions in `finally` blocks in worker threads
-- **Cache cleanup**: SearchDialog clears `_preview_cache` and `_results` on close
-- **Close cleanup**: `MainWindow.closeEvent` waits for running workers and clears all image references
-- **Batch processing**: `del img` after render, `del result` after save — never accumulate images across loop iterations
+Change a rule in `STANDARDS.md`, never here.
