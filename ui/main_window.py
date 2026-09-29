@@ -83,68 +83,68 @@ class MainWindow(QMainWindow):
     def _build_menu(self) -> None:
         menubar = self.menuBar()
 
-        file_menu = menubar.addMenu("&File")
-        open_action = QAction("&Open Front Cover...", self)
+        file_menu = menubar.addMenu(self.tr("&File"))
+        open_action = QAction(self.tr("&Open Front Cover..."), self)
         open_action.setShortcut("Ctrl+O")
         open_action.triggered.connect(self._load_front)
         file_menu.addAction(open_action)
 
-        open_back_action = QAction("Open &Back Cover...", self)
+        open_back_action = QAction(self.tr("Open &Back Cover..."), self)
         open_back_action.setShortcut("Ctrl+Shift+O")
         open_back_action.triggered.connect(self._load_back)
         file_menu.addAction(open_back_action)
 
         # Recent files submenu
-        self.recent_menu = file_menu.addMenu("Recent &Files")
+        self.recent_menu = file_menu.addMenu(self.tr("Recent &Files"))
 
         file_menu.addSeparator()
 
-        export_action = QAction("&Export PNG...", self)
+        export_action = QAction(self.tr("&Export PNG..."), self)
         export_action.setShortcut("Ctrl+E")
         export_action.triggered.connect(self._export_png)
         file_menu.addAction(export_action)
 
-        anim_action = QAction("Export &Animation...", self)
+        anim_action = QAction(self.tr("Export &Animation..."), self)
         anim_action.setShortcut("Ctrl+Shift+A")
         anim_action.triggered.connect(self._export_animation)
         file_menu.addAction(anim_action)
 
         file_menu.addSeparator()
-        batch_action = QAction("&Batch Process...", self)
+        batch_action = QAction(self.tr("&Batch Process..."), self)
         batch_action.setShortcut("Ctrl+B")
         batch_action.triggered.connect(self._batch_process)
         file_menu.addAction(batch_action)
 
         file_menu.addSeparator()
-        quit_action = QAction("&Quit", self)
+        quit_action = QAction(self.tr("&Quit"), self)
         quit_action.setShortcut("Ctrl+Q")
         quit_action.triggered.connect(self.close)
         file_menu.addAction(quit_action)
 
-        tools_menu = menubar.addMenu("&Tools")
+        tools_menu = menubar.addMenu(self.tr("&Tools"))
 
-        generate_action = QAction("&Generate", self)
+        generate_action = QAction(self.tr("&Generate"), self)
         generate_action.setShortcut("Ctrl+G")
         generate_action.triggered.connect(self._generate)
         tools_menu.addAction(generate_action)
 
         # F5 as alternative generate shortcut
-        generate_f5 = QAction("Generate (F5)", self)
+        generate_f5 = QAction(self.tr("Generate (F5)"), self)
         generate_f5.setShortcut(QKeySequence(Qt.Key.Key_F5))
         generate_f5.triggered.connect(self._generate)
         self.addAction(generate_f5)
 
-        search_action = QAction("Search &Online...", self)
+        search_action = QAction(self.tr("Search &Online..."), self)
         search_action.setShortcut("Ctrl+F")
         search_action.triggered.connect(self._search_online)
         tools_menu.addAction(search_action)
 
-        copy_action = QAction("&Copy to Clipboard", self)
+        copy_action = QAction(self.tr("&Copy to Clipboard"), self)
         copy_action.setShortcut("Ctrl+Shift+C")
         copy_action.triggered.connect(self._copy_to_clipboard)
         tools_menu.addAction(copy_action)
 
-        compare_action = QAction("Toggle &Comparison", self)
+        compare_action = QAction(self.tr("Toggle &Comparison"), self)
         compare_action.setShortcut("Ctrl+D")
         compare_action.triggered.connect(self._toggle_compare)
         tools_menu.addAction(compare_action)
@@ -152,7 +152,7 @@ class MainWindow(QMainWindow):
         tools_menu.addSeparator()
 
         # Theme submenu
-        self.theme_menu = tools_menu.addMenu("&Theme")
+        self.theme_menu = tools_menu.addMenu(self.tr("&Theme"))
         self._theme_actions: dict[str, QAction] = {}
         for name in THEMES:
             action = QAction(name, self)
@@ -162,12 +162,12 @@ class MainWindow(QMainWindow):
             self._theme_actions[name] = action
         self._update_theme_checks()
 
-        settings_action = QAction("&Settings...", self)
+        settings_action = QAction(self.tr("&Settings..."), self)
         settings_action.triggered.connect(self._open_settings)
         tools_menu.addAction(settings_action)
 
-        help_menu = menubar.addMenu("&Help")
-        about_action = QAction("&About", self)
+        help_menu = menubar.addMenu(self.tr("&Help"))
+        about_action = QAction(self.tr("&About"), self)
         about_action.triggered.connect(self._show_about)
         help_menu.addAction(about_action)
 
@@ -179,18 +179,18 @@ class MainWindow(QMainWindow):
         # Top toolbar row
         toolbar = QHBoxLayout()
 
-        toolbar.addWidget(QLabel("Platform:"))
+        toolbar.addWidget(QLabel(self.tr("Platform:")))
         self.platform_combo = QComboBox()
         self.platform_combo.addItems(ALL_PLATFORMS)
         self.platform_combo.currentTextChanged.connect(self._on_platform_changed)
         toolbar.addWidget(self.platform_combo)
 
-        toolbar.addWidget(QLabel("Case Type:"))
+        toolbar.addWidget(QLabel(self.tr("Case Type:")))
         self.case_combo = QComboBox()
         self.case_combo.addItems(CASE_TYPES.keys())
         toolbar.addWidget(self.case_combo)
 
-        search_btn = QPushButton("Search Online...")
+        search_btn = QPushButton(self.tr("Search Online..."))
         search_btn.clicked.connect(self._search_online)
         toolbar.addWidget(search_btn)
 
@@ -216,17 +216,17 @@ class MainWindow(QMainWindow):
         left_layout.setContentsMargins(0, 0, 0, 0)
 
         # Front cover
-        front_group = QGroupBox("Front Cover")
+        front_group = QGroupBox(self.tr("Front Cover"))
         front_layout = QVBoxLayout()
         front_btn_row = QHBoxLayout()
-        load_front_btn = QPushButton("Load Image")
+        load_front_btn = QPushButton(self.tr("Load Image"))
         load_front_btn.clicked.connect(self._load_front)
         front_btn_row.addWidget(load_front_btn)
-        clear_front_btn = QPushButton("Clear")
+        clear_front_btn = QPushButton(self.tr("Clear"))
         clear_front_btn.clicked.connect(self._clear_front)
         front_btn_row.addWidget(clear_front_btn)
         front_layout.addLayout(front_btn_row)
-        self.front_thumb = QLabel("No image loaded")
+        self.front_thumb = QLabel(self.tr("No image loaded"))
         self.front_thumb.setFixedSize(180, 220)
         self.front_thumb.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.front_thumb.setStyleSheet(themed_thumbnail_style())
@@ -235,17 +235,17 @@ class MainWindow(QMainWindow):
         left_layout.addWidget(front_group)
 
         # Back cover
-        back_group = QGroupBox("Back Cover (optional)")
+        back_group = QGroupBox(self.tr("Back Cover (optional)"))
         back_layout = QVBoxLayout()
         back_btn_row = QHBoxLayout()
-        load_back_btn = QPushButton("Load Image")
+        load_back_btn = QPushButton(self.tr("Load Image"))
         load_back_btn.clicked.connect(self._load_back)
         back_btn_row.addWidget(load_back_btn)
-        clear_back_btn = QPushButton("Clear")
+        clear_back_btn = QPushButton(self.tr("Clear"))
         clear_back_btn.clicked.connect(self._clear_back)
         back_btn_row.addWidget(clear_back_btn)
         back_layout.addLayout(back_btn_row)
-        self.back_thumb = QLabel("No image")
+        self.back_thumb = QLabel(self.tr("No image"))
         self.back_thumb.setFixedSize(180, 120)
         self.back_thumb.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.back_thumb.setStyleSheet(themed_thumbnail_style())
@@ -254,28 +254,28 @@ class MainWindow(QMainWindow):
         left_layout.addWidget(back_group)
 
         # Spine
-        spine_group = QGroupBox("Spine")
+        spine_group = QGroupBox(self.tr("Spine"))
         spine_layout = QVBoxLayout()
 
         title_row = QHBoxLayout()
-        title_row.addWidget(QLabel("Title:"))
+        title_row.addWidget(QLabel(self.tr("Title:")))
         self.title_input = QLineEdit()
-        self.title_input.setPlaceholderText("Game title for spine text")
+        self.title_input.setPlaceholderText(self.tr("Game title for spine text"))
         title_row.addWidget(self.title_input)
         spine_layout.addLayout(title_row)
 
         serial_row = QHBoxLayout()
-        serial_row.addWidget(QLabel("Serial:"))
+        serial_row.addWidget(QLabel(self.tr("Serial:")))
         self.serial_input = QLineEdit()
-        self.serial_input.setPlaceholderText("e.g. SLUS-20946")
+        self.serial_input.setPlaceholderText(self.tr("e.g. SLUS-20946"))
         serial_row.addWidget(self.serial_input)
         spine_layout.addLayout(serial_row)
 
         color_row = QHBoxLayout()
-        color_row.addWidget(QLabel("Color:"))
-        self.color_btn = QPushButton("Auto")
+        color_row.addWidget(QLabel(self.tr("Color:")))
+        self.color_btn = QPushButton(self.tr("Auto"))
         self.color_btn.setFixedWidth(80)
-        self.color_btn.setToolTip("Uses platform template color by default")
+        self.color_btn.setToolTip(self.tr("Uses platform template color by default"))
         self.color_btn.clicked.connect(self._pick_spine_color)
         color_row.addWidget(self.color_btn)
         color_row.addStretch()
@@ -286,12 +286,14 @@ class MainWindow(QMainWindow):
 
         # Case color
         case_color_row = QHBoxLayout()
-        case_color_row.addWidget(QLabel("Case Color:"))
-        self.case_color_btn = QPushButton("Auto")
+        case_color_row.addWidget(QLabel(self.tr("Case Color:")))
+        self.case_color_btn = QPushButton(self.tr("Auto"))
         self.case_color_btn.setFixedWidth(80)
         self.case_color_btn.setToolTip(
-            "Case plastic color for top/bottom faces.\n"
-            "Auto extracts color from cover edges."
+            self.tr(
+                "Case plastic color for top/bottom faces.\n"
+                "Auto extracts color from cover edges."
+            )
         )
         self.case_color_btn.clicked.connect(self._pick_case_color)
         case_color_row.addWidget(self.case_color_btn)
@@ -305,16 +307,16 @@ class MainWindow(QMainWindow):
         action_row = QHBoxLayout()
         # Kept on self so _apply_themed_styles can restyle it: as a local it
         # was unreachable and kept the previous theme's colours after a switch.
-        self.generate_btn = QPushButton("Generate")
+        self.generate_btn = QPushButton(self.tr("Generate"))
         self.generate_btn.setStyleSheet(themed_generate_btn_style())
         self.generate_btn.clicked.connect(self._generate)
         action_row.addWidget(self.generate_btn)
-        export_btn = QPushButton("Export")
+        export_btn = QPushButton(self.tr("Export"))
         export_btn.clicked.connect(self._export_png)
         action_row.addWidget(export_btn)
         left_layout.addLayout(action_row)
 
-        batch_btn = QPushButton("Batch...")
+        batch_btn = QPushButton(self.tr("Batch..."))
         batch_btn.clicked.connect(self._batch_process)
         left_layout.addWidget(batch_btn)
 
@@ -323,24 +325,26 @@ class MainWindow(QMainWindow):
 
     def _build_spine_adjustment(self, parent_layout: QVBoxLayout) -> None:
         """Build the spine boundary adjustment panel."""
-        self.spine_adjust_group = QGroupBox("Spine Boundary Adjustment")
+        self.spine_adjust_group = QGroupBox(self.tr("Spine Boundary Adjustment"))
         adj_layout = QVBoxLayout()
 
-        self.spine_status_label = QLabel("No full cover loaded")
+        self.spine_status_label = QLabel(self.tr("No full cover loaded"))
         adj_layout.addWidget(self.spine_status_label)
 
         # Left boundary slider (start of spine)
         left_row = QHBoxLayout()
-        left_row.addWidget(QLabel("Left:"))
+        left_row.addWidget(QLabel(self.tr("Left:")))
         self.spine_left_slider = QSlider(Qt.Orientation.Horizontal)
         self.spine_left_slider.setRange(-80, 80)
         self.spine_left_slider.setValue(0)
         self.spine_left_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
         self.spine_left_slider.setTickInterval(10)
         self.spine_left_slider.setToolTip(
-            "Adjust the left edge of the spine.\n"
-            "Positive (+) moves it right (wider spine, narrower back).\n"
-            "Negative (-) moves it left (narrower spine, wider back)."
+            self.tr(
+                "Adjust the left edge of the spine.\n"
+                "Positive (+) moves it right (wider spine, narrower back).\n"
+                "Negative (-) moves it left (narrower spine, wider back)."
+            )
         )
         left_row.addWidget(self.spine_left_slider)
         self.spine_left_label = QLabel("0 px")
@@ -350,16 +354,18 @@ class MainWindow(QMainWindow):
 
         # Right boundary slider (end of spine)
         right_row = QHBoxLayout()
-        right_row.addWidget(QLabel("Right:"))
+        right_row.addWidget(QLabel(self.tr("Right:")))
         self.spine_right_slider = QSlider(Qt.Orientation.Horizontal)
         self.spine_right_slider.setRange(-80, 80)
         self.spine_right_slider.setValue(0)
         self.spine_right_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
         self.spine_right_slider.setTickInterval(10)
         self.spine_right_slider.setToolTip(
-            "Adjust the right edge of the spine.\n"
-            "Positive (+) moves it right (narrower spine, wider front).\n"
-            "Negative (-) moves it left (wider spine, narrower front)."
+            self.tr(
+                "Adjust the right edge of the spine.\n"
+                "Positive (+) moves it right (narrower spine, wider front).\n"
+                "Negative (-) moves it left (wider spine, narrower front)."
+            )
         )
         right_row.addWidget(self.spine_right_slider)
         self.spine_right_label = QLabel("0 px")
@@ -369,7 +375,7 @@ class MainWindow(QMainWindow):
 
         # Reset button
         reset_row = QHBoxLayout()
-        reset_btn = QPushButton("Reset to Auto")
+        reset_btn = QPushButton(self.tr("Reset to Auto"))
         reset_btn.setFixedWidth(100)
         reset_btn.clicked.connect(self._reset_spine_offset)
         reset_row.addWidget(reset_btn)
@@ -378,19 +384,19 @@ class MainWindow(QMainWindow):
 
         # Split preview: 3 thumbnails side by side
         preview_row = QHBoxLayout()
-        self.split_back_thumb = QLabel("Back")
+        self.split_back_thumb = QLabel(self.tr("Back"))
         self.split_back_thumb.setFixedSize(70, 90)
         self.split_back_thumb.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.split_back_thumb.setStyleSheet(themed_split_thumb_style())
         preview_row.addWidget(self.split_back_thumb)
 
-        self.split_spine_thumb = QLabel("Spine")
+        self.split_spine_thumb = QLabel(self.tr("Spine"))
         self.split_spine_thumb.setFixedSize(20, 90)
         self.split_spine_thumb.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.split_spine_thumb.setStyleSheet(themed_split_thumb_style(is_spine=True))
         preview_row.addWidget(self.split_spine_thumb)
 
-        self.split_front_thumb = QLabel("Front")
+        self.split_front_thumb = QLabel(self.tr("Front"))
         self.split_front_thumb.setFixedSize(70, 90)
         self.split_front_thumb.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.split_front_thumb.setStyleSheet(themed_split_thumb_style())
@@ -426,11 +432,11 @@ class MainWindow(QMainWindow):
         compare_layout.setContentsMargins(0, 0, 0, 0)
 
         compare_labels = QHBoxLayout()
-        self.compare_orig_label = QLabel("Original")
+        self.compare_orig_label = QLabel(self.tr("Original"))
         self.compare_orig_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.compare_orig_label.setStyleSheet(themed_secondary_text_style())
         compare_labels.addWidget(self.compare_orig_label)
-        self.compare_render_label = QLabel("3D Render")
+        self.compare_render_label = QLabel(self.tr("3D Render"))
         self.compare_render_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.compare_render_label.setStyleSheet(themed_secondary_text_style())
         compare_labels.addWidget(self.compare_render_label)
@@ -453,8 +459,8 @@ class MainWindow(QMainWindow):
 
         # Compare toggle
         compare_row = QHBoxLayout()
-        self.compare_check = QCheckBox("Compare")
-        self.compare_check.setToolTip("Show original cover alongside 3D render (Ctrl+D)")
+        self.compare_check = QCheckBox(self.tr("Compare"))
+        self.compare_check.setToolTip(self.tr("Show original cover alongside 3D render (Ctrl+D)"))
         self.compare_check.toggled.connect(self._on_compare_toggled)
         compare_row.addWidget(self.compare_check)
         compare_row.addStretch()
@@ -464,7 +470,7 @@ class MainWindow(QMainWindow):
         controls = QVBoxLayout()
 
         angle_row = QHBoxLayout()
-        angle_row.addWidget(QLabel("Angle:"))
+        angle_row.addWidget(QLabel(self.tr("Angle:")))
         self.angle_slider = QSlider(Qt.Orientation.Horizontal)
         self.angle_slider.setRange(5, 60)
         self.angle_slider.setValue(30)
@@ -480,12 +486,14 @@ class MainWindow(QMainWindow):
         controls.addLayout(angle_row)
 
         size_row = QHBoxLayout()
-        size_row.addWidget(QLabel("Output Width:"))
+        size_row.addWidget(QLabel(self.tr("Output Width:")))
         self.width_spin = QSpinBox()
         self.width_spin.setRange(128, MAX_OUTPUT_WIDTH)
         self.width_spin.setToolTip(
-            "Width of the exported image. RetroArch thumbnails are at most "
-            "512px; LaunchBox uses 800-1200px."
+            self.tr(
+                "Width of the exported image. RetroArch thumbnails are at most "
+                "512px; LaunchBox uses 800-1200px."
+            )
         )
         self.width_spin.setValue(512)
         self.width_spin.setSuffix(" px")
@@ -494,7 +502,7 @@ class MainWindow(QMainWindow):
         controls.addLayout(size_row)
 
         bg_row = QHBoxLayout()
-        bg_row.addWidget(QLabel("Background:"))
+        bg_row.addWidget(QLabel(self.tr("Background:")))
         self.bg_combo = QComboBox()
         self.bg_combo.addItems(["Transparent", "White", "Black"])
         bg_row.addWidget(self.bg_combo)
@@ -502,35 +510,35 @@ class MainWindow(QMainWindow):
         controls.addLayout(bg_row)
 
         checks_row = QHBoxLayout()
-        self.reflection_check = QCheckBox("Reflection")
+        self.reflection_check = QCheckBox(self.tr("Reflection"))
         self.reflection_check.setChecked(True)
         checks_row.addWidget(self.reflection_check)
-        self.shadow_check = QCheckBox("Shadow")
+        self.shadow_check = QCheckBox(self.tr("Shadow"))
         self.shadow_check.setChecked(True)
         checks_row.addWidget(self.shadow_check)
-        self.texture_check = QCheckBox("Case Texture")
+        self.texture_check = QCheckBox(self.tr("Case Texture"))
         self.texture_check.setChecked(True)
-        self.texture_check.setToolTip("Subtle embossed case details (ridges, indents)")
+        self.texture_check.setToolTip(self.tr("Subtle embossed case details (ridges, indents)"))
         checks_row.addWidget(self.texture_check)
         checks_row.addStretch()
         controls.addLayout(checks_row)
 
-        self.auto_filename_check = QCheckBox("Auto Filename")
+        self.auto_filename_check = QCheckBox(self.tr("Auto Filename"))
         self.auto_filename_check.setToolTip(
-            "Auto-generate export filename from the source image's folder name"
+            self.tr("Auto-generate export filename from the source image's folder name")
         )
         controls.addWidget(self.auto_filename_check)
 
         export_row = QHBoxLayout()
-        export_png_btn = QPushButton("Export PNG")
+        export_png_btn = QPushButton(self.tr("Export PNG"))
         export_png_btn.clicked.connect(self._export_png)
         export_row.addWidget(export_png_btn)
-        copy_btn = QPushButton("Copy to Clipboard")
+        copy_btn = QPushButton(self.tr("Copy to Clipboard"))
         copy_btn.clicked.connect(self._copy_to_clipboard)
         export_row.addWidget(copy_btn)
-        self.export_split_btn = QPushButton("Export Split Covers")
+        self.export_split_btn = QPushButton(self.tr("Export Split Covers"))
         self.export_split_btn.setToolTip(
-            "Export back, spine and front as separate PNG files"
+            self.tr("Export back, spine and front as separate PNG files")
         )
         self.export_split_btn.clicked.connect(self._export_split_covers)
         self.export_split_btn.setEnabled(False)
@@ -550,7 +558,7 @@ class MainWindow(QMainWindow):
                 f"{CASE_COLORS_ERROR} \u2014 spines will use default colours"
             )
         else:
-            self.status.showMessage("Ready")
+            self.status.showMessage(self.tr("Ready"))
 
     def _cfg(self, section: str, key: str, default, kind):
         """Read a config value, falling back to `default` on a bad type.

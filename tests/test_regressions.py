@@ -568,5 +568,39 @@ class TestWorkersGetTheirOwnImage(unittest.TestCase):
         self.assertIsNot(given, cover)
         self.assertEqual(given.tobytes(), cover.tobytes())
 
+
+class TestVisibleTextIsTranslatable(unittest.TestCase):
+    """User-visible literals in the window builders go through tr()
+    (SLIP-0041; the global Qt language standard makes it an idiom)."""
+
+    BUILDERS = {"_build_menu", "_build_ui", "_build_left_panel",
+                "_build_spine_adjustment", "_build_right_panel", "_build_statusbar"}
+    CALLS = {"QAction", "QPushButton", "QLabel", "QGroupBox", "QCheckBox",
+             "QRadioButton", "setToolTip", "setText", "setPlaceholderText",
+             "setTitle", "setWindowTitle", "addMenu", "addRow", "setStatusTip",
+             "showMessage", "setAccessibleName"}
+    # Numbers the code overwrites at once; not text.
+    NOT_TEXT = {"0 px", "30\u00b0"}
+
+    def test_no_bare_literal_reaches_a_visible_text_call(self):
+        import ast
+        src = pathlib.Path(__file__).resolve().parent.parent / "ui" / "main_window.py"
+        tree = ast.parse(src.read_text())
+        bare = []
+        for node in ast.walk(tree):
+            if not (isinstance(node, ast.FunctionDef) and node.name in self.BUILDERS):
+                continue
+            for call in ast.walk(node):
+                if not (isinstance(call, ast.Call) and call.args):
+                    continue
+                f = call.func
+                name = getattr(f, "id", None) or getattr(f, "attr", "")
+                arg = call.args[0]
+                if (name in self.CALLS and isinstance(arg, ast.Constant)
+                        and isinstance(arg.value, str) and arg.value.strip()
+                        and arg.value not in self.NOT_TEXT):
+                    bare.append(f"{node.name}:{call.lineno} {arg.value!r}")
+        self.assertEqual(bare, [])
+
 if __name__ == "__main__":
     unittest.main()

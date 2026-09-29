@@ -281,7 +281,7 @@ making a build reproducible.
   Source: in-session-2026-08-27.
   Lanes: ui.
 
-- 📋 [SLIP-0041] **Wrap user-visible strings in tr() so the UI can be translated.**
+- ✅ [SLIP-0041] **Wrap user-visible strings in tr() so the UI can be translated.**
   There is not one tr() call in the tree. ~/.claude/standards/languages/qt.md
   makes it an idiom from the first commit, on the grounds that retrofitting
   translation across a finished UI costs many times more than never skipping it.
@@ -290,6 +290,13 @@ making a build reproducible.
   No user-visible bug today, since STANDARDS.md claims no localisation. The cost
   of leaving it grows monotonically, so the cheap move is to wrap new strings
   from now on and retrofit the two builder methods in one pass.
+  Resolved (2026-09-29): 72 user-visible literals in MainWindow's six
+  _build_* methods now go through self.tr(). Left bare on purpose: combo
+  items (their text is read back as a stored setting), shortcuts, and two
+  numeric placeholders. A test fails on any new bare literal in those
+  methods; it failed on the old code. NOT covered: the settings, search and
+  animation dialogs, and the runtime messages outside the builders. No
+  translator or .ts files exist yet, so nothing changes on screen.
   **Layman:** Groundwork so the app could be offered in other languages later.
   Kind: enhancement.
   Source: review-code-2026-09-01 lanes 4 and 6.
