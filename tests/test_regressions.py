@@ -651,7 +651,7 @@ class TestSpineFontIsLoadedOnce(unittest.TestCase):
                    side_effect=ImageFont.truetype) as tt, \
                 patch("core.spine_generator.ImageFont.load_default",
                       side_effect=ImageFont.load_default) as ld:
-            for i in range(5):
+            for _ in range(5):
                 generate_spine(title="Warm Up", spine_width=60, spine_height=900)
         self.assertEqual(tt.call_count + ld.call_count, 0, "fonts were parsed again")
 
