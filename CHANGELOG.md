@@ -48,6 +48,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **All window and dialog text is ready for translation** (SLIP-0094)
+  The settings, search and animation dialogs, and the main window's status
+  messages and message boxes, now route their text through Qt's
+  translation system. No translations ship yet.
+
 - **Settings honour XDG_CONFIG_HOME** (SLIP-0050)
   Settings live in $XDG_CONFIG_HOME/slipcase/ when that variable is set to
   an absolute path, and in ~/.config/slipcase/ otherwise. A config already

@@ -540,7 +540,7 @@ class MainWindow(QMainWindow):
         self.angle_label = QLabel("30\u00b0")
         self.angle_label.setFixedWidth(40)
         self.angle_slider.valueChanged.connect(
-            lambda v: self.angle_label.setText(f"{v}\u00b0")
+            lambda v: self.angle_label.setText(self.tr("{0}°").format(v))
         )
         angle_row.addWidget(self.angle_label)
         controls.addLayout(angle_row)
@@ -636,7 +636,7 @@ class MainWindow(QMainWindow):
             # Say it rather than letting every spine turn grey silently, which
             # is indistinguishable from a design choice (SLIP-0053).
             self.status.showMessage(
-                f"{CASE_COLORS_ERROR} \u2014 spines will use default colours"
+                self.tr("{0} — spines will use default colours").format(CASE_COLORS_ERROR)
             )
         else:
             self.status.showMessage(self.tr("Ready"))
@@ -691,7 +691,7 @@ class MainWindow(QMainWindow):
         try:
             self.config.save()
         except OSError as e:
-            self.status.showMessage(f"Could not save settings: {e}")
+            self.status.showMessage(self.tr("Could not save settings: {0}").format(e))
 
     def _save_state(self) -> None:
         """Save current UI state to config."""
@@ -715,7 +715,7 @@ class MainWindow(QMainWindow):
         the last Python reference to a live QThread.
         """
         if self._busy_worker() is not None:
-            self.status.showMessage("Already working — wait for the current job to finish")
+            self.status.showMessage(self.tr("Already working — wait for the current job to finish"))
             return True
         return False
 
@@ -807,7 +807,10 @@ class MainWindow(QMainWindow):
                 img.load()  # Read into memory, release file handle
                 return img, path
             except Exception as e:
-                QMessageBox.warning(self, "Error", f"Failed to load image:\n{e}")
+                QMessageBox.warning(
+                    self, self.tr("Error"),
+                    self.tr("Failed to load image:\n{0}").format(e),
+                )
         return None, None
 
     def _set_thumbnail(self, label: QLabel, image: Image.Image) -> None:
@@ -841,7 +844,7 @@ class MainWindow(QMainWindow):
         case_type = CASE_TYPES[case_name]
         if is_full_cover(img, case_type):
             self.status.showMessage(
-                "Full cover detected (back + spine + front) — spine will be extracted"
+                self.tr("Full cover detected (back + spine + front) — spine will be extracted")
             )
             max_offset = max(40, min(150, int(img.size[0] * 0.03)))
             self.spine_left_slider.setRange(-max_offset, max_offset)
@@ -851,7 +854,7 @@ class MainWindow(QMainWindow):
             self._show_spine_adjustment()
             self.export_split_btn.setEnabled(True)
         else:
-            self.status.showMessage("Front cover loaded")
+            self.status.showMessage(self.tr("Front cover loaded"))
             self._hide_spine_adjustment()
             self.export_split_btn.setEnabled(False)
         self._update_view_choice()
@@ -860,7 +863,7 @@ class MainWindow(QMainWindow):
         self._front_image = None
         self._front_image_path = None
         self.front_thumb.setPixmap(QPixmap())
-        self.front_thumb.setText("No image loaded")
+        self.front_thumb.setText(self.tr("No image loaded"))
         self._hide_spine_adjustment()
         self.export_split_btn.setEnabled(False)
         self._update_view_choice()
@@ -869,7 +872,7 @@ class MainWindow(QMainWindow):
         img, _ = self._load_image_dialog("Open Back Cover")
         if img:
             self._set_back_image(img)
-            self.status.showMessage("Back cover loaded")
+            self.status.showMessage(self.tr("Back cover loaded"))
 
     def _set_back_image(self, img: Image.Image) -> None:
         self._back_image = img
@@ -879,7 +882,7 @@ class MainWindow(QMainWindow):
     def _clear_back(self) -> None:
         self._back_image = None
         self.back_thumb.setPixmap(QPixmap())
-        self.back_thumb.setText("No image")
+        self.back_thumb.setText(self.tr("No image"))
         self._update_view_choice()
 
     def _has_back_cover(self) -> bool:
@@ -908,7 +911,7 @@ class MainWindow(QMainWindow):
             )
         else:
             self._spine_color = None
-            self.color_btn.setText("Auto")
+            self.color_btn.setText(self.tr("Auto"))
             self.color_btn.setStyleSheet("")
 
     def _pick_case_color(self) -> None:
@@ -921,7 +924,7 @@ class MainWindow(QMainWindow):
             )
         else:
             self._case_color = None
-            self.case_color_btn.setText("Auto")
+            self.case_color_btn.setText(self.tr("Auto"))
             self.case_color_btn.setStyleSheet("")
 
     # --- Spine adjustment ---
@@ -953,14 +956,14 @@ class MainWindow(QMainWindow):
             self._set_thumbnail(self.split_spine_thumb, spine)
             self._set_thumbnail(self.split_front_thumb, front)
         except Exception as e:
-            self.status.showMessage(f"Spine split preview failed: {e}")
+            self.status.showMessage(self.tr("Spine split preview failed: {0}").format(e))
 
     def _on_spine_left_changed(self, value: int) -> None:
-        self.spine_left_label.setText(f"{value:+d} px")
+        self.spine_left_label.setText(self.tr("{0:+d} px").format(value))
         self._split_preview_timer.start()
 
     def _on_spine_right_changed(self, value: int) -> None:
-        self.spine_right_label.setText(f"{value:+d} px")
+        self.spine_right_label.setText(self.tr("{0:+d} px").format(value))
         self._split_preview_timer.start()
 
     def _reset_spine_offset(self) -> None:
@@ -1032,12 +1035,15 @@ class MainWindow(QMainWindow):
 
     def _generate(self) -> None:
         if self._front_image is None:
-            QMessageBox.information(self, "No Image", "Please load a front cover image first.")
+            QMessageBox.information(
+                self, self.tr("No Image"),
+                self.tr("Please load a front cover image first."),
+            )
             return
         if self._reject_if_busy():
             return
 
-        self.status.showMessage("Rendering...")
+        self.status.showMessage(self.tr("Rendering..."))
         self._busy_overlay.resize(self.preview_stack.size())
         self._busy_overlay.show_busy()
         renderer = self._get_renderer()
@@ -1068,12 +1074,12 @@ class MainWindow(QMainWindow):
         self._busy_overlay.hide_busy()
         self.preview.set_image(image)
         self.compare_render.set_image(image)
-        self.status.showMessage(f"Rendered: {image.size[0]}x{image.size[1]}")
+        self.status.showMessage(self.tr("Rendered: {0}x{1}").format(image.size[0], image.size[1]))
 
     def _on_render_error(self, msg: str) -> None:
         self._busy_overlay.hide_busy()
-        self.status.showMessage(f"Render error: {msg}")
-        QMessageBox.warning(self, "Render Error", msg)
+        self.status.showMessage(self.tr("Render error: {0}").format(msg))
+        QMessageBox.warning(self, self.tr("Render Error"), msg)
 
     # --- Export ---
 
@@ -1112,7 +1118,7 @@ class MainWindow(QMainWindow):
     def _export_png(self) -> None:
         image = self.preview.get_rendered_image()
         if image is None:
-            QMessageBox.information(self, "No Render", "Generate a render first.")
+            QMessageBox.information(self, self.tr("No Render"), self.tr("Generate a render first."))
             return
 
         # Prefer source file's directory, then last export dir, then last import dir
@@ -1137,11 +1143,14 @@ class MainWindow(QMainWindow):
             try:
                 save_optimized_png(image, path, compress_level=self._compress_level())
             except OSError as e:
-                QMessageBox.warning(self, "Export Failed", f"Could not write the PNG:\n{e}")
+                QMessageBox.warning(
+                    self, self.tr("Export Failed"),
+                    self.tr("Could not write the PNG:\n{0}").format(e),
+                )
                 return
             self.config.set("ui", "last_export_directory", str(Path(path).parent))
             self._save_config()
-            self.status.showMessage(f"Exported: {path}")
+            self.status.showMessage(self.tr("Exported: {0}").format(path))
 
     def _with_confirmed_suffix(self, path: str, ext: str) -> str | None:
         """Append `ext` if missing, asking before an overwrite the dialog missed.
@@ -1158,8 +1167,8 @@ class MainWindow(QMainWindow):
         if Path(path).exists():
             reply = QMessageBox.question(
                 self,
-                "Replace file?",
-                f"{Path(path).name} already exists.\nReplace it?",
+                self.tr("Replace file?"),
+                self.tr("{0} already exists.\nReplace it?").format(Path(path).name),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No,
             )
@@ -1173,8 +1182,8 @@ class MainWindow(QMainWindow):
         case_name = self.case_combo.currentText()
         case_type = CASE_TYPES[case_name]
         if not is_full_cover(self._front_image, case_type):
-            QMessageBox.information(self, "Not a Full Cover",
-                                    "The loaded image is not a full cover.")
+            QMessageBox.information(self, self.tr("Not a Full Cover"),
+                                    self.tr("The loaded image is not a full cover."))
             return
 
         if self._front_image_path:
@@ -1205,17 +1214,20 @@ class MainWindow(QMainWindow):
                 save_optimized_png(part, out_path, compress_level=self._compress_level())
         except OSError as e:
             del back, spine, front
-            QMessageBox.warning(self, "Export Failed", f"Could not write the covers:\n{e}")
+            QMessageBox.warning(
+                self, self.tr("Export Failed"),
+                self.tr("Could not write the covers:\n{0}").format(e),
+            )
             return
         del back, spine, front
         self.config.set("ui", "last_export_directory", output_dir)
         self._save_config()
-        self.status.showMessage(f"Exported split covers to: {output_dir}")
+        self.status.showMessage(self.tr("Exported split covers to: {0}").format(output_dir))
 
     def _copy_to_clipboard(self) -> None:
         image = self.preview.get_rendered_image()
         if image is None:
-            QMessageBox.information(self, "No Render", "Generate a render first.")
+            QMessageBox.information(self, self.tr("No Render"), self.tr("Generate a render first."))
             return
 
         img = image.convert("RGBA")
@@ -1225,7 +1237,7 @@ class MainWindow(QMainWindow):
         # so the clipboard would be left pointing at `data`, a local bytes
         # object freed on return.
         QApplication.clipboard().setImage(qimg.copy())
-        self.status.showMessage("Copied to clipboard")
+        self.status.showMessage(self.tr("Copied to clipboard"))
 
     # --- Batch processing ---
 
@@ -1264,7 +1276,7 @@ class MainWindow(QMainWindow):
 
     def _on_batch_progress(self, current: int, total: int, name: str) -> None:
         self.progress_bar.setValue(current)
-        self.status.showMessage(f"Processing {current}/{total}: {name}")
+        self.status.showMessage(self.tr("Processing {0}/{1}: {2}").format(current, total, name))
 
     def _on_batch_error(self, msg: str) -> None:
         self._batch_errors.append(msg)
@@ -1275,18 +1287,25 @@ class MainWindow(QMainWindow):
         total = getattr(self, "_batch_total", count)
         if errors:
             self.status.showMessage(
-                f"Batch complete: {count} of {total} rendered, {len(errors)} failed"
+                self.tr("Batch complete: {0} of {1} rendered, {2} failed").format(
+                    count, total, len(errors)
+                )
             )
             shown = "\n".join(errors[:10])
             if len(errors) > 10:
                 shown += f"\n... and {len(errors) - 10} more"
             QMessageBox.warning(
-                self, "Batch Finished With Errors",
-                f"Processed {count} of {total} images.\n\n{len(errors)} failed:\n{shown}",
+                self, self.tr("Batch Finished With Errors"),
+                self.tr("Processed {0} of {1} images.\n\n{2} failed:\n{3}").format(
+                    count, total, len(errors), shown
+                ),
             )
         else:
-            self.status.showMessage(f"Batch complete: {count} images rendered")
-            QMessageBox.information(self, "Batch Complete", f"Processed {count} images.")
+            self.status.showMessage(self.tr("Batch complete: {0} images rendered").format(count))
+            QMessageBox.information(
+                self, self.tr("Batch Complete"),
+                self.tr("Processed {0} images.").format(count),
+            )
 
     # --- Online search ---
 
@@ -1305,14 +1324,14 @@ class MainWindow(QMainWindow):
             self._set_back_image(back)
         if name:
             self.title_input.setText(name)
-        self.status.showMessage(f"Downloaded: {name}")
+        self.status.showMessage(self.tr("Downloaded: {0}").format(name))
 
     def _on_search_3d_boxart(self, image, name: str) -> None:
         """Handle pre-rendered 3D boxart from ScreenScraper — show directly in preview."""
         self.preview.set_image(image)
         if name:
             self.title_input.setText(name)
-        self.status.showMessage(f"3D boxart loaded: {name}")
+        self.status.showMessage(self.tr("3D boxart loaded: {0}").format(name))
 
     # --- Comparison view ---
 
@@ -1326,7 +1345,10 @@ class MainWindow(QMainWindow):
 
     def _export_animation(self) -> None:
         if self._front_image is None:
-            QMessageBox.information(self, "No Image", "Please load a front cover image first.")
+            QMessageBox.information(
+                self, self.tr("No Image"),
+                self.tr("Please load a front cover image first."),
+            )
             return
         if self._reject_if_busy():
             return
@@ -1354,7 +1376,7 @@ class MainWindow(QMainWindow):
 
         # The worker renders one frame per angle; bounce reuses them.
         self._start_progress("anim", params["frame_count"])
-        self.status.showMessage("Rendering animation...")
+        self.status.showMessage(self.tr("Rendering animation..."))
 
         self._anim_worker = AnimationWorker(
             case_type=case_type,
@@ -1391,17 +1413,20 @@ class MainWindow(QMainWindow):
     def _on_anim_progress(self, current: int, total: int) -> None:
         self.progress_bar.setMaximum(total)
         self.progress_bar.setValue(current)
-        self.status.showMessage(f"Rendering frame {current}/{total}...")
+        self.status.showMessage(self.tr("Rendering frame {0}/{1}...").format(current, total))
 
     def _on_anim_done(self, path: str) -> None:
         self._finish_progress("anim")
-        self.status.showMessage(f"Animation exported: {path}")
-        QMessageBox.information(self, "Animation Exported", f"Saved to:\n{path}")
+        self.status.showMessage(self.tr("Animation exported: {0}").format(path))
+        QMessageBox.information(
+            self, self.tr("Animation Exported"),
+            self.tr("Saved to:\n{0}").format(path),
+        )
 
     def _on_anim_error(self, msg: str) -> None:
         self._finish_progress("anim")
-        self.status.showMessage(f"Animation error: {msg}")
-        QMessageBox.warning(self, "Animation Error", msg)
+        self.status.showMessage(self.tr("Animation error: {0}").format(msg))
+        QMessageBox.warning(self, self.tr("Animation Error"), msg)
 
     # --- Recent files ---
 
@@ -1445,7 +1470,10 @@ class MainWindow(QMainWindow):
         """Open a file from the recent files list."""
         p = Path(path)
         if not p.exists():
-            QMessageBox.warning(self, "File Not Found", f"File no longer exists:\n{path}")
+            QMessageBox.warning(
+                self, self.tr("File Not Found"),
+                self.tr("File no longer exists:\n{0}").format(path),
+            )
             recent = self.config.get("ui", "recent_files", default=[])
             if isinstance(recent, list):
                 recent = [r for r in recent if r != path]
@@ -1467,7 +1495,10 @@ class MainWindow(QMainWindow):
                 folder_name = p.parent.name
                 self.title_input.setText(folder_name if folder_name else p.stem)
         except Exception as e:
-            QMessageBox.warning(self, "Error", f"Failed to load image:\n{e}")
+            QMessageBox.warning(
+                self, self.tr("Error"),
+                self.tr("Failed to load image:\n{0}").format(e),
+            )
 
     def _clear_recent(self) -> None:
         """Clear the recent files list."""
@@ -1519,8 +1550,10 @@ class MainWindow(QMainWindow):
     def _show_about(self) -> None:
         QMessageBox.about(
             self,
-            "About Slipcase",
-            f"Slipcase v{__version__}\n\n"
-            "Convert 2D game cover art into realistic 3D boxart renders.\n"
-            "Compatible with RetroArch and LaunchBox.",
+            self.tr("About Slipcase"),
+            self.tr(
+                "Slipcase v{0}\n\n"
+                "Convert 2D game cover art into realistic 3D boxart renders.\n"
+                "Compatible with RetroArch and LaunchBox."
+            ).format(__version__),
         )

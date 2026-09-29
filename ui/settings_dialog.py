@@ -15,7 +15,7 @@ class SettingsDialog(QDialog):
     def __init__(self, config: Config, parent=None):
         super().__init__(parent)
         self.config = config
-        self.setWindowTitle("Settings")
+        self.setWindowTitle(self.tr("Settings"))
         self.setMinimumWidth(450)
         self._build_ui()
         self._load_values()
@@ -40,7 +40,7 @@ class SettingsDialog(QDialog):
         widget = QWidget()
         layout = QVBoxLayout(widget)
 
-        group = QGroupBox("ScreenScraper Credentials")
+        group = QGroupBox(self.tr("ScreenScraper Credentials"))
         form = QFormLayout()
 
         self.ss_devid = QLineEdit()
@@ -51,17 +51,19 @@ class SettingsDialog(QDialog):
         self.ss_password = QLineEdit()
         self.ss_password.setEchoMode(QLineEdit.EchoMode.Password)
 
-        form.addRow("Dev ID:", self.ss_devid)
-        form.addRow("Dev Password:", self.ss_devpassword)
-        form.addRow("Username:", self.ss_username)
-        form.addRow("Password:", self.ss_password)
+        form.addRow(self.tr("Dev ID:"), self.ss_devid)
+        form.addRow(self.tr("Dev Password:"), self.ss_devpassword)
+        form.addRow(self.tr("Username:"), self.ss_username)
+        form.addRow(self.tr("Password:"), self.ss_password)
 
         group.setLayout(form)
         layout.addWidget(group)
 
         info = QLabel(
-            "Register at screenscraper.fr for credentials.\n"
-            "Dev credentials require a developer account."
+            self.tr(
+                "Register at screenscraper.fr for credentials.\n"
+                "Dev credentials require a developer account."
+            )
         )
         info.setWordWrap(True)
         info.setStyleSheet(themed_dim_text_style())
@@ -74,20 +76,20 @@ class SettingsDialog(QDialog):
         widget = QWidget()
         layout = QVBoxLayout(widget)
 
-        group = QGroupBox("TheGamesDB Credentials")
+        group = QGroupBox(self.tr("TheGamesDB Credentials"))
         form = QFormLayout()
 
         self.tgdb_api_key = QLineEdit()
         # An API key is a secret: STANDARDS.md § 10 lists api_key in the very
         # pattern used to scrub it from error messages.
         self.tgdb_api_key.setEchoMode(QLineEdit.EchoMode.Password)
-        form.addRow("API Key:", self.tgdb_api_key)
+        form.addRow(self.tr("API Key:"), self.tgdb_api_key)
 
         group.setLayout(form)
         layout.addWidget(group)
 
         info = QLabel(
-            "Get a free API key at thegamesdb.net/register"
+            self.tr("Get a free API key at thegamesdb.net/register")
         )
         info.setWordWrap(True)
         info.setStyleSheet(themed_dim_text_style())
@@ -100,12 +102,14 @@ class SettingsDialog(QDialog):
         widget = QWidget()
         layout = QVBoxLayout(widget)
 
-        self.libretro_enabled = QCheckBox("Search libretro thumbnails")
+        self.libretro_enabled = QCheckBox(self.tr("Search libretro thumbnails"))
         layout.addWidget(self.libretro_enabled)
 
         info = QLabel(
-            "libretro needs no account, so it is searched whenever the platform "
-            "has libretro thumbnails. Untick to stop searches contacting it."
+            self.tr(
+                "libretro needs no account, so it is searched whenever the platform "
+                "has libretro thumbnails. Untick to stop searches contacting it."
+            )
         )
         info.setWordWrap(True)
         info.setStyleSheet(themed_dim_text_style())
@@ -143,8 +147,8 @@ class SettingsDialog(QDialog):
             self.config.save()
         except OSError as e:
             QMessageBox.warning(
-                self, "Settings Not Saved",
-                f"Your settings could not be written to disk:\n{e}",
+                self, self.tr("Settings Not Saved"),
+                self.tr("Your settings could not be written to disk:\n{0}").format(e),
             )
             return
         self.accept()

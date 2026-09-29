@@ -221,7 +221,7 @@ class SearchDialog(QDialog):
         super().__init__(parent)
         self.config = config
         self.platform = platform
-        self.setWindowTitle("Search Online Cover Art")
+        self.setWindowTitle(self.tr("Search Online Cover Art"))
         self.setMinimumSize(600, 500)
         self._results: list = []
         self._preview_cache: dict[int, Image.Image] = {}
@@ -236,13 +236,13 @@ class SearchDialog(QDialog):
         # Search bar
         search_row = QHBoxLayout()
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Enter game name...")
+        self.search_input.setPlaceholderText(self.tr("Enter game name..."))
         # A placeholder is not a name; screen readers need one (SLIP-0046).
-        self.search_input.setAccessibleName("Game name")
+        self.search_input.setAccessibleName(self.tr("Game name"))
         self.search_input.returnPressed.connect(self._do_search)
         search_row.addWidget(self.search_input)
 
-        self.search_btn = QPushButton("Search")
+        self.search_btn = QPushButton(self.tr("Search"))
         self.search_btn.clicked.connect(self._do_search)
         search_row.addWidget(self.search_btn)
         layout.addLayout(search_row)
@@ -254,7 +254,7 @@ class SearchDialog(QDialog):
         layout.addWidget(self.progress)
 
         # Results list
-        results_group = QGroupBox("Results")
+        results_group = QGroupBox(self.tr("Results"))
         results_layout = QVBoxLayout()
         self.results_list = QListWidget()
         self.results_list.currentRowChanged.connect(self._on_result_selected)
@@ -264,7 +264,7 @@ class SearchDialog(QDialog):
 
         # Preview and actions
         bottom = QHBoxLayout()
-        self.preview_label = QLabel("Select a result to preview")
+        self.preview_label = QLabel(self.tr("Select a result to preview"))
         self.preview_label.setFixedSize(150, 200)
         # Wrap rather than clip the prompt at large font sizes (SLIP-0046).
         self.preview_label.setWordWrap(True)
@@ -277,13 +277,13 @@ class SearchDialog(QDialog):
         bottom.addWidget(self.info_label, 1)
 
         btn_layout = QVBoxLayout()
-        self.download_btn = QPushButton("Use This Cover")
+        self.download_btn = QPushButton(self.tr("Use This Cover"))
         self.download_btn.setEnabled(False)
         self.download_btn.clicked.connect(self._download_selected)
         btn_layout.addWidget(self.download_btn)
-        self.use3d_btn = QPushButton("Use 3D Boxart")
+        self.use3d_btn = QPushButton(self.tr("Use 3D Boxart"))
         self.use3d_btn.setEnabled(False)
-        self.use3d_btn.setToolTip("Download pre-rendered 3D boxart from ScreenScraper")
+        self.use3d_btn.setToolTip(self.tr("Download pre-rendered 3D boxart from ScreenScraper"))
         self.use3d_btn.clicked.connect(self._download_3d_boxart)
         btn_layout.addWidget(self.use3d_btn)
         btn_layout.addStretch()
@@ -291,7 +291,7 @@ class SearchDialog(QDialog):
 
         layout.addLayout(bottom)
 
-        self.status_label = QLabel("Enter a game name and click Search")
+        self.status_label = QLabel(self.tr("Enter a game name and click Search"))
         layout.addWidget(self.status_label)
 
     def _do_search(self) -> None:
@@ -311,11 +311,11 @@ class SearchDialog(QDialog):
         self.results_list.clear()
         self._results.clear()
         self._preview_cache.clear()
-        self.preview_label.setText("Select a result to preview")
+        self.preview_label.setText(self.tr("Select a result to preview"))
         self.search_btn.setEnabled(False)
         self.search_input.setEnabled(False)
         self.progress.show()
-        self.status_label.setText("Searching...")
+        self.status_label.setText(self.tr("Searching..."))
 
         self._worker = SearchWorker(query, self.platform, self.config)
         self._worker.results_ready.connect(self._on_results)
@@ -331,16 +331,18 @@ class SearchDialog(QDialog):
             self.results_list.addItem(item)
 
         if results:
-            self.status_label.setText(f"Found {len(results)} result(s)")
+            self.status_label.setText(self.tr("Found {0} result(s)").format(len(results)))
         elif sources_queried == 0:
             # Nothing was asked, so nothing could be found. Saying "no results"
             # here blames the search term for a missing configuration.
             self.status_label.setText(
-                "No cover-art sources available for this platform \u2014 "
-                "add API credentials in Settings"
+                self.tr(
+                    "No cover-art sources available for this platform \u2014 "
+                    "add API credentials in Settings"
+                )
             )
         else:
-            self.status_label.setText("No results found")
+            self.status_label.setText(self.tr("No results found"))
 
     def _on_preview_error(self, msg: str) -> None:
         """Say why the preview failed rather than only that it did.
@@ -349,11 +351,11 @@ class SearchDialog(QDialog):
         (SLIP-0062). Escaped: the text can carry an API-supplied string, and
         QLabel renders HTML by default.
         """
-        self.preview_label.setText("No preview")
-        self.status_label.setText(f"Preview failed: {html.escape(str(msg))}")
+        self.preview_label.setText(self.tr("No preview"))
+        self.status_label.setText(self.tr("Preview failed: {0}").format(html.escape(str(msg))))
 
     def _on_error(self, msg: str) -> None:
-        self.status_label.setText(f"Error: {html.escape(str(msg))}")
+        self.status_label.setText(self.tr("Error: {0}").format(html.escape(str(msg))))
 
     def _on_search_done(self) -> None:
         self.search_btn.setEnabled(True)
@@ -423,7 +425,7 @@ class SearchDialog(QDialog):
                     existing.wait(1000)
             except RuntimeError:
                 pass
-        self.preview_label.setText("Loading...")
+        self.preview_label.setText(self.tr("Loading..."))
         self._preview_worker = PreviewWorker(source, obj, self.config, row)
         self._preview_worker.preview_ready.connect(self._on_preview_ready)
         self._preview_worker.error.connect(self._on_preview_error)
@@ -457,7 +459,7 @@ class SearchDialog(QDialog):
             return
 
         self.download_btn.setEnabled(False)
-        self.status_label.setText("Downloading...")
+        self.status_label.setText(self.tr("Downloading..."))
         self.progress.show()
 
         self._dl_worker = DownloadWorker(
@@ -472,7 +474,7 @@ class SearchDialog(QDialog):
         self.progress.hide()
         self.download_btn.setEnabled(True)
         if front is None:
-            self.status_label.setText("Failed to download cover image")
+            self.status_label.setText(self.tr("Failed to download cover image"))
             return
 
         self.images_selected.emit(front, back, name)
@@ -490,7 +492,7 @@ class SearchDialog(QDialog):
 
         self.use3d_btn.setEnabled(False)
         self.download_btn.setEnabled(False)
-        self.status_label.setText("Downloading 3D boxart...")
+        self.status_label.setText(self.tr("Downloading 3D boxart..."))
         self.progress.show()
 
         self._dl_worker = DownloadWorker(source, obj, self.config)
@@ -509,7 +511,7 @@ class SearchDialog(QDialog):
         # selected while the download ran (SLIP-0061).
         self.use3d_btn.setEnabled(self._selected_result_has_3d())
         if image is None:
-            self.status_label.setText("Failed to download 3D boxart")
+            self.status_label.setText(self.tr("Failed to download 3D boxart"))
             return
 
         self.boxart3d_selected.emit(image, name)

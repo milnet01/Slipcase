@@ -583,36 +583,58 @@ class TestWorkersGetTheirOwnImage(unittest.TestCase):
 
 
 class TestVisibleTextIsTranslatable(unittest.TestCase):
-    """User-visible literals in the window builders go through tr()
-    (SLIP-0041; the global Qt language standard makes it an idiom)."""
+    """User-visible text in the main window and the three dialogs goes
+    through tr() -- builders, status messages and message boxes alike, and
+    text built with an f-string (SLIP-0041, widened by SLIP-0094; the global
+    Qt language standard makes it an idiom)."""
 
-    BUILDERS = {"_build_menu", "_build_ui", "_build_left_panel",
-                "_build_spine_adjustment", "_build_right_panel", "_build_statusbar"}
+    FILES = ("main_window.py", "settings_dialog.py", "search_dialog.py",
+             "animation_dialog.py")
+    CLASSES = {"MainWindow", "SettingsDialog", "SearchDialog", "AnimationDialog"}
     CALLS = {"QAction", "QPushButton", "QLabel", "QGroupBox", "QCheckBox",
              "QRadioButton", "setToolTip", "setText", "setPlaceholderText",
              "setTitle", "setWindowTitle", "addMenu", "addRow", "setStatusTip",
-             "showMessage", "setAccessibleName"}
-    # Numbers the code overwrites at once; not text.
-    NOT_TEXT = {"0 px", "30\u00b0"}
+             "showMessage", "setAccessibleName", "addTab"}
+    # QMessageBox.<kind>(parent, title, text): the title and text are visible.
+    BOXES = {"warning", "information", "critical", "question", "about"}
+    # Numbers the code overwrites at once, and names that are not translated.
+    NOT_TEXT = {"0 px", "30\u00b0", "Slipcase", "ScreenScraper", "TheGamesDB",
+                "libretro"}
 
-    def test_no_bare_literal_reaches_a_visible_text_call(self):
+    def _visible_args(self, call):
+        f = call.func
+        name = getattr(f, "id", None) or getattr(f, "attr", "")
+        if name in self.CALLS and call.args:
+            return [call.args[1] if name == "addTab" and len(call.args) > 1
+                    else call.args[0]]
+        if name in self.BOXES and getattr(getattr(f, "value", None), "id", "") == "QMessageBox":
+            return call.args[1:3]
+        return []
+
+    def _is_bare_text(self, arg):
         import ast
-        src = pathlib.Path(__file__).resolve().parent.parent / "ui" / "main_window.py"
-        tree = ast.parse(src.read_text())
-        bare = []
-        for node in ast.walk(tree):
-            if not (isinstance(node, ast.FunctionDef) and node.name in self.BUILDERS):
-                continue
-            for call in ast.walk(node):
-                if not (isinstance(call, ast.Call) and call.args):
+        if isinstance(arg, ast.JoinedStr):
+            return True
+        return (isinstance(arg, ast.Constant) and isinstance(arg.value, str)
+                and arg.value.strip() != "" and arg.value not in self.NOT_TEXT)
+
+    def test_no_bare_text_reaches_a_visible_text_call(self):
+        import ast
+        ui = pathlib.Path(__file__).resolve().parent.parent / "ui"
+        bare, seen = [], set()
+        for name in self.FILES:
+            tree = ast.parse((ui / name).read_text())
+            for cls in tree.body:
+                if not (isinstance(cls, ast.ClassDef) and cls.name in self.CLASSES):
                     continue
-                f = call.func
-                name = getattr(f, "id", None) or getattr(f, "attr", "")
-                arg = call.args[0]
-                if (name in self.CALLS and isinstance(arg, ast.Constant)
-                        and isinstance(arg.value, str) and arg.value.strip()
-                        and arg.value not in self.NOT_TEXT):
-                    bare.append(f"{node.name}:{call.lineno} {arg.value!r}")
+                seen.add(cls.name)
+                for call in ast.walk(cls):
+                    if not isinstance(call, ast.Call):
+                        continue
+                    for arg in self._visible_args(call):
+                        if self._is_bare_text(arg):
+                            bare.append(f"{name}:{call.lineno} {ast.unparse(arg)[:60]}")
+        self.assertEqual(seen, self.CLASSES, "a scanned class was not found")
         self.assertEqual(bare, [])
 
 

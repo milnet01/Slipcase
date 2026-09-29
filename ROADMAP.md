@@ -765,11 +765,17 @@ making a build reproducible.
   Kind: perf.
   Source: split from SLIP-0035, 2026-09-29.
 
-- 📋 [SLIP-0094] **The settings, search and animation dialogs still show untranslatable text.**
+- ✅ [SLIP-0094] **The settings, search and animation dialogs still show untranslatable text.**
   SLIP-0041 wrapped the main window's builders in tr(). The three dialogs
   and the main window's runtime messages (status bar, message boxes) were not
   in its scope. Extend the lock test in test_regressions.py to cover them
   when they are done.
+  Resolved (2026-09-29): every visible string in MainWindow and the
+  settings, search and animation dialogs goes through tr(), including
+  status messages, message-box titles and texts, and f-string text, which
+  became numbered templates (self.tr("Exported: {0}").format(path)).
+  Product and service names stay untranslated. TestVisibleTextIsTranslatable
+  now scans all four classes and fails on the pre-fix tree.
   **Layman:** The rest of the app's windows still need the same groundwork for other languages.
   Kind: enhancement.
   Source: split from SLIP-0041, 2026-09-29.
