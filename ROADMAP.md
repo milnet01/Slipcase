@@ -1165,13 +1165,21 @@ building.
   Kind: fix.
   Source: review-code-2026-09-01 lane-6.
 
-- 📋 [SLIP-0036] **Animation export can allocate several gigabytes with no bound.**
+- ✅ [SLIP-0036] **Animation export can allocate several gigabytes with no bound.**
   Frame count runs to 120, bounce roughly doubles it to 238, and output width
   runs to 2048. Every frame is retained at full resolution before the encoder
   is reached -- on the order of 5 GB at the top of both ranges. Nothing in the
   dialog or the worker bounds the product.
   Either estimate it in the dialog and refuse or warn above a threshold, or
   stream frames to the encoder instead of accumulating them.
+  Resolved (2026-09-29): bounce now reuses the sweep's frames instead of
+  rendering and storing each twice, halving memory with bounce on. After the
+  first frame the worker estimates width x height x 4 x frames and refuses
+  above MAX_ANIMATION_BYTES (1 GiB) with a message naming what to lower; at
+  512px that allows several hundred frames, at 2048px about thirty. The
+  budget covers the held frames, not the encoder's own working copies. Two
+  tests red before the fix; a real 6-frame bounce exports 10 frames in APNG
+  and GIF.
   **Layman:** A long, wide animation can use all your memory before it starts saving.
   Kind: fix.
   Source: review-code-2026-09-01 lane-6.

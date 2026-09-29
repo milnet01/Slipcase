@@ -12,6 +12,11 @@ from core.case_types import CaseType
 from core.png_utils import save_optimized_png
 from core.renderer import BoxRenderer
 
+# Most memory an animation's frames may take. Every frame is held until the
+# encoder runs, so 120 frames at 2048px wide came to several gigabytes with
+# nothing to stop it (SLIP-0036). The estimate is taken from the first frame.
+MAX_ANIMATION_BYTES = 1024 ** 3
+
 
 # ---------------------------------------------------------------------------
 # Top-level helper for ProcessPoolExecutor (must be picklable)
@@ -263,13 +268,16 @@ class AnimationWorker(QThread):
 
     def run(self):
         try:
-            # Generate angle sequence
+            # One render per angle of the sweep. Bounce replays the sweep
+            # backwards, so it reuses those frames rather than rendering and
+            # storing each one a second time.
             angles = []
             for i in range(self.frame_count):
                 t = i / max(1, self.frame_count - 1)
                 angles.append(self.start_angle + t * (self.end_angle - self.start_angle))
+            order = list(range(len(angles)))
             if self.bounce and self.frame_count > 2:
-                angles += angles[-2:0:-1]
+                order += order[-2:0:-1]
 
             total = len(angles)
             frames: list[Image.Image] = []
@@ -301,6 +309,18 @@ class AnimationWorker(QThread):
                     spine_left_offset=self.spine_left_offset,
                     spine_right_offset=self.spine_right_offset,
                 )
+                if i == 0:
+                    frame_w = max(frame.size[0], self.output_width)
+                    need = frame_w * frame.size[1] * 4 * total
+                    if need > MAX_ANIMATION_BYTES:
+                        self.error.emit(
+                            f"This animation would need about "
+                            f"{need / 1024 ** 3:.1f} GB of memory "
+                            f"({total} frames at {frame_w}x{frame.size[1]}), "
+                            f"more than the {MAX_ANIMATION_BYTES / 1024 ** 3:.0f} GB "
+                            "limit. Lower the width or the number of frames."
+                        )
+                        return
                 frames.append(frame)
                 max_w = max(max_w, frame.size[0])
                 max_h = max(max_h, frame.size[1])
@@ -320,26 +340,22 @@ class AnimationWorker(QThread):
                     bg_img = Image.new("RGBA", f.size, (*bg, 255))
                     comp = Image.alpha_composite(bg_img, f)
                     frames[i] = comp.convert("RGB")
-                frames[0].save(
-                    self.output_path,
-                    save_all=True,
-                    append_images=frames[1:],
-                    duration=self.frame_delay,
-                    loop=0,
-                    optimize=True,
-                )
+                encoder_options = {"optimize": True}
             else:
                 # APNG supports RGBA
-                frames[0].save(
-                    self.output_path,
-                    save_all=True,
-                    append_images=frames[1:],
-                    duration=self.frame_delay,
-                    loop=0,
-                    compress_level=6,
-                )
+                encoder_options = {"compress_level": 6}
 
-            del frames
+            sequence = [frames[k] for k in order]
+            sequence[0].save(
+                self.output_path,
+                save_all=True,
+                append_images=sequence[1:],
+                duration=self.frame_delay,
+                loop=0,
+                **encoder_options,
+            )
+
+            del frames, sequence
             self.finished_signal.emit(self.output_path)
         except Exception as e:
             self.error.emit(str(e))

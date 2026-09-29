@@ -68,6 +68,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Large animations stop with a clear message instead of using up all your memory** (SLIP-0036)
+  An animation that would need more than 1 GB is refused after its first
+  frame, with a note to lower the width or frame count. Bounce animations
+  also use half the memory they did.
+
 - **Choosing a search result no longer downloads its cover a second time** (SLIP-0035)
   The cover fetched for the preview is reused when you pick the result.
 

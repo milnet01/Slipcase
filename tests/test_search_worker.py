@@ -140,3 +140,68 @@ class TestSelectedCoverIsNotDownloadedTwice(unittest.TestCase):
         with patch.object(sd, "DownloadWorker") as worker_cls:
             sd.SearchDialog._download_selected(dialog)
         self.assertIs(worker_cls.call_args.kwargs.get("front"), preview)
+
+
+def _animation_worker(**overrides):
+    from core.case_types import CASE_TYPES
+    from ui.workers import AnimationWorker
+    args = dict(
+        case_type=CASE_TYPES["DVD Case"], front_image=None, back_image=None,
+        title="", serial="", platform="", spine_color=None, case_color=None,
+        spine_left_offset=0, spine_right_offset=0, output_path="",
+        output_width=64, start_angle=10, end_angle=50, frame_count=5,
+        frame_delay=50, bounce=False, fmt="APNG", show_reflection=False,
+        show_shadow=False, background="transparent",
+    )
+    args.update(overrides)
+    return AnimationWorker(**args)
+
+
+class TestAnimationMemory(unittest.TestCase):
+    """Every frame is held in memory until the encoder runs, and nothing
+    bounded that; bounce also rendered and stored each frame twice
+    (SLIP-0036)."""
+
+    def _run(self, worker, frame_size=(64, 90)):
+        from PIL import Image
+        import ui.workers as workers
+        renders = []
+
+        class FakeRenderer:
+            def __init__(self, **kw):
+                self.angle = kw["angle"]
+
+            def render(self, **kw):
+                renders.append(self.angle)
+                # Distinct per angle: the APNG writer merges identical frames.
+                return Image.new("RGBA", frame_size, (int(self.angle * 4), 0, 0, 255))
+
+        seen = {"errors": []}
+        worker.error.connect(seen["errors"].append)
+        worker.finished_signal.connect(lambda p: seen.update(done=p))
+        with patch.object(workers, "BoxRenderer", FakeRenderer):
+            worker.run()
+        return renders, seen
+
+    def test_bounce_renders_each_angle_once_and_writes_the_full_loop(self):
+        import tempfile
+        from PIL import Image
+        with tempfile.TemporaryDirectory() as d:
+            out = os.path.join(d, "spin.png")
+            worker = _animation_worker(bounce=True, output_path=out)
+            renders, seen = self._run(worker)
+            self.assertEqual(seen["errors"], [])
+            self.assertEqual(len(renders), 5)
+            self.assertEqual(len(set(renders)), 5)
+            with Image.open(out) as img:
+                self.assertEqual(img.n_frames, 8)  # 5 out, 3 back
+
+    def test_an_animation_over_the_memory_budget_is_refused_early(self):
+        import ui.workers as workers
+        worker = _animation_worker(frame_count=100)
+        with patch.object(workers, "MAX_ANIMATION_BYTES", 1_000_000):
+            renders, seen = self._run(worker, frame_size=(64, 90))
+        self.assertEqual(len(renders), 1, "it kept rendering past the estimate")
+        self.assertEqual(len(seen["errors"]), 1)
+        self.assertIn("memory", seen["errors"][0])
+        self.assertNotIn("done", seen)
