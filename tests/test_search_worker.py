@@ -102,3 +102,41 @@ class TestFrameTotal(unittest.TestCase):
 
     def test_a_sweep_too_short_to_bounce_is_left_alone(self):
         self.assertEqual(frames_in_file(2, True), 2)
+
+
+class TestSelectedCoverIsNotDownloadedTwice(unittest.TestCase):
+    """The preview already fetched the full-size front; selecting the result
+    fetched it again (SLIP-0035)."""
+
+    def test_a_given_front_is_used_instead_of_downloading_it(self):
+        cached = object()
+        ss = MagicMock()
+        ss.download_back.return_value = "back"
+        seen = {}
+        worker = sd.DownloadWorker("ScreenScraper", "result", MagicMock(), front=cached)
+        worker.image_ready.connect(lambda f, b: seen.update(front=f, back=b))
+        with patch.object(sd, "_create_ss_client", lambda _c: ss):
+            worker.run()
+        ss.download_front.assert_not_called()
+        self.assertIs(seen["front"], cached)
+        self.assertEqual(seen["back"], "back")
+
+    def test_without_a_given_front_it_is_downloaded(self):
+        ss = MagicMock()
+        ss.download_front.return_value = "front"
+        seen = {}
+        worker = sd.DownloadWorker("ScreenScraper", "result", MagicMock())
+        worker.image_ready.connect(lambda f, b: seen.update(front=f))
+        with patch.object(sd, "_create_ss_client", lambda _c: ss):
+            worker.run()
+        self.assertEqual(seen["front"], "front")
+
+    def test_the_dialog_hands_the_cached_preview_to_the_download(self):
+        dialog = MagicMock()
+        dialog.results_list.currentRow.return_value = 0
+        dialog._results = [("ScreenScraper", "Halo", "Xbox", "result")]
+        preview = object()
+        dialog._preview_cache = {0: preview}
+        with patch.object(sd, "DownloadWorker") as worker_cls:
+            sd.SearchDialog._download_selected(dialog)
+        self.assertIs(worker_cls.call_args.kwargs.get("front"), preview)

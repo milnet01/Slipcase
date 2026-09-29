@@ -659,6 +659,17 @@ making a build reproducible.
   Kind: doc.
   Source: review-contract-2026-09-03 SLIP-0081, surfaced not decided.
 
+- 📋 [SLIP-0093] **The search preview fetches a full-size cover to fill a small label.**
+  PreviewWorker downloads the full front (up to the 50 MB cap) to fill a
+  150x200 label. SLIP-0035 removed the second download on selection, so
+  this is now the only full fetch, and selecting reuses it. Where an API
+  exposes a thumbnail or a resize parameter, the preview could ask for that
+  and let selection fetch full size. Needs checking against the live
+  services first, which SLIP-0088 covers; not done blind.
+  **Layman:** Looking at a search result downloads the whole cover just to show a small preview.
+  Kind: perf.
+  Source: split from SLIP-0035, 2026-09-29.
+
 ## Feature ideas
 
 Suggested rather than requested. Each is worth a decision before it is worth
@@ -1140,11 +1151,16 @@ building.
   Kind: fix.
   Source: review-code-2026-09-01 lane-1.
 
-- 📋 [SLIP-0035] **The search preview downloads the full-size cover, then downloads it again.**
+- ✅ [SLIP-0035] **The search preview downloads the full-size cover, then downloads it again.**
   PreviewWorker calls download_front to fill a 150x200 label, pulling the
   full-size image up to the 50 MB cap. _download_selected then requests the same
   URL again instead of reusing _preview_cache. Reuse the cached image for the
   front, and request a thumbnail URL where the API exposes one.
+  Resolved (2026-09-29): DownloadWorker takes the cached preview as
+  `front` and skips download_front when given one; _download_selected passes
+  _preview_cache.get(row). Three tests, two red before the fix. The
+  thumbnail-URL half is split into its own item, since it needs the live
+  APIs checked first (SLIP-0088).
   **Layman:** Selecting a search result downloads the whole cover twice.
   Kind: fix.
   Source: review-code-2026-09-01 lane-6.

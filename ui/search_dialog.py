@@ -162,15 +162,18 @@ class DownloadWorker(QThread):
     image_ready = pyqtSignal(object, object)  # front_image, back_image (PIL Images or None)
     error = pyqtSignal(str)
 
-    def __init__(self, source: str, result_obj, config: Config):
+    def __init__(self, source: str, result_obj, config: Config, front=None):
         super().__init__()
         self.source = source
         self.result_obj = result_obj
         self.config = config
         self.download_3d = False
+        # The full-size front the preview already downloaded, if any. Used
+        # as-is so selecting a result does not fetch it again (SLIP-0035).
+        self.front = front
 
     def run(self):
-        front = None
+        front = self.front
         back = None
 
         try:
@@ -180,7 +183,8 @@ class DownloadWorker(QThread):
                     if self.download_3d:
                         front = ss.download_box3d(self.result_obj)
                     else:
-                        front = ss.download_front(self.result_obj)
+                        if front is None:
+                            front = ss.download_front(self.result_obj)
                         back = ss.download_back(self.result_obj)
                 finally:
                     ss.close()
@@ -188,7 +192,8 @@ class DownloadWorker(QThread):
             elif self.source == "TheGamesDB":
                 tgdb = _create_tgdb_client(self.config)
                 try:
-                    front = tgdb.download_front(self.result_obj)
+                    if front is None:
+                        front = tgdb.download_front(self.result_obj)
                     back = tgdb.download_back(self.result_obj)
                 finally:
                     tgdb.close()
@@ -449,7 +454,9 @@ class SearchDialog(QDialog):
         self.status_label.setText("Downloading...")
         self.progress.show()
 
-        self._dl_worker = DownloadWorker(source, obj, self.config)
+        self._dl_worker = DownloadWorker(
+            source, obj, self.config, front=self._preview_cache.get(row),
+        )
         self._dl_worker.image_ready.connect(lambda f, b: self._on_download(f, b, name))
         self._dl_worker.error.connect(self._on_error)
         self._dl_worker.finished.connect(self._dl_worker.deleteLater)

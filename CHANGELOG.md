@@ -68,6 +68,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Choosing a search result no longer downloads its cover a second time** (SLIP-0035)
+  The cover fetched for the preview is reused when you pick the result.
+
 - **Every case type now has moulded detail on its spine** (SLIP-0034)
   Jewel, Switch, DS, 3DS, PSP and Vita cases had a plain spine while the
   others had grooves or fold lines.
