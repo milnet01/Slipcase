@@ -550,7 +550,7 @@ making a build reproducible.
   Source: review-code-2026-09-01 lane-5.
   Lanes: ui, core.
 
-- 📋 [SLIP-0068] **Nested thread pools contend during batch rendering.**
+- 🚫 [SLIP-0068] **Nested thread pools contend during batch rendering.**
   BoxRenderer.render opens a ThreadPoolExecutor(max_workers=2) per render. In
   batch mode that sits inside a ProcessPoolExecutor of up to 4 processes, with
   OpenCV's own internal pool underneath -- up to 4 x 2 x N threads contending on
@@ -558,6 +558,14 @@ making a build reproducible.
   image in the batch.
   Measure before changing anything: the parallel warp is a real win for a single
   render and may still be one under the process pool.
+  Measured, not changed (2026-09-29). 24 covers at 512px through the real
+  BatchWorker (4 processes), median of 3 runs. 12 cores: as-is 5.00 s;
+  render pool at 1 thread 5.63 s; cv2.setNumThreads(1) in each child 6.27 s;
+  both 6.23 s. Pinned to 4 cores with taskset: as-is ranged 2.65-6.15 s
+  (median 4.01), pool at 1 thread 3.10 s, both 3.12 s -- the spread from
+  other load on the machine is larger than any effect. The nesting is the
+  fastest setup on this machine and not shown to hurt on 4 cores. Reopen
+  with a measurement from a slower machine.
   **Layman:** Batch mode can start far more threads than the machine has cores.
   Kind: perf.
   Source: review-code-2026-09-01 lane-1.
