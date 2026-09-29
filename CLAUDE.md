@@ -59,7 +59,8 @@ python3 -m pytest tests/ -v
 ```
 All tests must pass before any commit. The suite covers case types, image utils,
 spine generation, rendering and config (`test_renderer.py`), plus security,
-locked regressions, libretro and the search worker in their own files.
+locked regressions, libretro, the search worker and replies recorded from the
+live cover-art services (`tests/fixtures/`) in their own files.
 
 ## Security, performance and memory rules
 These MUST hold in every code change. `STANDARDS.md` owns them, and this

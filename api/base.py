@@ -153,8 +153,21 @@ class APIClient:
     def get_json(
         self, url: str, params: dict | list[tuple[str, str]] | None = None
     ) -> dict:
-        """GET request returning parsed JSON."""
-        return self.get(url, params=params).json()
+        """GET request returning parsed JSON.
+
+        A service that refuses a request may answer 200 with plain text --
+        ScreenScraper does for bad developer credentials. The decoder's own
+        error ("Expecting value: line 1 column 1") tells the user nothing,
+        so the reply's opening text is raised instead, scrubbed and capped.
+        """
+        response = self.get(url, params=params)
+        try:
+            return response.json()
+        except ValueError:
+            reply = " ".join(response.text.split())[:200]
+            raise requests.RequestException(
+                _sanitize_message(f"Unexpected reply: {reply}")
+            ) from None
 
     def _get_validated(
         self,

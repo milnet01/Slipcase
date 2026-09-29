@@ -1,0 +1,454 @@
+{
+ "code": 200,
+ "status": "Success",
+ "data": {
+  "count": 20,
+  "games": [
+   {
+    "id": 1006,
+    "game_title": "Crash Bandicoot",
+    "release_date": "1996-09-09",
+    "platform": 10,
+    "region_id": 2,
+    "country_id": 50,
+    "developers": [
+     5839
+    ]
+   },
+   {
+    "id": 85162,
+    "game_title": "Crash Bandicoot",
+    "release_date": "1996-11-08",
+    "platform": 10,
+    "region_id": 6,
+    "country_id": 0,
+    "developers": [
+     5839
+    ]
+   },
+   {
+    "id": 97801,
+    "game_title": "Crash Bandicoot",
+    "release_date": "1996-12-09",
+    "platform": 10,
+    "region_id": 4,
+    "country_id": 28,
+    "developers": null
+   },
+   {
+    "id": 138013,
+    "game_title": "Crash Bandicoot",
+    "release_date": "1996-09-09",
+    "platform": 39,
+    "region_id": 1,
+    "country_id": 0,
+    "developers": [
+     10919
+    ]
+   },
+   {
+    "id": 91594,
+    "game_title": "Crash Bandicoot : Bakuso! Nitro Kart",
+    "release_date": "2003-12-03",
+    "platform": 5,
+    "region_id": 4,
+    "country_id": 28,
+    "developers": [
+     9348
+    ]
+   },
+   {
+    "id": 61947,
+    "game_title": "Crash Bandicoot (PSOne Classic)",
+    "release_date": "2010-10-06",
+    "platform": 12,
+    "region_id": 1,
+    "country_id": 50,
+    "developers": [
+     5839
+    ]
+   },
+   {
+    "id": 96460,
+    "game_title": "Crash Bandicoot (PSone Classic)",
+    "release_date": "2006-12-04",
+    "platform": 13,
+    "region_id": 9,
+    "country_id": 0,
+    "developers": [
+     5839
+    ]
+   },
+   {
+    "id": 125006,
+    "game_title": "Crash Bandicoot [Bonus Demo Disc]",
+    "release_date": "1996-11-08",
+    "platform": 10,
+    "region_id": 8,
+    "country_id": 0,
+    "developers": [
+     5839
+    ]
+   },
+   {
+    "id": 99646,
+    "game_title": "Crash Bandicoot [Collectors' Edition]",
+    "release_date": "2002-05-07",
+    "platform": 10,
+    "region_id": 1,
+    "country_id": 50,
+    "developers": [
+     5839
+    ]
+   },
+   {
+    "id": 69114,
+    "game_title": "Crash Bandicoot [Greatest Hits]",
+    "release_date": "1996-09-09",
+    "platform": 10,
+    "region_id": 1,
+    "country_id": 50,
+    "developers": [
+     5839
+    ]
+   },
+   {
+    "id": 82589,
+    "game_title": "Crash Bandicoot [Platinum]",
+    "release_date": "1997-01-01",
+    "platform": 10,
+    "region_id": 6,
+    "country_id": 18,
+    "developers": [
+     5839
+    ]
+   },
+   {
+    "id": 108796,
+    "game_title": "Crash Bandicoot [Playstation the Best for Family]",
+    "release_date": "1998-05-28",
+    "platform": 10,
+    "region_id": 4,
+    "country_id": 28,
+    "developers": [
+     5839
+    ]
+   },
+   {
+    "id": 108101,
+    "game_title": "Crash Bandicoot 2 - Cortex no Gyakushuu!",
+    "release_date": "1997-12-18",
+    "platform": 10,
+    "region_id": 4,
+    "country_id": 28,
+    "developers": [
+     5839
+    ]
+   },
+   {
+    "id": 61948,
+    "game_title": "Crash Bandicoot 2 (PSOne Classic)",
+    "release_date": "2010-10-06",
+    "platform": 12,
+    "region_id": 1,
+    "country_id": 50,
+    "developers": [
+     5839
+    ]
+   },
+   {
+    "id": 112022,
+    "game_title": "Crash Bandicoot 2: Cortex Strikes Back",
+    "release_date": "1997-12-15",
+    "platform": 10,
+    "region_id": 6,
+    "country_id": 0,
+    "developers": [
+     5839
+    ]
+   },
+   {
+    "id": 5689,
+    "game_title": "Crash Bandicoot 2: Cortex Strikes Back",
+    "release_date": "1997-11-06",
+    "platform": 10,
+    "region_id": 2,
+    "country_id": 50,
+    "developers": [
+     5839
+    ]
+   },
+   {
+    "id": 124946,
+    "game_title": "Crash Bandicoot 2: Cortex Strikes Back",
+    "release_date": "1997-12-01",
+    "platform": 10,
+    "region_id": 8,
+    "country_id": 0,
+    "developers": [
+     5839
+    ]
+   },
+   {
+    "id": 78342,
+    "game_title": "Crash Bandicoot 2: Cortex Strikes Back [Greatest Hits]",
+    "release_date": "1997-10-31",
+    "platform": 10,
+    "region_id": 1,
+    "country_id": 50,
+    "developers": [
+     5839
+    ]
+   },
+   {
+    "id": 82590,
+    "game_title": "Crash Bandicoot 2: Cortex Strikes Back [Platinum]",
+    "release_date": "1999-04-16",
+    "platform": 10,
+    "region_id": 6,
+    "country_id": 18,
+    "developers": [
+     5839
+    ]
+   },
+   {
+    "id": 3360,
+    "game_title": "Crash Bandicoot 2: N-Tranced",
+    "release_date": "2003-06-15",
+    "platform": 5,
+    "region_id": 0,
+    "country_id": 0,
+    "developers": [
+     9348
+    ]
+   }
+  ]
+ },
+ "include": {
+  "boxart": {
+   "base_url": {
+    "original": "https://cdn.thegamesdb.net/images/original/",
+    "small": "https://cdn.thegamesdb.net/images/small/",
+    "thumb": "https://cdn.thegamesdb.net/images/thumb/",
+    "cropped_center_thumb": "https://cdn.thegamesdb.net/images/cropped_center_thumb/",
+    "medium": "https://cdn.thegamesdb.net/images/medium/",
+    "large": "https://cdn.thegamesdb.net/images/large/"
+   },
+   "data": {
+    "1006": [
+     {
+      "id": 35360,
+      "type": "boxart",
+      "side": "back",
+      "filename": "boxart/back/1006-1.jpg",
+      "resolution": "1613x1376"
+     },
+     {
+      "id": 209149,
+      "type": "boxart",
+      "side": "front",
+      "filename": "boxart/front/1006-1.jpg",
+      "resolution": null
+     }
+    ],
+    "3360": [
+     {
+      "id": 7749,
+      "type": "boxart",
+      "side": "front",
+      "filename": "boxart/front/3360-1.jpg",
+      "resolution": "1530x1370"
+     },
+     {
+      "id": 7750,
+      "type": "boxart",
+      "side": "back",
+      "filename": "boxart/back/3360-1.jpg",
+      "resolution": "1530x1370"
+     }
+    ],
+    "5689": [
+     {
+      "id": 35362,
+      "type": "boxart",
+      "side": "back",
+      "filename": "boxart/back/5689-1.jpg",
+      "resolution": "1621x1376"
+     },
+     {
+      "id": 209150,
+      "type": "boxart",
+      "side": "front",
+      "filename": "boxart/front/5689-1.jpg",
+      "resolution": null
+     }
+    ],
+    "61947": [
+     {
+      "id": 391475,
+      "type": "boxart",
+      "side": "front",
+      "filename": "boxart/front/61947-1.jpg",
+      "resolution": null
+     }
+    ],
+    "61948": [
+     {
+      "id": 299291,
+      "type": "boxart",
+      "side": "front",
+      "filename": "boxart/front/61948-1.jpg",
+      "resolution": null
+     }
+    ],
+    "69114": [
+     {
+      "id": 222377,
+      "type": "boxart",
+      "side": "front",
+      "filename": "boxart/front/69114-1.jpg",
+      "resolution": null
+     }
+    ],
+    "78342": [
+     {
+      "id": 252860,
+      "type": "boxart",
+      "side": "front",
+      "filename": "boxart/front/78342-1.jpg",
+      "resolution": null
+     }
+    ],
+    "82589": [
+     {
+      "id": 298559,
+      "type": "boxart",
+      "side": "front",
+      "filename": "boxart/front/82589-1.jpg",
+      "resolution": null
+     }
+    ],
+    "82590": [
+     {
+      "id": 316879,
+      "type": "boxart",
+      "side": "front",
+      "filename": "boxart/front/82590-1.jpg",
+      "resolution": null
+     }
+    ],
+    "85162": [
+     {
+      "id": 280938,
+      "type": "boxart",
+      "side": "front",
+      "filename": "boxart/front/85162-1.jpg",
+      "resolution": null
+     }
+    ],
+    "91594": [
+     {
+      "id": 305002,
+      "type": "boxart",
+      "side": "front",
+      "filename": "boxart/front/91594-1.jpg",
+      "resolution": null
+     }
+    ],
+    "96460": [
+     {
+      "id": 325864,
+      "type": "boxart",
+      "side": "front",
+      "filename": "boxart/front/96460-1.jpg",
+      "resolution": null
+     }
+    ],
+    "97801": [
+     {
+      "id": 330992,
+      "type": "boxart",
+      "side": "front",
+      "filename": "boxart/front/97801-1.jpg",
+      "resolution": null
+     }
+    ],
+    "99646": [
+     {
+      "id": 339933,
+      "type": "boxart",
+      "side": "front",
+      "filename": "boxart/front/99646-1.jpg",
+      "resolution": null
+     }
+    ],
+    "108101": [
+     {
+      "id": 372182,
+      "type": "boxart",
+      "side": "front",
+      "filename": "boxart/front/108101-1.jpg",
+      "resolution": null
+     }
+    ],
+    "108796": [
+     {
+      "id": 374868,
+      "type": "boxart",
+      "side": "front",
+      "filename": "boxart/front/108796-1.jpg",
+      "resolution": null
+     }
+    ],
+    "112022": [
+     {
+      "id": 428406,
+      "type": "boxart",
+      "side": "front",
+      "filename": "boxart/front/112022-1.jpg",
+      "resolution": null
+     },
+     {
+      "id": 428407,
+      "type": "boxart",
+      "side": "back",
+      "filename": "boxart/back/112022-1.jpg",
+      "resolution": null
+     }
+    ],
+    "124946": [
+     {
+      "id": 433812,
+      "type": "boxart",
+      "side": "front",
+      "filename": "boxart/front/124946-1.jpg",
+      "resolution": null
+     },
+     {
+      "id": 433813,
+      "type": "boxart",
+      "side": "back",
+      "filename": "boxart/back/124946-1.jpg",
+      "resolution": null
+     }
+    ],
+    "125006": [
+     {
+      "id": 434115,
+      "type": "boxart",
+      "side": "front",
+      "filename": "boxart/front/125006-1.jpg",
+      "resolution": null
+     },
+     {
+      "id": 434116,
+      "type": "boxart",
+      "side": "back",
+      "filename": "boxart/back/125006-1.jpg",
+      "resolution": null
+     }
+    ]
+   }
+  }
+ }
+}

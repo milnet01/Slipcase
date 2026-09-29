@@ -381,8 +381,9 @@ Results are aggregated and displayed with source attribution.
 |------|--------------|
 | `test_renderer.py` | Case definitions, image utils, spine generation, end-to-end rendering, config |
 | `test_regressions.py` | Locked fixes: aspect ratio, batch output paths, config durability, PNG export, export naming, render bounds |
-| `test_security.py` | URL allowlist, redirect validation, credential scrubbing, download limits and deadline, accepted formats, TLS |
+| `test_security.py` | URL allowlist, redirect validation, credential scrubbing, download limits and deadline, accepted formats, TLS, non-JSON replies |
 | `test_libretro.py` | libretro URL candidates and download short-circuit |
+| `test_api_recordings.py` | ScreenScraper and TheGamesDB search parsing against replies recorded live (`tests/fixtures/`); recordings carry no credentials |
 | `test_search_worker.py` | Search worker always finishes; source counting; frame totals |
 
 ### Test Utilities

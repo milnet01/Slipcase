@@ -390,6 +390,48 @@ class TestJsonRequestsAreValidated(unittest.TestCase):
         session_get.assert_not_called()
 
 
+class TestNonJsonReplyIsExplained(unittest.TestCase):
+    """A plain-text refusal reaches the user in the service's own words.
+
+    ScreenScraper answers bad developer credentials with HTTP 200 and a line
+    of French text, not JSON. get_json() let the decoder's error through, so
+    the search dialog showed "Expecting value: line 1 column 1 (char 0)"
+    (found by the SLIP-0088 live run).
+    """
+
+    REFUSAL = "Erreur de login : Vérifier vos identifiants développeur !"
+
+    @staticmethod
+    def _reply(body):
+        response = requests.Response()
+        response.status_code = 200
+        response._content = body.encode("utf-8")
+        response.encoding = "utf-8"
+        return response
+
+    def _get_json(self, body):
+        client = APIClient(base_url="https://api.screenscraper.fr/api2",
+                           min_request_interval=0)
+        with patch.object(client._session, "get", return_value=self._reply(body)):
+            client.get_json("jeuRecherche.php", params=[("sspassword", "hunter2")])
+
+    def test_the_service_message_is_shown_instead_of_the_decoder_error(self):
+        with self.assertRaises(requests.RequestException) as caught:
+            self._get_json(self.REFUSAL)
+        self.assertIn(self.REFUSAL, str(caught.exception))
+        self.assertNotIn("Expecting value", str(caught.exception))
+
+    def test_a_credential_echoed_in_the_reply_is_scrubbed(self):
+        with self.assertRaises(requests.RequestException) as caught:
+            self._get_json("bad request: sspassword=hunter2")
+        self.assertNotIn("hunter2", str(caught.exception))
+
+    def test_a_long_reply_is_cut_short(self):
+        with self.assertRaises(requests.RequestException) as caught:
+            self._get_json("<html>" + "x" * 5000)
+        self.assertLess(len(str(caught.exception)), 400)
+
+
 def _png_bytes(size=(8, 8)):
     """A real PNG, so a download that is NOT cut short succeeds."""
     buf = BytesIO()

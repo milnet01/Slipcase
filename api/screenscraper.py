@@ -133,8 +133,9 @@ class ScreenScraperAPI(APIClient):
 
         data = self.get_json("jeuRecherche.php", params=params)
         if not isinstance(data, dict):
-            # Quota exhaustion and outages are answered with non-JSON or a
-            # bare list; treat that as no results rather than an AttributeError.
+            # A reply that is JSON but not an object (a bare list) is treated
+            # as no results rather than an AttributeError. A non-JSON reply
+            # -- a refused login, quota exhaustion -- raises in get_json().
             return []
 
         results = []

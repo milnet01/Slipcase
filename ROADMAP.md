@@ -687,7 +687,7 @@ making a build reproducible.
   Source: review-code-2026-09-01 lane-3.
   Lanes: api.
 
-- 📋 [SLIP-0088] **Online cover-art search has never been verified against the live APIs.**
+- ✅ [SLIP-0088] **Online cover-art search has never been verified against the live APIs.**
   The 2026-09-01 verify-delivery pass ran every user-facing promise except this
   one. Fifteen were executed -- render, spine generation, real-case proportions,
   split, batch, animation, transparent PNG, the two output size targets, the app
@@ -735,6 +735,25 @@ making a build reproducible.
   release waits until this live check passes. Status: the saved config
   still holds no ScreenScraper or TheGamesDB credentials; libretro
   re-verified live today.
+  Progress (2026-09-29): credentials entered. TheGamesDB verified live --
+  two searches returned 20 results each and a front cover downloaded and
+  decoded. ScreenScraper refused every search with HTTP 200 and the text
+  "Erreur de login : Vérifier vos identifiants développeur !": the
+  developer pair entered in Slipcase was wrong. RetroDB's saved pair was
+  accepted (30 results); with the user's approval it was copied into
+  Slipcase's config (backup kept beside it). Dropping the developer pair
+  is refused too, so RetroDB's retry-without-dev-credentials fallback
+  would not help here and was not ported. The run also showed a refusal
+  reached the user as "Expecting value: line 1 column 1 (char 0)";
+  get_json() now raises the reply text, scrubbed and capped.
+  Resolved (2026-09-29): all three services verified live the same day.
+  ScreenScraper (30 and 29 results) and TheGamesDB (20 and 20) searched
+  through the app's own clients, and a front cover from each downloaded
+  and decoded. Replies recorded, trimmed and scrubbed in tests/fixtures/,
+  parsed by tests/test_api_recordings.py, which also fails if a recording
+  carries an unredacted credential parameter. Checked before commit:
+  every stored credential value searched for in the staged diff (none),
+  and gitleaks over the staged files (no leaks).
   **Layman:** The one feature nobody has actually run end to end against the real services.
   Kind: test.
   Source: verify-delivery-2026-09-01.

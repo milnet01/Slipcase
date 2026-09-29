@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Online cover-art search is verified against the live services, with recorded replies in the test suite.** (SLIP-0088)
+  ScreenScraper, TheGamesDB and libretro were each searched live. The
+  ScreenScraper and TheGamesDB replies are kept, with every credential
+  removed, so the tests now check the parser against what the services
+  really send.
+
 - **A Settings switch turns libretro search off** (SLIP-0071)
   libretro needs no login, so it was contacted on every search. A new
   libretro tab in Settings turns it off; it stays on by default.
@@ -118,6 +124,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   download_spine and the spine_url result field had no callers.
 
 ### Fixed
+
+- **A refused cover-art search now says why, in the service's own words.**
+  ScreenScraper answers bad developer credentials with a line of text
+  rather than data, and the search dialog showed "Expecting value: line 1
+  column 1 (char 0)". It now shows the reply itself, with credentials
+  scrubbed and long replies cut short. Found by the SLIP-0088 live run.
 
 - **The left column scrolls instead of squashing the spine panel** (SLIP-0095)
   In an 800-pixel-tall window with a full cover loaded, "Reset to Auto"

@@ -1,0 +1,589 @@
+{
+ "header": {
+  "APIversion": "2.0",
+  "commandRequested": "https://neoclone.screenscraper.fr/api2/jeuRecherche.php?devid=REDACTED&devpassword=REDACTED&softname=BoxArt3D&ssid=REDACTED&sspassword=REDACTED&output=json&recherche=Crash+Bandicoot",
+  "success": "true",
+  "error": ""
+ },
+ "response": {
+  "jeux": [
+   {
+    "id": "542207",
+    "noms": [
+     {
+      "region": "ss",
+      "text": "Crash Bandicoot"
+     }
+    ],
+    "systeme": {
+     "id": "3",
+     "text": "NES"
+    },
+    "topstaff": null,
+    "rotation": "0",
+    "medias": []
+   },
+   {
+    "id": "3882",
+    "noms": [
+     {
+      "region": "ss",
+      "text": "Crash Bandicoot Xs"
+     },
+     {
+      "region": "us",
+      "text": "Crash Bandicoot : The Huge Adventure"
+     },
+     {
+      "region": "jp",
+      "text": "Crash Bandicoot Advance"
+     },
+     {
+      "region": "eu",
+      "text": "Crash Bandicoot XS"
+     }
+    ],
+    "systeme": {
+     "id": "12",
+     "text": "Game Boy Advance"
+    },
+    "editeur": {
+     "id": "45001",
+     "text": "Universal Interactive"
+    },
+    "developpeur": {
+     "id": "31599",
+     "text": "Vicarious Vision"
+    },
+    "joueurs": {
+     "text": "1"
+    },
+    "note": {
+     "text": "17"
+    },
+    "topstaff": null,
+    "rotation": "0",
+    "controles": "0",
+    "couleurs": "0",
+    "classifications": [
+     {
+      "type": "SS",
+      "text": "6"
+     },
+     {
+      "type": "JV",
+      "text": "+3 ans"
+     },
+     {
+      "type": "PEGI",
+      "text": "3"
+     },
+     {
+      "type": "CERO",
+      "text": "A"
+     },
+     {
+      "type": "ESRB",
+      "text": "E"
+     }
+    ],
+    "dates": [
+     {
+      "region": "fr",
+      "text": "2002-03-15"
+     },
+     {
+      "region": "us",
+      "text": "2002-02-25"
+     },
+     {
+      "region": "eu",
+      "text": "2002-03-15"
+     },
+     {
+      "region": "jp",
+      "text": "2002-07-18"
+     }
+    ],
+    "genres": [
+     {
+      "id": "7",
+      "nomcourt": "0101",
+      "principale": "1",
+      "parentid": "0",
+      "noms": [
+       {
+        "langue": "de",
+        "text": "Plattform"
+       },
+       {
+        "langue": "en",
+        "text": "Platform"
+       },
+       {
+        "langue": "es",
+        "text": "Plataformas"
+       },
+       {
+        "langue": "fr",
+        "text": "Plateforme"
+       },
+       {
+        "langue": "it",
+        "text": "Piattaforma"
+       },
+       {
+        "langue": "pt",
+        "text": "Plataforma"
+       }
+      ]
+     },
+     {
+      "id": "2646",
+      "nomcourt": "0100",
+      "principale": "1",
+      "parentid": "0",
+      "noms": [
+       {
+        "langue": "de",
+        "text": "Shooter"
+       },
+       {
+        "langue": "en",
+        "text": "Shooter"
+       },
+       {
+        "langue": "es",
+        "text": "Disparos"
+       },
+       {
+        "langue": "fr",
+        "text": "Tir"
+       },
+       {
+        "langue": "it",
+        "text": "Sparo"
+       },
+       {
+        "langue": "pt",
+        "text": "Tiro"
+       }
+      ]
+     }
+    ],
+    "familles": [
+     {
+      "id": "3815",
+      "nomcourt": "",
+      "principale": "0",
+      "parentid": "0",
+      "noms": [
+       {
+        "langue": "fr",
+        "text": "Crash Bandicoot"
+       }
+      ]
+     }
+    ],
+    "medias": [
+     {
+      "type": "ss",
+      "parent": "jeu",
+      "url": "https://neoclone.screenscraper.fr/api2/mediaJeu.php?devid=REDACTED&devpassword=REDACTED&softname=BoxArt3D&ssid=REDACTED&sspassword=REDACTED&systemeid=12&jeuid=3882&media=ss(wor)",
+      "region": "wor",
+      "crc": "ca8d7f02",
+      "md5": "0413a536875e7c8f8dcb3ada594d70b2",
+      "sha1": "c6f33094889a3ce4bfd7ef24b580e481a5e2cf66",
+      "size": "82666",
+      "format": "png"
+     },
+     {
+      "type": "wheel",
+      "parent": "jeu",
+      "url": "https://neoclone.screenscraper.fr/api2/mediaJeu.php?devid=REDACTED&devpassword=REDACTED&softname=BoxArt3D&ssid=REDACTED&sspassword=REDACTED&systemeid=12&jeuid=3882&media=wheel(eu)",
+      "region": "eu",
+      "crc": "bc9b93e1",
+      "md5": "8a9277d97a4cfa17ab1d0997c1f29fa5",
+      "sha1": "36252595924673419c0bcde8dcae635e4125718a",
+      "size": "152853",
+      "format": "png"
+     },
+     {
+      "type": "wheel",
+      "parent": "jeu",
+      "url": "https://neoclone.screenscraper.fr/api2/mediaJeu.php?devid=REDACTED&devpassword=REDACTED&softname=BoxArt3D&ssid=REDACTED&sspassword=REDACTED&systemeid=12&jeuid=3882&media=wheel(us)",
+      "region": "us",
+      "crc": "e3d5d9b7",
+      "md5": "c09ed324d6b3874c21db957f4547fd29",
+      "sha1": "dfdae44c5956a2f094410a41a9054d758c114fba",
+      "size": "150695",
+      "format": "png"
+     },
+     {
+      "type": "box-2D",
+      "parent": "jeu",
+      "url": "https://neoclone.screenscraper.fr/api2/mediaJeu.php?devid=REDACTED&devpassword=REDACTED&softname=BoxArt3D&ssid=REDACTED&sspassword=REDACTED&systemeid=12&jeuid=3882&media=box-2D(eu)",
+      "region": "eu",
+      "crc": "d835f306",
+      "md5": "bd61663877a4892112baf927090249b1",
+      "sha1": "3b347a261fb7a6a81da97cfb1b173ff7ff4e4025",
+      "size": "969464",
+      "format": "png"
+     },
+     {
+      "type": "box-2D",
+      "parent": "jeu",
+      "url": "https://neoclone.screenscraper.fr/api2/mediaJeu.php?devid=REDACTED&devpassword=REDACTED&softname=BoxArt3D&ssid=REDACTED&sspassword=REDACTED&systemeid=12&jeuid=3882&media=box-2D(jp)",
+      "region": "jp",
+      "crc": "681e3d31",
+      "md5": "900a23c1ecf632593b9e770929538fc7",
+      "sha1": "ababda85c1277f67d454f6fada93026a8c031d5c",
+      "size": "486219",
+      "format": "png"
+     },
+     {
+      "type": "box-2D",
+      "parent": "jeu",
+      "url": "https://neoclone.screenscraper.fr/api2/mediaJeu.php?devid=REDACTED&devpassword=REDACTED&softname=BoxArt3D&ssid=REDACTED&sspassword=REDACTED&systemeid=12&jeuid=3882&media=box-2D(us)",
+      "region": "us",
+      "crc": "3e422149",
+      "md5": "442eff9a5a268d5b80b9141b48f912bf",
+      "sha1": "922d6b3f1bfef4905de7169ac2247b57c7a7e725",
+      "size": "847752",
+      "format": "png"
+     },
+     {
+      "type": "box-2D-back",
+      "parent": "jeu",
+      "url": "https://neoclone.screenscraper.fr/api2/mediaJeu.php?devid=REDACTED&devpassword=REDACTED&softname=BoxArt3D&ssid=REDACTED&sspassword=REDACTED&systemeid=12&jeuid=3882&media=box-2D-back(eu)",
+      "region": "eu",
+      "crc": "89f36c19",
+      "md5": "37c22918323f811a690b5aa3a94d6c8c",
+      "sha1": "af73577a42e758e92897fed325119f493a22b843",
+      "size": "1108192",
+      "format": "png"
+     },
+     {
+      "type": "box-2D-back",
+      "parent": "jeu",
+      "url": "https://neoclone.screenscraper.fr/api2/mediaJeu.php?devid=REDACTED&devpassword=REDACTED&softname=BoxArt3D&ssid=REDACTED&sspassword=REDACTED&systemeid=12&jeuid=3882&media=box-2D-back(jp)",
+      "region": "jp",
+      "crc": "b3dc8613",
+      "md5": "2f76ddeb1b7f7bfabafc6a683c1be82f",
+      "sha1": "7ee977f200abd52408f707fc6148eaf78fd689f2",
+      "size": "627080",
+      "format": "png"
+     },
+     {
+      "type": "box-2D-back",
+      "parent": "jeu",
+      "url": "https://neoclone.screenscraper.fr/api2/mediaJeu.php?devid=REDACTED&devpassword=REDACTED&softname=BoxArt3D&ssid=REDACTED&sspassword=REDACTED&systemeid=12&jeuid=3882&media=box-2D-back(uk)",
+      "region": "uk",
+      "crc": "6174e503",
+      "md5": "deb053428d82b192a259e4dc98047a1f",
+      "sha1": "b15d0dd4054004bbe8cc597cbcc643b6fac1547f",
+      "size": "1042889",
+      "format": "png"
+     },
+     {
+      "type": "box-2D-back",
+      "parent": "jeu",
+      "url": "https://neoclone.screenscraper.fr/api2/mediaJeu.php?devid=REDACTED&devpassword=REDACTED&softname=BoxArt3D&ssid=REDACTED&sspassword=REDACTED&systemeid=12&jeuid=3882&media=box-2D-back(us)",
+      "region": "us",
+      "crc": "a397f286",
+      "md5": "12cfacc0b6d5315bc4dbb7c902f6355f",
+      "sha1": "5d0023492068e3f3021667f6c4f7be7b769ef70a",
+      "size": "880734",
+      "format": "png"
+     },
+     {
+      "type": "box-3D",
+      "parent": "jeu",
+      "url": "https://neoclone.screenscraper.fr/api2/mediaJeu.php?devid=REDACTED&devpassword=REDACTED&softname=BoxArt3D&ssid=REDACTED&sspassword=REDACTED&systemeid=12&jeuid=3882&media=box-3D(eu)",
+      "region": "eu",
+      "crc": "ac416985",
+      "md5": "3856a5b4b6e1f84395324c210938b9b2",
+      "sha1": "b9c1826d34a4a337e1eef1b2bf4dc5b91bf1203d",
+      "size": "474249",
+      "format": "png"
+     },
+     {
+      "type": "box-3D",
+      "parent": "jeu",
+      "url": "https://neoclone.screenscraper.fr/api2/mediaJeu.php?devid=REDACTED&devpassword=REDACTED&softname=BoxArt3D&ssid=REDACTED&sspassword=REDACTED&systemeid=12&jeuid=3882&media=box-3D(jp)",
+      "region": "jp",
+      "crc": "143aaf61",
+      "md5": "0023f0e35a1e197e4891e67d9be670a9",
+      "sha1": "6fde85786dc3543bb8d82ebb46fa7eaea05d8600",
+      "size": "315862",
+      "format": "png"
+     },
+     {
+      "type": "box-3D",
+      "parent": "jeu",
+      "url": "https://neoclone.screenscraper.fr/api2/mediaJeu.php?devid=REDACTED&devpassword=REDACTED&softname=BoxArt3D&ssid=REDACTED&sspassword=REDACTED&systemeid=12&jeuid=3882&media=box-3D(us)",
+      "region": "us",
+      "crc": "b63c64af",
+      "md5": "7d1da8e520ad9589ff9bc3d991d4ad49",
+      "sha1": "c9d1d5ce2ada6d392fd959eba2e542c9df1b4cdb",
+      "size": "484207",
+      "format": "png"
+     }
+    ]
+   },
+   {
+    "id": "3946",
+    "noms": [
+     {
+      "region": "ss",
+      "text": "Crash Bandicoot - Fusion"
+     },
+     {
+      "region": "us",
+      "text": "Crash Bandicoot Purple : Ripto's Rampage"
+     },
+     {
+      "region": "jp",
+      "text": "Crash Bandicoot Advance : Wakuwaku Tomodachi Daisakusen!"
+     },
+     {
+      "region": "eu",
+      "text": "Crash Bandicoot Fusion"
+     }
+    ],
+    "systeme": {
+     "id": "12",
+     "text": "Game Boy Advance"
+    },
+    "editeur": {
+     "id": "44130",
+     "text": "Vivendi Universal Games"
+    },
+    "developpeur": {
+     "id": "31599",
+     "text": "Vicarious Vision"
+    },
+    "joueurs": {
+     "text": "1-4"
+    },
+    "note": {
+     "text": "14"
+    },
+    "topstaff": null,
+    "rotation": "0",
+    "controles": "0",
+    "couleurs": "0",
+    "classifications": [
+     {
+      "type": "SS",
+      "text": "3"
+     },
+     {
+      "type": "JV",
+      "text": "+3 ans"
+     },
+     {
+      "type": "PEGI",
+      "text": "3"
+     }
+    ],
+    "dates": [
+     {
+      "region": "fr",
+      "text": "2004-06-25"
+     },
+     {
+      "region": "jp",
+      "text": "2004-12-09"
+     },
+     {
+      "region": "us",
+      "text": "2004-06-01"
+     }
+    ],
+    "genres": [
+     {
+      "id": "7",
+      "nomcourt": "0101",
+      "principale": "1",
+      "parentid": "0",
+      "noms": [
+       {
+        "langue": "de",
+        "text": "Plattform"
+       },
+       {
+        "langue": "en",
+        "text": "Platform"
+       },
+       {
+        "langue": "es",
+        "text": "Plataformas"
+       },
+       {
+        "langue": "fr",
+        "text": "Plateforme"
+       },
+       {
+        "langue": "it",
+        "text": "Piattaforma"
+       },
+       {
+        "langue": "pt",
+        "text": "Plataforma"
+       }
+      ]
+     }
+    ],
+    "familles": [
+     {
+      "id": "3815",
+      "nomcourt": "",
+      "principale": "0",
+      "parentid": "0",
+      "noms": [
+       {
+        "langue": "fr",
+        "text": "Crash Bandicoot"
+       }
+      ]
+     }
+    ],
+    "medias": [
+     {
+      "type": "ss",
+      "parent": "jeu",
+      "url": "https://neoclone.screenscraper.fr/api2/mediaJeu.php?devid=REDACTED&devpassword=REDACTED&softname=BoxArt3D&ssid=REDACTED&sspassword=REDACTED&systemeid=12&jeuid=3946&media=ss(wor)",
+      "region": "wor",
+      "crc": "351546e6",
+      "md5": "b4e9c0331e0f3223d76b8012ffa6d7f7",
+      "sha1": "263218620cb897224cacadc52ba44ff0fc85369d",
+      "size": "71574",
+      "format": "png"
+     },
+     {
+      "type": "wheel",
+      "parent": "jeu",
+      "url": "https://neoclone.screenscraper.fr/api2/mediaJeu.php?devid=REDACTED&devpassword=REDACTED&softname=BoxArt3D&ssid=REDACTED&sspassword=REDACTED&systemeid=12&jeuid=3946&media=wheel(eu)",
+      "region": "eu",
+      "crc": "4f59a9c7",
+      "md5": "61feee533ad18a1a0ab69c4241b3e342",
+      "sha1": "eeed63c59a916e5532810cfe133c68def4f08cb5",
+      "size": "269894",
+      "format": "png"
+     },
+     {
+      "type": "wheel",
+      "parent": "jeu",
+      "url": "https://neoclone.screenscraper.fr/api2/mediaJeu.php?devid=REDACTED&devpassword=REDACTED&softname=BoxArt3D&ssid=REDACTED&sspassword=REDACTED&systemeid=12&jeuid=3946&media=wheel(us)",
+      "region": "us",
+      "crc": "0805e90d",
+      "md5": "030c1ef6cf9b925f9012758ffca1d73f",
+      "sha1": "835879f806281ac0af16352389f4e4dc0f7ca653",
+      "size": "101547",
+      "format": "png"
+     },
+     {
+      "type": "box-2D",
+      "parent": "jeu",
+      "url": "https://neoclone.screenscraper.fr/api2/mediaJeu.php?devid=REDACTED&devpassword=REDACTED&softname=BoxArt3D&ssid=REDACTED&sspassword=REDACTED&systemeid=12&jeuid=3946&media=box-2D(eu)",
+      "region": "eu",
+      "crc": "0c853ebe",
+      "md5": "1aace28030520147db5a38eaf2cae69e",
+      "sha1": "767902b2f8aa2781b10db21d59bead8a94518c89",
+      "size": "965299",
+      "format": "png"
+     },
+     {
+      "type": "box-2D",
+      "parent": "jeu",
+      "url": "https://neoclone.screenscraper.fr/api2/mediaJeu.php?devid=REDACTED&devpassword=REDACTED&softname=BoxArt3D&ssid=REDACTED&sspassword=REDACTED&systemeid=12&jeuid=3946&media=box-2D(jp)",
+      "region": "jp",
+      "crc": "23fd15dc",
+      "md5": "23124a1d7311202fb623af9fe526adc5",
+      "sha1": "fc2c506716387e6a9ebe8eb5b8a52b7fe98bc826",
+      "size": "472850",
+      "format": "png"
+     },
+     {
+      "type": "box-2D",
+      "parent": "jeu",
+      "url": "https://neoclone.screenscraper.fr/api2/mediaJeu.php?devid=REDACTED&devpassword=REDACTED&softname=BoxArt3D&ssid=REDACTED&sspassword=REDACTED&systemeid=12&jeuid=3946&media=box-2D(us)",
+      "region": "us",
+      "crc": "2a54854b",
+      "md5": "0b699a1cdec4a0780038255b3339116c",
+      "sha1": "76d4416ef43628e9d67a4b408e2e3e4f0166798a",
+      "size": "851331",
+      "format": "png"
+     },
+     {
+      "type": "box-2D-back",
+      "parent": "jeu",
+      "url": "https://neoclone.screenscraper.fr/api2/mediaJeu.php?devid=REDACTED&devpassword=REDACTED&softname=BoxArt3D&ssid=REDACTED&sspassword=REDACTED&systemeid=12&jeuid=3946&media=box-2D-back(eu)",
+      "region": "eu",
+      "crc": "8c52beac",
+      "md5": "5be8b400526373f4e20c1f89b6f20e5c",
+      "sha1": "cd7a7e4ee9e4888cab28467298442cd8a129109c",
+      "size": "1127374",
+      "format": "png"
+     },
+     {
+      "type": "box-2D-back",
+      "parent": "jeu",
+      "url": "https://neoclone.screenscraper.fr/api2/mediaJeu.php?devid=REDACTED&devpassword=REDACTED&softname=BoxArt3D&ssid=REDACTED&sspassword=REDACTED&systemeid=12&jeuid=3946&media=box-2D-back(jp)",
+      "region": "jp",
+      "crc": "d3add388",
+      "md5": "cdae2b1be5c9daae8703ef613ed8d040",
+      "sha1": "d4850b23035f1f9e64679437af4dfdff546f00c9",
+      "size": "591913",
+      "format": "png"
+     },
+     {
+      "type": "box-2D-back",
+      "parent": "jeu",
+      "url": "https://neoclone.screenscraper.fr/api2/mediaJeu.php?devid=REDACTED&devpassword=REDACTED&softname=BoxArt3D&ssid=REDACTED&sspassword=REDACTED&systemeid=12&jeuid=3946&media=box-2D-back(us)",
+      "region": "us",
+      "crc": "cc1e3a8b",
+      "md5": "626191d74a6b3d4223d84dd4c8a52d5d",
+      "sha1": "a0d129a2298e9b074c51eb98ffc6ee1993f7f13e",
+      "size": "939847",
+      "format": "png"
+     },
+     {
+      "type": "box-3D",
+      "parent": "jeu",
+      "url": "https://neoclone.screenscraper.fr/api2/mediaJeu.php?devid=REDACTED&devpassword=REDACTED&softname=BoxArt3D&ssid=REDACTED&sspassword=REDACTED&systemeid=12&jeuid=3946&media=box-3D(eu)",
+      "region": "eu",
+      "crc": "6ab5be4e",
+      "md5": "7635386517aa627d3915cb425bdf9cc8",
+      "sha1": "7106e8510109305cbc57c3c20107fbd834d26ee2",
+      "size": "486000",
+      "format": "png"
+     },
+     {
+      "type": "box-3D",
+      "parent": "jeu",
+      "url": "https://neoclone.screenscraper.fr/api2/mediaJeu.php?devid=REDACTED&devpassword=REDACTED&softname=BoxArt3D&ssid=REDACTED&sspassword=REDACTED&systemeid=12&jeuid=3946&media=box-3D(jp)",
+      "region": "jp",
+      "crc": "38efe2c9",
+      "md5": "dc9a7d02c2c2c37c38192118131c655a",
+      "sha1": "445dd3be6ab18f531601226ccf74d8cbe0505120",
+      "size": "327468",
+      "format": "png"
+     },
+     {
+      "type": "box-3D",
+      "parent": "jeu",
+      "url": "https://neoclone.screenscraper.fr/api2/mediaJeu.php?devid=REDACTED&devpassword=REDACTED&softname=BoxArt3D&ssid=REDACTED&sspassword=REDACTED&systemeid=12&jeuid=3946&media=box-3D(us)",
+      "region": "us",
+      "crc": "c6f1fb99",
+      "md5": "16707c7f870b0fb497887eb4ae9c3e98",
+      "sha1": "8255e078d175e15de672bf714efc0b6a7c861534",
+      "size": "509315",
+      "format": "png"
+     }
+    ]
+   }
+  ]
+ }
+}
