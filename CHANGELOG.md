@@ -34,6 +34,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Only one copy of Slipcase runs at a time** (SLIP-0049)
+  Opening it again brings the window that is already open to the front.
+  Two copies used to overwrite each other's settings, which could lose login
+  details you had entered.
+
 - **The settings file now records its version, so later releases can upgrade it safely** (SLIP-0042)
   Settings saved by a newer version are kept intact by an older one. A
   damaged settings file that holds something other than settings no longer

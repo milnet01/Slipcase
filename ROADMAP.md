@@ -416,13 +416,21 @@ making a build reproducible.
   Kind: fix.
   Source: review-code-2026-09-01 lane-4.
 
-- 📋 [SLIP-0049] **Two running copies can overwrite each other's settings.**
+- ✅ [SLIP-0049] **Two running copies can overwrite each other's settings.**
   Each instance holds a full in-memory copy loaded at startup and whoever calls
   save() last wins wholesale. Enter credentials in the second window, close the
   first afterwards, and its stale snapshot erases them.
   The 2026-09-01 atomic-write change makes each save all-or-nothing but does not
   make it a merge. Wants an flock around load+save, or a re-read and re-merge
   inside save().
+  Resolved (2026-09-29), by the user's choice: one copy at a time rather
+  than merging settings. ui/single_instance.py takes a QLockFile in the
+  runtime directory before Config() loads; a second launch asks the running
+  copy (over a QLocalServer socket) to show its window and exits. A lock left
+  by a killed copy is taken over. Four unit tests; end to end, a second real
+  launch exits in about 0.6s while the first keeps running. Also pins
+  pytest-qt to PyQt6 in conftest.py: it picked PySide6 here and broke
+  PyQt6.QtNetwork under pytest.
   **Layman:** Running the app twice can lose settings you entered in the other window.
   Kind: fix.
   Source: review-code-2026-09-01 lane-2.

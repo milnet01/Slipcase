@@ -314,6 +314,10 @@ ui/
 - Save on: window close, settings dialog OK, recent file added, image or
   export directory changed
 - Load on: application start (merged with defaults)
+- One copy at a time: `ui/single_instance.py` holds a lock in the user's
+  runtime directory, taken before the settings load. A second launch asks
+  the running copy to show its window and exits, so two copies never hold
+  the settings at once
 - Version: a file older than `CONFIG_VERSION` (no `version` key counts as 0)
   is upgraded one step at a time by `_MIGRATIONS` before the merge. A file
   from a newer app keeps its version number when saved. A file that is not a

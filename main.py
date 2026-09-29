@@ -11,12 +11,13 @@ from pathlib import Path
 
 from PIL import Image
 from PyQt6.QtGui import QIcon
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QMessageBox
 
 from api.base import MAX_IMAGE_PIXELS
 from core.config import Config
 from ui.themes import THEMES, DEFAULT_THEME, set_active_theme, generate_stylesheet
 from ui.main_window import MainWindow
+from ui.single_instance import SingleInstance
 
 # Limit decompression to prevent memory exhaustion from malicious images.
 # The value lives in api/base.py, which also applies it at import so the
@@ -44,6 +45,32 @@ def main():
     if not icon.isNull():
         app.setWindowIcon(icon)
 
+    # One copy at a time: two copies each held their own settings and the
+    # last to save overwrote the other's (SLIP-0049). A second launch brings
+    # the running window forward and exits. This runs before Config() so the
+    # second copy never loads, and so never saves, the settings file.
+    instance = SingleInstance()
+    window_holder: list[MainWindow] = []
+
+    def bring_forward() -> None:
+        if window_holder:
+            w = window_holder[0]
+            if w.isMinimized():
+                w.showNormal()
+            else:
+                w.show()
+            w.raise_()
+            w.activateWindow()
+
+    if not instance.acquire(on_activate=bring_forward):
+        if not instance.activate_running():
+            QMessageBox.information(
+                None, "Slipcase",
+                "Slipcase is already running, but did not respond. "
+                "Close it, then open Slipcase again.",
+            )
+        sys.exit(0)
+
     config = Config()
 
     # Apply saved theme (or default)
@@ -54,9 +81,12 @@ def main():
     app.setStyleSheet(generate_stylesheet(theme))
 
     window = MainWindow(config)
+    window_holder.append(window)
     window.show()
 
-    sys.exit(app.exec())
+    code = app.exec()
+    instance.release()
+    sys.exit(code)
 
 
 if __name__ == "__main__":

@@ -11,3 +11,8 @@ from __future__ import annotations
 # override (e.g. QT_QPA_PLATFORM=minimal) still win.
 import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+# pytest-qt picks the first Qt binding it finds, and PySide6 wins on a
+# machine that has both. Its Qt then loads ahead of PyQt6's bundled one, and
+# PyQt6.QtNetwork fails on a missing private symbol. Slipcase is PyQt6.
+os.environ.setdefault("PYTEST_QT_API", "pyqt6")
