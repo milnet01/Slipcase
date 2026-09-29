@@ -2,8 +2,14 @@
 
 from __future__ import annotations
 
+import logging
+
 from PIL import Image, ImageFilter
 import numpy as np
+# Module scope, not inside _refine_spine_bounds: imported there, a missing
+# SciPy raised inside the blanket except and silently disabled Stage 2 of
+# spine detection (SLIP-0054). It is a declared requirement.
+from scipy.ndimage import uniform_filter1d
 
 try:
     import cv2
@@ -12,6 +18,14 @@ except ImportError:
     _HAS_CV2 = False
 
 from core.case_types import CaseType
+
+_log = logging.getLogger(__name__)
+
+# Smallest colour step, as the RGB distance _refine_spine_bounds scores in
+# (0 to ~441), that may count as a fold. The 20% test alone is met by ANY
+# edge when the estimate itself scores 0 -- a region with no detail -- so a
+# faint gradient or compression noise could move the boundary (SLIP-0058).
+_MIN_FOLD_STEP = 10.0
 
 
 def apply_directional_shading(
@@ -234,13 +248,13 @@ def detect_spine_bounds(
     # Stage 1: geometric baseline
     geo_left, geo_right, spine_px = _geometric_spine_bounds(w, h, case_type)
 
-    # Stage 2: refine using image analysis
+    # Stage 2: refine using image analysis. Only the errors numpy raises on
+    # unexpected data fall back, and they are logged; anything else is a bug
+    # and propagates (SLIP-0054).
     try:
-        ref_left, ref_right = _refine_spine_bounds(
-            image, geo_left, geo_right, spine_px,
-        )
-        return ref_left, ref_right
-    except Exception:
+        return _refine_spine_bounds(image, geo_left, geo_right, spine_px)
+    except (ValueError, IndexError) as e:
+        _log.warning("spine refinement failed, using the geometric estimate: %s", e)
         return geo_left, geo_right
 
 
@@ -288,8 +302,9 @@ def _refine_spine_bounds(
     robust "consistency" measure.
 
     Each boundary is independently nudged up to ``nudge_max`` pixels from
-    the geometric estimate towards the nearest strong consistent edge.
-    If no significantly stronger edge is found, the geometric position is
+    the geometric estimate to the STRONGEST consistent edge in that window.
+    It moves only when that edge beats the estimate by more than 20% and is
+    at least _MIN_FOLD_STEP strong; otherwise the geometric position is
     kept.
     """
     arr = np.array(image.convert("RGB"), dtype=np.float32)
@@ -301,22 +316,26 @@ def _refine_spine_bounds(
     band_h = max(1, (h - 2 * y_margin) // n_bands)
 
     # Pre-compute per-band running-mean colour for each column.
-    from scipy.ndimage import uniform_filter1d as uf1d
     band_means = []
     for i in range(n_bands):
         y0 = y_margin + i * band_h
         y1 = y0 + band_h
         col_mean = arr[y0:y1, :, :].mean(axis=0)  # (w, 3)
-        rm = uf1d(col_mean, size=strip_w, axis=0)  # (w, 3)
+        rm = uniform_filter1d(col_mean, size=strip_w, axis=0)  # (w, 3)
         band_means.append(rm)
     band_means = np.array(band_means)  # (n_bands, w, 3)
 
     half = strip_w // 2
 
     def _boundary_scores(center: int, radius: int) -> tuple[int, np.ndarray]:
-        """Return boundary score for each x in [center-radius, center+radius]."""
+        """Return boundary score for each x in [center-radius, center+radius].
+
+        Empty when the image is too narrow to hold a strip either side.
+        """
         lo = max(half + 1, center - radius)
         hi = min(w - half - 1, center + radius + 1)
+        if hi <= lo:
+            return lo, np.empty(0)
         left_m = band_means[:, lo - half:hi - half, :]
         right_m = band_means[:, lo + half:hi + half, :]
         diffs = np.sqrt(np.sum((right_m - left_m) ** 2, axis=2))
@@ -334,8 +353,8 @@ def _refine_spine_bounds(
         geo_score = scores[geo_idx]
         best_idx = int(np.argmax(scores))
         best_score = scores[best_idx]
-        # Only nudge if the new position is meaningfully better
-        if best_score > geo_score * 1.2:
+        # Only nudge to a real edge that is meaningfully better
+        if best_score > geo_score * 1.2 and best_score >= _MIN_FOLD_STEP:
             return lo + best_idx
         return geo_x
 

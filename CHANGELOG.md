@@ -73,6 +73,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The spine finder no longer moves the spine edge to a faint smudge** (SLIP-0058)
+  Where the cover had no detail at the expected spine edge, any faint mark
+  nearby could pull the edge towards it.
+
+- **When the spine finder fails, it now says so instead of hiding it** (SLIP-0054)
+  It falls back to the size-based estimate and logs a warning; a genuine
+  bug is no longer silently swallowed.
+
 - **The window reopens where you left it, and stays on a screen you can see** (SLIP-0040)
   It crept down-right by the height of the title bar on every restart, and
   could reopen on a monitor that was no longer connected. It also now

@@ -203,9 +203,13 @@ Calculate expected spine position from case dimensions and image width.
   search window usable on a small scan, where 15% is a couple of pixels,
   and bounded on a large one, where it would otherwise be wide enough to
   find a false edge
-- Only accept nudge if improvement exceeds **20%** over geometric baseline
+- Only accept nudge if improvement exceeds **20%** over geometric baseline,
+  and the edge is at least `_MIN_FOLD_STEP` strong (a baseline with no
+  detail scores 0, which any edge beats by 20%)
 - Validate final spine width stays within **85-115%** of expected width
-- Fall back to geometric on failure
+- Fall back to geometric on failure, with a logged warning; only the
+  `ValueError`/`IndexError` numpy raises on unexpected data fall back, and
+  any other exception propagates
 
 ### Manual Override
 Users can fine-tune spine boundaries with +/- pixel offset sliders.

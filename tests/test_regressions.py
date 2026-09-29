@@ -457,5 +457,67 @@ class TestWindowGeometry(unittest.TestCase):
         self.assertGreaterEqual(cfg.get("version"), 2)
 
 
+
+class TestSpineRefinement(unittest.TestCase):
+    """Stage 2 of spine detection (STANDARDS.md section 5)."""
+
+    CASE = CASE_TYPES["DVD Case"]
+
+    def _cover(self, h=400):
+        # A full-cover canvas of the case's full-cover aspect ratio.
+        from core.image_utils import _geometric_spine_bounds
+        w = round(h * (2 * self.CASE.width + self.CASE.depth) / self.CASE.height)
+        geo_left, geo_right, _ = _geometric_spine_bounds(w, h, self.CASE)
+        return np.full((h, w, 3), 128, dtype=np.uint8), geo_left, geo_right
+
+    def test_a_faint_edge_does_not_move_a_boundary_that_sees_no_detail(self):
+        # geo_score is 0 on a uniform region, so "20% better" was cleared by
+        # any non-zero score, however faint (SLIP-0058).
+        from core.image_utils import detect_spine_bounds
+        # Both steps move by the same amount so the 85-115% width check,
+        # which would also reject the nudge, stays out of the way.
+        arr, geo_left, geo_right = self._cover()
+        arr[:, geo_left + 3:] += 3  # steps far below a real fold
+        arr[:, geo_right + 3:] += 3
+        bounds = detect_spine_bounds(Image.fromarray(arr), self.CASE)
+        self.assertEqual(bounds, (geo_left, geo_right))
+
+    def test_a_real_fold_near_the_estimate_is_still_found(self):
+        from core.image_utils import detect_spine_bounds
+        arr, geo_left, geo_right = self._cover()
+        arr[:, geo_left + 3:geo_right + 3] = (200, 40, 40)  # spine panel
+        arr[:, geo_right + 3:] = (40, 40, 200)  # front panel
+        left, right = detect_spine_bounds(Image.fromarray(arr), self.CASE)
+        self.assertLessEqual(abs(left - (geo_left + 3)), 1)
+        self.assertLessEqual(abs(right - (geo_right + 3)), 1)
+
+    def test_an_analysis_failure_falls_back_and_says_so(self):
+        # A blanket except hid every failure, bugs included (SLIP-0054).
+        from unittest.mock import patch
+        from core import image_utils
+        arr, geo_left, geo_right = self._cover()
+        with patch.object(image_utils, "_refine_spine_bounds",
+                          side_effect=ValueError("degenerate")), \
+                self.assertLogs("core.image_utils", level="WARNING") as logs:
+            bounds = image_utils.detect_spine_bounds(Image.fromarray(arr), self.CASE)
+        self.assertEqual(bounds, (geo_left, geo_right))
+        self.assertIn("degenerate", logs.output[0])
+
+    def test_a_bug_in_the_analysis_is_not_swallowed(self):
+        from unittest.mock import patch
+        from core import image_utils
+        arr, _, _ = self._cover()
+        with patch.object(image_utils, "_refine_spine_bounds",
+                          side_effect=TypeError("a real bug")):
+            with self.assertRaises(TypeError):
+                image_utils.detect_spine_bounds(Image.fromarray(arr), self.CASE)
+
+    def test_a_search_window_with_no_room_keeps_the_estimate(self):
+        # Handled directly, not by the catch: an empty window made
+        # np.percentile raise.
+        from core.image_utils import _refine_spine_bounds
+        img = Image.new("RGB", (12, 40), (90, 90, 90))
+        self.assertEqual(_refine_spine_bounds(img, 2, 9, 7), (2, 9))
+
 if __name__ == "__main__":
     unittest.main()

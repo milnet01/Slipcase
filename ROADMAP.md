@@ -1299,7 +1299,7 @@ building.
   Kind: fix.
   Source: review-code-2026-09-01 lane-2.
 
-- 📋 [SLIP-0054] **Spine-detection failures are hidden by a blanket except around the whole analysis.**
+- ✅ [SLIP-0054] **Spine-detection failures are hidden by a blanket except around the whole analysis.**
   _refine_spine_bounds is wrapped by its caller in `except Exception: return
   geo_left, geo_right`. STANDARDS.md section 5 justifies falling back to the
   geometric estimate, but not doing it silently -- and the catch is wide enough
@@ -1309,6 +1309,12 @@ building.
   disappears the documented Stage 2 entirely with no signal.
   Hoist the import to module scope, narrow the catch to (ValueError,
   IndexError), and set a status message when the fallback fires.
+  Resolved (2026-09-29): the SciPy import is at module scope; the catch is
+  narrowed to (ValueError, IndexError) and logs a warning when it falls back;
+  any other exception propagates. The empty search window is handled directly
+  rather than by the catch. The UI status-message idea was not taken: the
+  logged warning is the signal, since detection runs inside render workers
+  with no status bar of their own. Three tests, two red before the fix.
   **Layman:** If the automatic spine finder breaks, you get the rough guess and no hint that anything went wrong.
   Kind: fix.
   Source: review-code-2026-09-01 lane-2.
@@ -1356,12 +1362,18 @@ building.
   Kind: fix.
   Source: review-code-2026-09-01 lane-1.
 
-- 📋 [SLIP-0058] **A uniform region makes any spine nudge look like a 20% improvement.**
+- ✅ [SLIP-0058] **A uniform region makes any spine nudge look like a 20% improvement.**
   The acceptance test is `best_score > geo_score * 1.2`, which implements
   STANDARDS.md section 5's 20% bar correctly except when geo_score is 0 -- a
   uniform region at the geometric estimate -- where any non-zero score clears it.
   Also worth reconciling: the internal docstring says the nudge goes to the
   nearest strong edge, while np.argmax takes the strongest in the window.
+  Resolved (2026-09-29): a nudge must also reach _MIN_FOLD_STEP (10, in
+  the 0-441 RGB distance the scores use), so "20% better than nothing" no
+  longer passes. Docstring now says strongest edge, as argmax does. Test red
+  before the fix; a strong fold 3px off the estimate is still found. The
+  floor was set against synthetic covers only; a real cover whose fold steps
+  less than 10 now keeps the geometric estimate.
   **Layman:** The spine detector can accept a bad adjustment when the image has no detail where it is looking.
   Kind: fix.
   Source: review-code-2026-09-01 lane-2.
