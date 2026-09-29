@@ -467,6 +467,9 @@ making a build reproducible.
   for this user. It is set, to /home/ants/.config, so the directory
   is unchanged here. It does mean a throwaway HOME no longer isolates
   the app in a demoreel run; XDG_CONFIG_HOME must be overridden too.
+  Decided by the user (2026-09-29): no automatic copy of a config left
+  at ~/.config when XDG_CONFIG_HOME points elsewhere. The CHANGELOG entry
+  tells such a user to copy it.
   **Layman:** Put settings where the user's system says they should go.
   Kind: enhancement.
   Source: review-code-2026-09-01 lane-2.
@@ -726,6 +729,12 @@ making a build reproducible.
   (ScreenScraper, TheGamesDB, libretro) using the credentials already saved
   in ~/.config/slipcase/config.json, through the app's own API clients. Never
   print the credentials; api/base.py's _sanitize_message scrubs errors.
+  Decided by the user (2026-09-29): after the live run, save the
+  services' replies as test recordings, with credentials stripped and the
+  files checked for them before commit (the repo is public). The next
+  release waits until this live check passes. Status: the saved config
+  still holds no ScreenScraper or TheGamesDB credentials; libretro
+  re-verified live today.
   **Layman:** The one feature nobody has actually run end to end against the real services.
   Kind: test.
   Source: verify-delivery-2026-09-01.
