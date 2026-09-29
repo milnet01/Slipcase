@@ -22,6 +22,8 @@ You don't need either one to use it. The images are ordinary PNG files.
 ## What it can do
 
 - **Build a 3D case** from a front cover, and optionally a back cover and spine.
+- **Show the back of the box** too: switch View to Back to see the back
+  cover with the spine beside it.
 - **Invent a spine** when you don't have one, from the platform's own colours
   plus the game title and serial number.
 - **Match the real case.** Sizes come from actual measurements, so a Game Boy

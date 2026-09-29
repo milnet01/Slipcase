@@ -66,8 +66,10 @@ class RenderWorker(QThread):
 
     def __init__(self, renderer: BoxRenderer, front, back, title, serial,
                  platform, spine_color, case_color=None, spine_left_offset=0,
-                 spine_right_offset=0, full_cover: bool | None = None):
+                 spine_right_offset=0, full_cover: bool | None = None,
+                 view: str = "front"):
         super().__init__()
+        self.view = view
         self.renderer = renderer
         self.front = front
         self.back = back
@@ -93,6 +95,7 @@ class RenderWorker(QThread):
                 spine_left_offset=self.spine_left_offset,
                 spine_right_offset=self.spine_right_offset,
                 full_cover=self.full_cover,
+                view=self.view,
             )
             self.rendered.emit(result)
         except Exception as e:

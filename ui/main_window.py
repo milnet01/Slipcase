@@ -549,6 +549,23 @@ class MainWindow(QMainWindow):
         size_row.addStretch()
         controls.addLayout(size_row)
 
+        # Front or back of the box (SLIP-0033). Items are read by index, not
+        # text, so translating them cannot change what is rendered.
+        view_row = QHBoxLayout()
+        view_label = QLabel(self.tr("&View:"))
+        view_row.addWidget(view_label)
+        self.view_combo = QComboBox()
+        self.view_combo.addItems([self.tr("Front"), self.tr("Back")])
+        self.view_combo.setToolTip(self.tr(
+            "Back shows the back cover with the spine beside it. It needs a "
+            "back cover: load one, or use a full-cover scan."
+        ))
+        self.view_combo.setEnabled(False)
+        view_row.addWidget(self.view_combo)
+        _link_label(view_label, self.view_combo)
+        view_row.addStretch()
+        controls.addLayout(view_row)
+
         bg_row = QHBoxLayout()
         bg_label = QLabel(self.tr("&Background:"))
         bg_row.addWidget(bg_label)
@@ -823,6 +840,7 @@ class MainWindow(QMainWindow):
             self.status.showMessage("Front cover loaded")
             self._hide_spine_adjustment()
             self.export_split_btn.setEnabled(False)
+        self._update_view_choice()
 
     def _clear_front(self) -> None:
         self._front_image = None
@@ -831,18 +849,40 @@ class MainWindow(QMainWindow):
         self.front_thumb.setText("No image loaded")
         self._hide_spine_adjustment()
         self.export_split_btn.setEnabled(False)
+        self._update_view_choice()
 
     def _load_back(self) -> None:
         img, _ = self._load_image_dialog("Open Back Cover")
         if img:
-            self._back_image = img
-            self._set_thumbnail(self.back_thumb, img)
+            self._set_back_image(img)
             self.status.showMessage("Back cover loaded")
+
+    def _set_back_image(self, img: Image.Image) -> None:
+        self._back_image = img
+        self._set_thumbnail(self.back_thumb, img)
+        self._update_view_choice()
 
     def _clear_back(self) -> None:
         self._back_image = None
         self.back_thumb.setPixmap(QPixmap())
         self.back_thumb.setText("No image")
+        self._update_view_choice()
+
+    def _has_back_cover(self) -> bool:
+        """A loaded back cover, or a full-cover scan the user lets us split."""
+        if self._back_image is not None:
+            return True
+        return self._full_cover_choice() is True
+
+    def _update_view_choice(self) -> None:
+        """Offer the back view only when there is a back cover to show."""
+        available = self._has_back_cover()
+        self.view_combo.setEnabled(available)
+        if not available:
+            self.view_combo.setCurrentIndex(0)
+
+    def _view(self) -> str:
+        return "back" if self.view_combo.currentIndex() == 1 else "front"
 
     def _pick_spine_color(self) -> None:
         color = QColorDialog.getColor(parent=self)
@@ -924,6 +964,7 @@ class MainWindow(QMainWindow):
         for widget in (self.spine_left_slider, self.spine_right_slider,
                        self.export_split_btn):
             widget.setEnabled(checked)
+        self._update_view_choice()
         if checked:
             self._update_split_preview()
 
@@ -1002,6 +1043,7 @@ class MainWindow(QMainWindow):
             spine_left_offset=self.spine_left_slider.value(),
             spine_right_offset=self.spine_right_slider.value(),
             full_cover=self._full_cover_choice(),
+            view=self._view(),
         )
         self._render_worker.rendered.connect(self._on_rendered)
         self._render_worker.error.connect(self._on_render_error)
@@ -1246,8 +1288,7 @@ class MainWindow(QMainWindow):
             self._front_image_path = None
             self._set_front_image(front)
         if back:
-            self._back_image = back
-            self._set_thumbnail(self.back_thumb, back)
+            self._set_back_image(back)
         if name:
             self.title_input.setText(name)
         self.status.showMessage(f"Downloaded: {name}")

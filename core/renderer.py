@@ -4,7 +4,7 @@ import math
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps
 
 try:
     import cv2
@@ -101,12 +101,14 @@ class BoxRenderer:
         spine_left_offset: int = 0,
         spine_right_offset: int = 0,
         full_cover: bool | None = None,
+        view: str = "front",
     ) -> Image.Image:
         """Render the 3D box.
 
         Args:
-            front_image: Front cover image (required).
-            back_image: Back cover image (optional, unused in current view).
+            front_image: Front cover image (required), or a full-cover wrap.
+            back_image: Back cover image, shown by the back view. A full-cover
+                wrap supplies one when this is None.
             title: Game title for spine text.
             serial: Game serial number for spine.
             platform: Platform name for spine template.
@@ -118,6 +120,10 @@ class BoxRenderer:
                 None detects it from the aspect ratio; True or False overrules
                 that, since a landscape front-only image can fall inside the
                 detected band (SLIP-0051).
+            view: "front" shows the front cover with the spine on its left;
+                "back" shows the back cover with the spine on its right, as
+                the box is seen from behind (SLIP-0033). Raises ValueError
+                for "back" when there is no back cover.
 
         Returns:
             RGBA image of the rendered 3D box.
@@ -143,7 +149,22 @@ class BoxRenderer:
             if back_image is None:
                 back_image = _back
 
-        # Prepare the front face
+        # The back view is the front view mirrored: flip the back cover and
+        # the spine, lay the box out as usual, then flip the finished box
+        # back. The text reads the right way round and the spine lands on
+        # the back cover's right, where it is on a real case seen from behind.
+        if view not in ("front", "back"):
+            raise ValueError(f"view must be 'front' or 'back', not {view!r}")
+        from_behind = view == "back"
+        if from_behind:
+            if back_image is None:
+                raise ValueError(
+                    "The back view needs a back cover: load one, or use a "
+                    "full-cover scan (back + spine + front)"
+                )
+            front_image = back_image
+
+        # Prepare the visible face (front cover, or back cover from behind)
         front = front_image.convert("RGBA").resize(
             (front_w, front_h), Image.Resampling.LANCZOS
         )
@@ -162,6 +183,9 @@ class BoxRenderer:
                 serial=serial,
                 bg_color=spine_color,
             )
+        if from_behind:
+            front = ImageOps.mirror(front)
+            spine = ImageOps.mirror(spine)
 
         # Compute 3D projection points
         angle_rad = math.radians(self.angle)
@@ -289,6 +313,16 @@ class BoxRenderer:
         # --- Edge highlights ---
         canvas = self._add_edge_lines(canvas, ox, oy, proj_spine_w, proj_front_w,
                                        front_h, far_shrink, proj_top_h, v_shrink, scale)
+
+        # --- Back view: flip the finished box back the right way round ---
+        # Before the shadow and reflection, so both still fall right and down.
+        # Mirroring moves the box into the room kept right of it for the
+        # shadow, so the crop slides it back by that much; what it drops on
+        # the left is empty.
+        if from_behind:
+            canvas = ImageOps.mirror(canvas).crop(
+                (shadow_w, 0, shadow_w + canvas.size[0], canvas.size[1])
+            )
 
         # --- Shadow ---
         if self.show_shadow:

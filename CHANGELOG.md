@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **You can render the back of the box** (SLIP-0033)
+  Set View to Back to see the back cover with the spine beside it. It uses
+  the back cover you load, or the back half of a wraparound scan. Before
+  this, a loaded back cover was accepted and then not used at all.
+
 - **You can tell the app an image is not a wraparound cover** (SLIP-0051)
   A wide front-only image could be mistaken for back + spine + front and
   cut into three. Untick "Full cover detected" to use the whole image as the

@@ -1200,13 +1200,21 @@ building.
   Kind: fix.
   Source: review-code-2026-09-01 lane-1.
 
-- 📋 [SLIP-0033] **A loaded back cover is advertised in the menu and discarded by the renderer.**
+- ✅ [SLIP-0033] **A loaded back cover is advertised in the menu and discarded by the renderer.**
   render() assigns back_image and never reads it again; its own docstring says
   "optional, unused in current view". STANDARDS.md section 6 advertises Open
   Back Cover as Ctrl+Shift+O, and the split export does use it, so the feature
   is half-real: the shortcut works, the render ignores it.
   Decide which way it goes -- render the back face, or say in the UI that the
   back cover is used only by the split export.
+  Resolved (2026-09-29) by the user's choice: a Back view rather than
+  removing the panel. BoxRenderer.render takes view="back": it shows the back
+  cover (loaded, or the back half of a full-cover scan) with the spine on its
+  right, by mirroring the inputs, laying the box out as usual and mirroring
+  the finished box before the shadow. A View combo offers it only when a back
+  cover exists. The spin animation stays front-only. Six tests; checked on
+  screen. A partial removal of the panel, made before the user chose this,
+  is kept in git stash, not applied.
   **Layman:** You can load a back cover with Ctrl+Shift+O and it does not appear in the render.
   Kind: fix.
   Source: review-code-2026-09-01 lane-1.

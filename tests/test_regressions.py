@@ -845,5 +845,99 @@ class TestFullCoverCanBeOverruled(unittest.TestCase):
                 window._generate()
             self.assertIs(worker_cls.call_args.kwargs.get("full_cover"), False)
 
+
+class TestBackView(unittest.TestCase):
+    """The box can be rendered from behind: back cover with the spine
+    beside it (SLIP-0033, by the user's choice on 2026-09-29)."""
+
+    CASE = CASE_TYPES["DVD Case"]
+    RED, GREEN, BLUE = (220, 30, 30), (30, 200, 30), (30, 30, 220)
+
+    def _wrap(self):
+        # back | spine | front, at the case's full-cover proportions.
+        from core.image_utils import _geometric_spine_bounds
+        h = 400
+        w = round(h * (2 * self.CASE.width + self.CASE.depth) / self.CASE.height)
+        left, right, _ = _geometric_spine_bounds(w, h, self.CASE)
+        arr = np.zeros((h, w, 3), dtype=np.uint8)
+        arr[:, :left] = self.RED
+        arr[:, left:right] = self.GREEN
+        arr[:, right:] = self.BLUE
+        return Image.fromarray(arr)
+
+    def _render(self, **kw):
+        r = BoxRenderer(self.CASE, output_width=300, show_reflection=False,
+                        show_shadow=False, show_texture=False)
+        return np.array(r.render(self._wrap(), **kw).convert("RGB")).astype(int)
+
+    def _mostly(self, pixels, colour):
+        return np.all(np.abs(pixels - colour) < 90, axis=-1).mean()
+
+    def test_the_back_view_shows_the_back_with_the_spine_on_the_right(self):
+        img = self._render(view="back")
+        mid = img[img.shape[0] // 2]
+        opaque = mid[mid.sum(axis=1) > 0]
+        self.assertGreater(self._mostly(opaque, self.RED), 0.6)
+        self.assertLess(self._mostly(opaque, self.BLUE), 0.05)
+        right_edge = opaque[-max(3, len(opaque) // 20):]
+        self.assertGreater(self._mostly(right_edge, self.GREEN), 0.5)
+
+    def test_the_front_view_is_unchanged(self):
+        img = self._render()
+        mid = img[img.shape[0] // 2]
+        opaque = mid[mid.sum(axis=1) > 0]
+        self.assertGreater(self._mostly(opaque, self.BLUE), 0.6)
+        self.assertGreater(self._mostly(opaque[:len(opaque) // 20], self.GREEN), 0.5)
+
+    def test_a_loaded_back_cover_is_used_for_a_front_only_image(self):
+        r = BoxRenderer(self.CASE, output_width=200, show_reflection=False,
+                        show_shadow=False, show_texture=False)
+        front = Image.new("RGB", (270, 380), self.BLUE)
+        back = Image.new("RGB", (270, 380), self.RED)
+        img = np.array(r.render(front, back_image=back, view="back").convert("RGB")).astype(int)
+        mid = img[img.shape[0] // 2]
+        self.assertGreater(self._mostly(mid[mid.sum(axis=1) > 0], self.RED), 0.6)
+
+    def test_a_back_view_without_a_back_cover_says_so(self):
+        r = BoxRenderer(self.CASE, output_width=200)
+        with self.assertRaisesRegex(ValueError, "back cover"):
+            r.render(Image.new("RGB", (270, 380), self.BLUE), view="back")
+
+
+class TestBackViewChoice(unittest.TestCase):
+    """The View choice is offered only when there is a back cover to show,
+    and reaches the render (SLIP-0033)."""
+
+    @classmethod
+    def setUpClass(cls):
+        from PyQt6.QtWidgets import QApplication
+        cls._app = QApplication.instance() or QApplication([])
+
+    def _window(self, d):
+        window = MainWindow(Config(config_path=os.path.join(d, "c.json")))
+        self.addCleanup(_destroy_now, window)
+        window.case_combo.setCurrentText("DVD Case")
+        window._set_front_image(Image.new("RGB", (270, 380), (30, 30, 220)))
+        return window
+
+    def test_no_back_cover_means_no_back_view(self):
+        with tempfile.TemporaryDirectory() as d:
+            window = self._window(d)
+            self.assertFalse(window.view_combo.isEnabled())
+
+    def test_a_loaded_back_cover_allows_the_back_view_and_reaches_the_render(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as d:
+            window = self._window(d)
+            window._set_back_image(Image.new("RGB", (270, 380), (220, 30, 30)))
+            self.assertTrue(window.view_combo.isEnabled())
+            window.view_combo.setCurrentIndex(1)
+            with patch("ui.main_window.RenderWorker") as worker_cls:
+                window._generate()
+            self.assertEqual(worker_cls.call_args.kwargs.get("view"), "back")
+            window._clear_back()
+            self.assertFalse(window.view_combo.isEnabled())
+            self.assertEqual(window.view_combo.currentIndex(), 0)
+
 if __name__ == "__main__":
     unittest.main()
