@@ -29,8 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cut into three. Untick "Full cover detected" to use the whole image as the
   front.
 
-- **A subsystem map for review tooling** (SLIP-0086)
+- **A subsystem map for review tooling**
   docs/subsystems.md and .indie-review/partition.json divide the code by what it does rather than by directory, so a review is briefed per concern.
+  SLIP-0086 stays open until the Ants review tooling reads the map.
 
 - **CONTRIBUTING.md, with steps that have been run** (SLIP-0084)
   Setup, the gate, what a change should look like, the commit shape and where to report things. Every step was executed against a fresh clone rather than only written down.

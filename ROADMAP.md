@@ -1183,6 +1183,13 @@ building.
   Slipcase_Ants_MCP_Feedback.md, 2026-09-02. The documents stand on
   their own for a human or for an orchestrator that reads them directly;
   close this once the verb picks one of them up.
+  Progress (2026-09-29): the verb now names its rejection in map_rejected
+  -- "version" must be 1. Added "version": 1 to partition.json; the
+  override is now accepted and all eleven lanes load by name, but every
+  lane's sourcePaths comes back empty (57 files unassigned). Same shape as
+  Ants_Terminal's working file; filed in Slipcase_Ants_MCP_Feedback.md the
+  same day. Still open. The CHANGELOG bullet no longer cites this id on
+  its head line, so the release does not claim it shipped.
   **Layman:** The code-review tooling has to guess how the project is organised.
   Kind: doc.
   Source: in-session-2026-09-01.

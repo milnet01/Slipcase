@@ -1,5 +1,6 @@
 {
   "$comment": "Authoritative subsystem partition for indie-review / review-code. docs/subsystems.md describes these lanes in prose; change both together. Pinned because the computed fallback groups by directory, which put the whole of ui/ -- window, dialogs, theming and workers -- into one 2,968-line lane.",
+  "version": 1,
   "lanes": [
     {
       "name": "render-engine",
