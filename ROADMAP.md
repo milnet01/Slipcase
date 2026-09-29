@@ -571,7 +571,7 @@ making a build reproducible.
   Source: review-code-2026-09-01 lanes 5 and 6.
   Lanes: ui.
 
-- 📋 [SLIP-0070] **Font discovery is Linux-only with no probe for other platforms.**
+- ✅ [SLIP-0070] **Font discovery is Linux-only with no probe for other platforms.**
   _get_font tries five hardcoded Linux paths and then falls back to
   ImageFont.load_default(). The 2026-09-01 pass fixed the worst half -- the
   fallback now receives the requested size, so text is no longer rendered at a
@@ -580,6 +580,13 @@ making a build reproducible.
   This blocks nothing today, since the project targets Linux, and it becomes
   live the moment SLIP-0019 or SLIP-0020 ships a Windows or macOS build.
   Blocked-by: nothing, but worth doing with those.
+  Resolved (2026-09-29): _FONT_CANDIDATES lists font file names, and
+  _find_font lets ImageFont.truetype() search the system font folders
+  (Linux, macOS, Windows), taking the resolved path. Arial names added for
+  Windows and macOS builds. This was live on Linux too: on openSUSE DejaVu
+  sits at /usr/share/fonts/truetype/, which the old list missed, so every
+  spine used Pillow's thin fallback font; it now finds DejaVu Sans Bold. Two
+  tests red before the fix. Windows and macOS not run.
   **Layman:** On macOS or Windows the spine text falls back to a basic font.
   Kind: fix.
   Source: review-code-2026-09-01 lane-2.

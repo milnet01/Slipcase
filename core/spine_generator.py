@@ -96,30 +96,33 @@ def _contrast_ok(fg: tuple[int, int, int], bg: tuple[int, int, int]) -> bool:
     return (hi + 0.05) / (lo + 0.05) >= 3.0
 
 
+# Spine fonts, first found wins. File names, not paths: ImageFont.truetype()
+# searches the system font folders for a bare name on Linux, macOS and
+# Windows. Five fixed Linux paths found nothing on openSUSE, which keeps
+# DejaVu directly under /usr/share/fonts/truetype, nor on any other OS
+# (SLIP-0070). Arial is there for Windows and macOS builds.
+_FONT_CANDIDATES: dict[bool, list[str]] = {
+    True: ["DejaVuSans-Bold.ttf", "LiberationSans-Bold.ttf", "FreeSansBold.ttf",
+           "Arial Bold.ttf", "arialbd.ttf"],
+    False: ["DejaVuSans.ttf", "LiberationSans-Regular.ttf", "FreeSans.ttf",
+            "Arial.ttf", "arial.ttf"],
+}
+
+
+def _find_font(names: list[str]) -> str | None:
+    """The full path of the first font Pillow can find, or None."""
+    for name in names:
+        try:
+            return ImageFont.truetype(name, 10).path
+        except OSError:
+            continue
+    return None
+
+
 def _get_font(size: int, bold: bool = True) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     """Get a suitable font, falling back to default if needed."""
     if bold not in _font_path_cache:
-        if bold:
-            candidates = [
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-                "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-                "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
-                "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
-                "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans-Bold.ttf",
-            ]
-        else:
-            candidates = [
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-                "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-                "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
-                "/usr/share/fonts/TTF/DejaVuSans.ttf",
-                "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf",
-            ]
-        _font_path_cache[bold] = None
-        for fp in candidates:
-            if Path(fp).exists():
-                _font_path_cache[bold] = fp
-                break
+        _font_path_cache[bold] = _find_font(_FONT_CANDIDATES[bold])
 
     path = _font_path_cache[bold]
     fonts = getattr(_loaded_fonts, "by_key", None)

@@ -686,5 +686,38 @@ class TestPreviewRescaleIsCoalesced(unittest.TestCase):
         self.assertEqual(update.call_count, 1)
         w.deleteLater()
 
+
+class TestSpineFontDiscovery(unittest.TestCase):
+    """Fonts are found by name in the system font folders, not only at a
+    few fixed Linux paths (SLIP-0070). On openSUSE, DejaVu lives at a path
+    the old list did not name, so spines fell back to Pillow's font."""
+
+    def setUp(self):
+        from core import spine_generator
+        self.sg = spine_generator
+        self._saved = dict(spine_generator._font_path_cache)
+        spine_generator._font_path_cache.clear()
+        self.addCleanup(lambda: (spine_generator._font_path_cache.clear(),
+                                 spine_generator._font_path_cache.update(self._saved)))
+
+    def test_a_font_named_only_by_file_name_is_found(self):
+        import glob
+        from unittest.mock import patch
+        found = sorted(glob.glob("/usr/share/fonts/**/*.ttf", recursive=True))
+        if not found:
+            self.skipTest("no TrueType fonts installed to search for")
+        name = os.path.basename(found[0])
+        with patch.dict(self.sg._FONT_CANDIDATES, {True: ["NoSuchFont.ttf", name]}):
+            self.sg._get_font(12, bold=True)
+        self.assertTrue(self.sg._font_path_cache[True])
+        self.assertEqual(os.path.basename(self.sg._font_path_cache[True]), name)
+
+    def test_nothing_found_still_falls_back_at_the_requested_size(self):
+        from unittest.mock import patch
+        with patch.dict(self.sg._FONT_CANDIDATES, {True: ["NoSuchFont.ttf"]}):
+            font = self.sg._get_font(40, bold=True)
+        self.assertIsNone(self.sg._font_path_cache[True])
+        self.assertGreater(font.getbbox("Hg")[3], 20)
+
 if __name__ == "__main__":
     unittest.main()

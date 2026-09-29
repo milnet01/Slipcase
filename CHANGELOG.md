@@ -82,6 +82,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Spine titles use a proper bold font on more systems** (SLIP-0070)
+  The app looked for its fonts in a few fixed places and, on openSUSE, found
+  none and used a thin fallback font. It now finds installed
+  fonts wherever the system keeps them.
+
 - **Screen readers now announce each field by name** (SLIP-0046)
   Fields such as Title, Serial and Angle were read out as unnamed boxes.
   Most can also be reached with Alt and the underlined letter of their label.
