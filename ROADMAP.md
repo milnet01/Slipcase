@@ -294,7 +294,7 @@ making a build reproducible.
   Kind: enhancement.
   Source: review-code-2026-09-01 lanes 4 and 6.
 
-- 📋 [SLIP-0042] **Version the config schema so a value's type can change safely.**
+- ✅ [SLIP-0042] **Version the config schema so a value's type can change safely.**
   DEFAULT_CONFIG has no version key and _deep_merge copies any saved value over
   a typed default with no validation. Unknown keys survive a downgrade, which is
   fine, but a change to an existing key's TYPE has no migration path.
@@ -302,6 +302,12 @@ making a build reproducible.
   the app no longer fails to start -- but that is a guard, not a migration.
   Blocks the saveGeometry() change, which necessarily alters window_geometry's
   type.
+  Resolved (2026-09-29): the file carries `version` (CONFIG_VERSION = 1; no
+  key counts as 0). load() runs _MIGRATIONS step by step on the stored values
+  before merging; a newer file keeps its number on save. A file holding
+  anything but a JSON object now fails to load and is never overwritten,
+  where before it crashed at startup. Four tests, all red before. The user's
+  real config loads clean. Unblocks SLIP-0040.
   **Layman:** Lets settings files from older versions be upgraded instead of breaking.
   Kind: enhancement.
   Source: review-code-2026-09-01 lanes 2 and 4.

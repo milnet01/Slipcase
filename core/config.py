@@ -4,10 +4,29 @@ import json
 import os
 import tempfile
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
+
+# Version of the settings file's layout. Bump it when an existing key changes
+# type or meaning, and add to _MIGRATIONS the step that upgrades the version
+# before it. A file with no "version" key predates versioning and is 0
+# (SLIP-0042).
+CONFIG_VERSION = 1
+
+
+def _migrate_0_to_1(data: dict) -> dict:
+    """Version 1 only introduced the version key; nothing else changed."""
+    return data
+
+
+# Step N upgrades a version-N file to N + 1. Steps run on the stored values
+# before they are merged over the defaults.
+_MIGRATIONS: dict[int, Callable[[dict], dict]] = {
+    0: _migrate_0_to_1,
+}
 
 
 DEFAULT_CONFIG = {
+    "version": CONFIG_VERSION,
     "api": {
         "screenscraper": {
             "username": "",
@@ -87,7 +106,19 @@ class Config:
             # read -- saving over it is correct.
             return
         try:
-            _deep_merge(self._data, json.loads(raw))
+            stored = json.loads(raw)
+            if not isinstance(stored, dict):
+                raise ValueError("the file does not hold a settings object")
+            version = stored.get("version", 0)
+            if not isinstance(version, int) or isinstance(version, bool) or version < 0:
+                raise ValueError(f"unrecognised settings version {version!r}")
+            while version < CONFIG_VERSION:
+                stored = _MIGRATIONS[version](stored)
+                version += 1
+            _deep_merge(self._data, stored)
+            # A file from a newer app keeps its number, so saving it here does
+            # not mark it as older than it is.
+            self._data["version"] = max(version, CONFIG_VERSION)
         except ValueError as e:
             self.load_failed = True
             self.load_error = str(e)

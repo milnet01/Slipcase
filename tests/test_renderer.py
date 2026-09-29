@@ -209,5 +209,70 @@ class TestConfig(unittest.TestCase):
             os.unlink(path)
 
 
+class TestConfigVersion(unittest.TestCase):
+    """The settings file carries a version, and an older file is upgraded
+    step by step on load (SLIP-0042)."""
+
+    def _write(self, data):
+        import json
+        d = tempfile.mkdtemp()
+        self.addCleanup(lambda: __import__("shutil").rmtree(d))
+        path = os.path.join(d, "config.json")
+        with open(path, "w") as f:
+            json.dump(data, f)
+        return path
+
+    def _saved(self, path):
+        import json
+        with open(path) as f:
+            return json.load(f)
+
+    def test_a_file_without_a_version_is_stamped_current_on_save(self):
+        from core import config as config_mod
+        path = self._write({"rendering": {"angle": 40.0}})
+        cfg = Config(config_path=path)
+        self.assertEqual(cfg.get("rendering", "angle"), 40.0)
+        cfg.save()
+        self.assertEqual(self._saved(path)["version"], config_mod.CONFIG_VERSION)
+
+    def test_a_newer_file_keeps_its_version(self):
+        # Saving from an older app must not mark the file as older than it is.
+        from core import config as config_mod
+        newer = config_mod.CONFIG_VERSION + 5
+        path = self._write({"version": newer, "future": {"key": 1}})
+        cfg = Config(config_path=path)
+        cfg.save()
+        saved = self._saved(path)
+        self.assertEqual(saved["version"], newer)
+        self.assertEqual(saved["future"], {"key": 1})
+
+    def test_each_upgrade_step_runs_in_order_on_the_stored_values(self):
+        from unittest.mock import patch
+        from core import config as config_mod
+        steps = []
+
+        def step(n):
+            def run(data):
+                steps.append(n)
+                data.setdefault("rendering", {})["angle"] = float(n)
+                return data
+            return run
+
+        path = self._write({"version": 1, "rendering": {"angle": 10.0}})
+        with patch.object(config_mod, "CONFIG_VERSION", 4), \
+                patch.object(config_mod, "_MIGRATIONS", {n: step(n) for n in range(4)}):
+            cfg = Config(config_path=path)
+        self.assertEqual(steps, [1, 2, 3])
+        self.assertEqual(cfg.get("rendering", "angle"), 3.0)
+        self.assertEqual(cfg.get("version"), 4)
+
+    def test_a_file_that_is_not_a_settings_object_is_not_overwritten(self):
+        path = self._write([1, 2, 3])
+        cfg = Config(config_path=path)
+        self.assertTrue(cfg.load_failed)
+        with self.assertRaises(OSError):
+            cfg.save()
+
+
 if __name__ == "__main__":
     unittest.main()

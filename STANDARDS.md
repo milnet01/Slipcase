@@ -293,6 +293,7 @@ The application uses a centralized theme system (`ui/themes.py`):
 ### Schema
 
 ```
+version            (integer; CONFIG_VERSION in core/config.py)
 api/
   screenscraper/{username, password, devid, devpassword}
   thegamesdb/{api_key}
@@ -309,6 +310,10 @@ ui/
 - Save on: window close, settings dialog OK, recent file added, image or
   export directory changed
 - Load on: application start (merged with defaults)
+- Version: a file older than `CONFIG_VERSION` (no `version` key counts as 0)
+  is upgraded one step at a time by `_MIGRATIONS` before the merge. A file
+  from a newer app keeps its version number when saved. A file that is not a
+  JSON object fails to load, and is then never overwritten
 - Deep merge: saved values override defaults; missing keys get default values
 - Recent files: max 10 entries, most-recent-first, stale entries removed on access
 

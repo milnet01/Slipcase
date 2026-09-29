@@ -34,6 +34,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The settings file now records its version, so later releases can upgrade it safely** (SLIP-0042)
+  Settings saved by a newer version are kept intact by an older one. A
+  damaged settings file that holds something other than settings no longer
+  stops the app from starting, and is left untouched.
+
 - **The standards document now matches the code it governs** (SLIP-0081)
   An independent cold review of STANDARDS.md, run because the shutdown rule in
   section 12 had been rewritten without one. That section turned out to be
