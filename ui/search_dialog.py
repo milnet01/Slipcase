@@ -96,11 +96,13 @@ class SearchWorker(QThread):
             finally:
                 tgdb.close()
 
-            # libretro (try direct lookup)
+            # libretro (try direct lookup). It needs no credentials, so the
+            # Settings switch is what gates it (SLIP-0071).
             lr = LibretroThumbnails()
             try:
                 lr_system = LIBRETRO_SYSTEMS.get(self.platform)
-                if lr_system:
+                enabled = self.config.get("api", "libretro", "enabled", default=True)
+                if lr_system and enabled:
                     sources_queried += 1
                     try:
                         img = lr.download_boxart(lr_system, self.query)

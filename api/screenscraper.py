@@ -18,7 +18,6 @@ class ScreenScraperResult:
     platform: str
     front_url: str | None = None
     back_url: str | None = None
-    spine_url: str | None = None
     box3d_url: str | None = None
     wheel_url: str | None = None
 
@@ -51,7 +50,6 @@ def _parse_medias(medias: list[dict]) -> dict[str, str]:
     type_map = {
         "box-2D": "front",
         "box-2D-back": "back",
-        "box-2D-side": "spine",
         "box-3D": "box3d",
         "wheel": "wheel",
     }
@@ -158,12 +156,6 @@ class ScreenScraperAPI(APIClient):
             return self.download_image(result.back_url)
         return None
 
-    def download_spine(self, result: ScreenScraperResult) -> Image.Image | None:
-        """Download the spine/side image."""
-        if result.spine_url:
-            return self.download_image(result.spine_url)
-        return None
-
     def download_box3d(self, result: ScreenScraperResult) -> Image.Image | None:
         """Download the pre-rendered 3D box art."""
         if result.box3d_url:
@@ -202,7 +194,6 @@ class ScreenScraperAPI(APIClient):
                 platform=system,
                 front_url=media_urls.get("front"),
                 back_url=media_urls.get("back"),
-                spine_url=media_urls.get("spine"),
                 box3d_url=media_urls.get("box3d"),
                 wheel_url=media_urls.get("wheel"),
             )

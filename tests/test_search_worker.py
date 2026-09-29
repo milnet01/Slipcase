@@ -23,10 +23,10 @@ import ui.search_dialog as sd
 from ui.animation_dialog import frames_in_file
 
 
-def _drive(platform, ss=None, tgdb=None, libretro=None, ss_factory=None):
+def _drive(platform, ss=None, tgdb=None, libretro=None, ss_factory=None, config=None):
     """Run one search with every client replaced, and collect what it emitted."""
     seen = {"errors": []}
-    worker = sd.SearchWorker("Halo", platform, MagicMock())
+    worker = sd.SearchWorker("Halo", platform, config or MagicMock())
     worker.results_ready.connect(
         lambda results, count: seen.update(results=results, sources=count)
     )
@@ -80,6 +80,46 @@ class TestNoSourcesQueried(unittest.TestCase):
     def test_a_configured_client_counts_as_queried(self):
         seen = _drive("PS5", ss=MagicMock(is_configured=True, **{"search_game.return_value": []}))
         self.assertEqual(seen["sources"], 1)
+
+
+class TestLibretroOptOut(unittest.TestCase):
+    """libretro was contacted on every search with no way to turn it off
+    (SLIP-0071). It is on by default; api.libretro.enabled turns it off."""
+
+    def test_it_is_on_by_default(self):
+        from core.config import DEFAULT_CONFIG
+        self.assertIs(DEFAULT_CONFIG["api"]["libretro"]["enabled"], True)
+
+    def test_turned_off_it_is_never_contacted(self):
+        config = MagicMock()
+        config.get.side_effect = lambda *keys, default=None: (
+            False if keys == ("api", "libretro", "enabled") else default
+        )
+        libretro = MagicMock(download_boxart=MagicMock(return_value=None))
+        seen = _drive("PS2", libretro=libretro, config=config)
+        libretro.download_boxart.assert_not_called()
+        self.assertEqual(seen["sources"], 0)
+
+    def test_the_settings_switch_is_saved(self):
+        import tempfile
+        from PyQt6 import sip
+        from PyQt6.QtWidgets import QApplication
+        from core.config import Config
+        from ui.settings_dialog import SettingsDialog
+
+        # Held on the class: a QApplication this test created and then let go
+        # of would take every live widget with it when the test returned.
+        type(self)._app = QApplication.instance() or QApplication([])
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "c.json")
+            dialog = SettingsDialog(Config(config_path=path))
+            # Destroyed on this thread, not by the GC (see _destroy_now in
+            # test_regressions.py).
+            self.addCleanup(sip.delete, dialog)
+            self.assertTrue(dialog.libretro_enabled.isChecked())
+            dialog.libretro_enabled.setChecked(False)
+            dialog._save_and_accept()
+            self.assertIs(Config(config_path=path).get("api", "libretro", "enabled"), False)
 
 
 

@@ -941,3 +941,38 @@ class TestBackViewChoice(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestConfigDirectoryFollowsXdg(unittest.TestCase):
+    """The config directory honours XDG_CONFIG_HOME (SLIP-0050, STANDARDS.md
+    § 7): an absolute value is used, and an unset, empty or relative one falls
+    back to ~/.config. The single-instance lock's fallback is the same
+    directory, so the two cannot drift apart."""
+
+    def _dir_with(self, value):
+        from unittest.mock import patch
+        from core.config import config_dir
+        env = dict(os.environ)
+        env.pop("XDG_CONFIG_HOME", None)
+        if value is not None:
+            env["XDG_CONFIG_HOME"] = value
+        with patch.dict(os.environ, env, clear=True):
+            return config_dir()
+
+    def test_an_absolute_value_is_used(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(self._dir_with(d), pathlib.Path(d) / "slipcase")
+
+    def test_unset_empty_or_relative_falls_back(self):
+        fallback = pathlib.Path.home() / ".config" / "slipcase"
+        for value in (None, "", "relative/dir"):
+            with self.subTest(value=value):
+                self.assertEqual(self._dir_with(value), fallback)
+
+    def test_the_lock_fallback_is_the_config_directory(self):
+        from unittest.mock import patch
+        import ui.single_instance as si
+        with tempfile.TemporaryDirectory() as d, \
+                patch.dict(os.environ, {"XDG_CONFIG_HOME": d}), \
+                patch.object(si.QStandardPaths, "writableLocation", return_value=""):
+            self.assertEqual(si.default_runtime_dir(), os.path.join(d, "slipcase"))

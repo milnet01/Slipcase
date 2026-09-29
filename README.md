@@ -67,7 +67,8 @@ keep the project somewhere other than where it is now.
 
 ## Your settings and logins
 
-Slipcase keeps its settings in `~/.config/slipcase/`. That folder is locked to
+Slipcase keeps its settings in `~/.config/slipcase/`, or in
+`$XDG_CONFIG_HOME/slipcase/` if you have set that variable. That folder is locked to
 your user account only, and the settings file is saved so that only you can
 read it.
 

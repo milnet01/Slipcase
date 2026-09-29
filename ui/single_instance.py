@@ -17,6 +17,8 @@ import os
 from PyQt6.QtCore import QLockFile, QStandardPaths
 from PyQt6.QtNetwork import QLocalServer, QLocalSocket
 
+from core.config import config_dir
+
 _log = logging.getLogger(__name__)
 
 _ACTIVATE = b"activate\n"
@@ -29,7 +31,7 @@ def default_runtime_dir() -> str:
         QStandardPaths.StandardLocation.RuntimeLocation
     )
     if not path:
-        path = os.path.join(os.path.expanduser("~"), ".config", "slipcase")
+        path = str(config_dir())
     os.makedirs(path, mode=0o700, exist_ok=True)
     return path
 

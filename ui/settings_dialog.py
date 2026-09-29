@@ -1,7 +1,7 @@
 """Settings dialog for API keys and application preferences."""
 
 from PyQt6.QtWidgets import (
-    QDialog, QDialogButtonBox, QFormLayout, QGroupBox,
+    QCheckBox, QDialog, QDialogButtonBox, QFormLayout, QGroupBox,
     QLabel, QLineEdit, QMessageBox, QTabWidget, QVBoxLayout, QWidget,
 )
 
@@ -26,6 +26,7 @@ class SettingsDialog(QDialog):
         tabs = QTabWidget()
         tabs.addTab(self._build_screenscraper_tab(), "ScreenScraper")
         tabs.addTab(self._build_thegamesdb_tab(), "TheGamesDB")
+        tabs.addTab(self._build_libretro_tab(), "libretro")
         layout.addWidget(tabs)
 
         buttons = QDialogButtonBox(
@@ -95,6 +96,24 @@ class SettingsDialog(QDialog):
 
         return widget
 
+    def _build_libretro_tab(self) -> QWidget:
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+
+        self.libretro_enabled = QCheckBox("Search libretro thumbnails")
+        layout.addWidget(self.libretro_enabled)
+
+        info = QLabel(
+            "libretro needs no account, so it is searched whenever the platform "
+            "has libretro thumbnails. Untick to stop searches contacting it."
+        )
+        info.setWordWrap(True)
+        info.setStyleSheet(themed_dim_text_style())
+        layout.addWidget(info)
+        layout.addStretch()
+
+        return widget
+
     def _load_values(self) -> None:
         """Load saved values into fields."""
         self.ss_devid.setText(self.config.get("api", "screenscraper", "devid", default=""))
@@ -104,6 +123,9 @@ class SettingsDialog(QDialog):
         self.ss_username.setText(self.config.get("api", "screenscraper", "username", default=""))
         self.ss_password.setText(self.config.get("api", "screenscraper", "password", default=""))
         self.tgdb_api_key.setText(self.config.get("api", "thegamesdb", "api_key", default=""))
+        self.libretro_enabled.setChecked(
+            bool(self.config.get("api", "libretro", "enabled", default=True))
+        )
 
     def _save_and_accept(self) -> None:
         """Save values to config and close."""
@@ -116,6 +138,7 @@ class SettingsDialog(QDialog):
         self.config.set("api", "screenscraper", "username", self.ss_username.text().strip())
         self.config.set("api", "screenscraper", "password", self.ss_password.text().strip())
         self.config.set("api", "thegamesdb", "api_key", self.tgdb_api_key.text().strip())
+        self.config.set("api", "libretro", "enabled", self.libretro_enabled.isChecked())
         try:
             self.config.save()
         except OSError as e:

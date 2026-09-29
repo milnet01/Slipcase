@@ -449,7 +449,7 @@ making a build reproducible.
   Kind: fix.
   Source: review-code-2026-09-01 lane-2.
 
-- 📋 [SLIP-0050] **Honour XDG_CONFIG_HOME for the config location.**
+- ✅ [SLIP-0050] **Honour XDG_CONFIG_HOME for the config location.**
   Config hardcodes Path.home() / ".config" / "slipcase" and ignores
   $XDG_CONFIG_HOME. That conforms to STANDARDS.md section 7 as written, so the
   document is the thing to change first if this is wanted.
@@ -457,6 +457,12 @@ making a build reproducible.
   to ~/.config. Not yet done. STANDARDS.md section 7 names the fixed path, so
   change it first; that is a direction change and takes a review-contract
   gate before the code. Nothing moves for this user: the variable is unset.
+  Resolved (2026-09-29): STANDARDS.md section 7 changed first and gated
+  (review-contract loops 4-5, converged; loop 4 added the lock fallback).
+  core/config.py config_dir() resolves the directory; Config and
+  ui/single_instance.py's lock fallback both use it. Existing configs are
+  not migrated; the CHANGELOG says so. TestConfigDirectoryFollowsXdg,
+  red before the fix.
   **Layman:** Put settings where the user's system says they should go.
   Kind: enhancement.
   Source: review-code-2026-09-01 lane-2.
@@ -618,7 +624,7 @@ making a build reproducible.
   Source: review-code-2026-09-01 lane-2.
   Lanes: core, packaging.
 
-- 📋 [SLIP-0071] **libretro is contacted on every search with no way to opt out.**
+- ✅ [SLIP-0071] **libretro is contacted on every search with no way to opt out.**
   The ScreenScraper and TheGamesDB lookups are gated on is_configured, so a user
   who has entered no credentials contacts neither. The libretro lookup is gated
   only on the platform being in LIBRETRO_SYSTEMS, so it runs on every search
@@ -626,6 +632,9 @@ making a build reproducible.
   Search terms leaving the machine on an explicit user action is consented by the
   act, so this is a preference rather than a privacy defect -- but the asymmetry
   is undocumented and a user cannot turn it off.
+  Resolved (2026-09-29): user chose a switch. api.libretro.enabled,
+  default on, set from a new libretro tab in Settings; SearchWorker skips
+  libretro when it is off. TestLibretroOptOut, red before the fix.
   **Layman:** Every search reaches out to the libretro thumbnail site whether you want it to or not.
   Kind: ux.
   Source: review-code-2026-09-01 lane-6.
@@ -648,7 +657,7 @@ making a build reproducible.
   Source: review-code-2026-09-01 lane-6.
   Lanes: ui.
 
-- 📋 [SLIP-0073] **download_spine and ScreenScraperResult.spine_url have no callers.**
+- ✅ [SLIP-0073] **download_spine and ScreenScraperResult.spine_url have no callers.**
   Both have zero callers tree-wide, tests included. No contract document
   promises a spine download, so the reviewing lane correctly declined to file it
   as a zombie feature -- the question is whether it was meant to be wired up
@@ -656,6 +665,8 @@ making a build reproducible.
   one) or whether it is leftover surface to delete.
   Decide, then either wire it into the search dialog or remove it with its
   dataclass field.
+  Resolved (2026-09-29): user chose delete. download_spine, spine_url
+  and the box-2D-side media mapping removed; nothing referenced them.
   **Layman:** A piece of the cover-art API code is never used by anything.
   Kind: investigate.
   Source: review-code-2026-09-01 lane-3.
@@ -708,7 +719,7 @@ making a build reproducible.
   Source: verify-delivery-2026-09-01.
   Lanes: api, tests.
 
-- 💭 [SLIP-0092] **CLAUDE.md and STANDARDS.md both state the security and performance rules; neither is the owner.**
+- ✅ [SLIP-0092] **CLAUDE.md and STANDARDS.md both state the security and performance rules; neither is the owner.**
   CLAUDE.md's Security, Performance and Memory sections and STANDARDS.md
   sections 10, 11 and 12 cover the same ground, and both declare their contents
   mandatory. Nothing says which is authoritative.
@@ -732,6 +743,9 @@ making a build reproducible.
   pointers to the STANDARDS.md sections. Not yet done. Editing CLAUDE.md and
   STANDARDS.md this way changes what a conformer reads, so CLAUDE.md rule 14
   expects a review-contract gate on STANDARDS.md.
+  Resolved (2026-09-29): STANDARDS.md sections 10-12 declare themselves
+  the only statement of the rules; CLAUDE.md's three sections became one
+  pointer section. Gated with SLIP-0050 (loops 4-5, converged).
   **Layman:** Two files give the same rules, so they can drift apart and one will be wrong.
   Kind: doc.
   Source: review-contract-2026-09-03 SLIP-0081, surfaced not decided.

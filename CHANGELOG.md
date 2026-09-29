@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **A Settings switch turns libretro search off** (SLIP-0071)
+  libretro needs no login, so it was contacted on every search. A new
+  libretro tab in Settings turns it off; it stays on by default.
+
 - **You can render the back of the box** (SLIP-0033)
   Set View to Back to see the back cover with the spine beside it. It uses
   the back cover you load, or the back half of a wraparound scan. Before
@@ -43,6 +47,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   noticing.
 
 ### Changed
+
+- **Settings honour XDG_CONFIG_HOME** (SLIP-0050)
+  Settings live in $XDG_CONFIG_HOME/slipcase/ when that variable is set to
+  an absolute path, and in ~/.config/slipcase/ otherwise. A config already
+  at ~/.config is not moved: if you set the variable, copy it across.
+
+- **STANDARDS.md is the one home of the security, performance and memory rules** (SLIP-0092)
+  CLAUDE.md now points at STANDARDS.md sections 10-12 instead of keeping
+  a second copy that could drift.
 
 - **Dragging the spine adjustment sliders is smooth** (SLIP-0067)
   The app no longer re-searches the whole cover for the spine on every
@@ -93,6 +106,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **PNG compression level is configurable via `rendering.compress_level`**
   Default 6, as the code has always used; 9 is roughly 5% smaller and 2-4x
   slower. The documented requirement said 9 while every call site used 6.
+
+### Removed
+
+- **Unused ScreenScraper spine download removed** (SLIP-0073)
+  download_spine and the spine_url result field had no callers.
 
 ### Fixed
 

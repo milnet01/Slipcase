@@ -48,6 +48,11 @@ DEFAULT_CONFIG = {
         "thegamesdb": {
             "api_key": "",
         },
+        # libretro needs no login, so this switch is the only way to stop a
+        # search contacting it (SLIP-0071).
+        "libretro": {
+            "enabled": True,
+        },
     },
     "rendering": {
         "angle": 30.0,
@@ -74,15 +79,28 @@ DEFAULT_CONFIG = {
 }
 
 
+def config_dir() -> Path:
+    """The slipcase config directory, per STANDARDS.md § 7 (SLIP-0050).
+
+    $XDG_CONFIG_HOME/slipcase, falling back to ~/.config/slipcase when the
+    variable is unset, empty or relative -- the XDG Base Directory spec says
+    a relative value is ignored. Also the single-instance lock's fallback,
+    so the two always agree. Does not create the directory.
+    """
+    base = os.environ.get("XDG_CONFIG_HOME", "")
+    root = Path(base) if os.path.isabs(base) else Path.home() / ".config"
+    return root / "slipcase"
+
+
 class Config:
     """JSON-based application configuration."""
 
     def __init__(self, config_path: str | Path | None = None):
         if config_path is None:
-            config_dir = Path.home() / ".config" / "slipcase"
-            config_dir.mkdir(parents=True, exist_ok=True)
-            config_dir.chmod(0o700)
-            self._path = config_dir / "config.json"
+            directory = config_dir()
+            directory.mkdir(parents=True, exist_ok=True)
+            directory.chmod(0o700)
+            self._path = directory / "config.json"
         else:
             self._path = Path(config_path)
 

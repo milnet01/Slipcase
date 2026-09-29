@@ -303,6 +303,7 @@ version            (integer; CONFIG_VERSION in core/config.py)
 api/
   screenscraper/{username, password, devid, devpassword}
   thegamesdb/{api_key}
+  libretro/{enabled}
 rendering/
   {angle, output_width, background, reflection, shadow, texture, supersample,
    compress_level}
@@ -355,8 +356,9 @@ independent slots.
 Online search queries each configured source in turn, inside one worker thread:
 1. ScreenScraper (if configured) - up to 10 results
 2. TheGamesDB (if configured) - up to 10 results
-3. libretro (only where the platform appears in `LIBRETRO_SYSTEMS`) -
-   direct name lookup. Platforms absent from that map never reach it;
+3. libretro (only where the platform appears in `LIBRETRO_SYSTEMS`, and
+   `api.libretro.enabled` is on -- it needs no credentials, so that
+   setting is its only gate) - direct name lookup. Platforms absent from that map never reach it;
    SLIP-0038 covers what a user is shown when every source is skipped.
 
 Results are aggregated and displayed with source attribution.
