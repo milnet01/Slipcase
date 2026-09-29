@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-29
+
+**Theme:** Cover-art search checked against the real services, lighter previews, and a long run of fixes.
+
 ### Added
 
 - **Online cover-art search is verified against the live services, with recorded replies in the test suite.** (SLIP-0088)
