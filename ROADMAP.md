@@ -1095,7 +1095,7 @@ building.
   Source: in-session-2026-08-27.
   Lanes: docs.
 
-- 📋 [SLIP-0032] **The drop shadow is displaced too far and clipped square at the canvas edge.**
+- ✅ [SLIP-0032] **The drop shadow is displaced too far and clipped square at the canvas edge.**
   generate_shadow pads its canvas by blur_radius*2 on each side and places the
   silhouette inside that padding. _render_shadow crops from (0,0) without
   removing the padding, so the shadow lands about 2x the blur further right and
@@ -1105,6 +1105,13 @@ building.
   Fix subtracts blur_radius*2 when cropping and widens the canvas to cover the
   offset plus blur. Left out of the 2026-09-01 fix pass because it changes
   canvas geometry and wants its own before/after comparison.
+  Resolved (2026-09-29): _render_shadow crops past generate_shadow's
+  padding, so only the named offsets apply, and returns a canvas-aligned
+  layer (one allocation fewer). The canvas gains room right and below
+  from _SHADOW_REACH. Edge alpha measured 102 before, 3 after, on DVD,
+  Game Boy and SNES; the box is 2.6% smaller in the output (measured at 30
+  degrees) because the canvas is wider. Regression test red before the fix in 6
+  of 6 cases.
   **Layman:** The shadow under the case sits too low and is cut off flat on one side.
   Kind: fix.
   Source: review-code-2026-09-01 lane-1.

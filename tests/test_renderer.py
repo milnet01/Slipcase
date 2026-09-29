@@ -128,6 +128,27 @@ class TestRenderer(unittest.TestCase):
             result = renderer.render(cover, title=name)
             self.assertEqual(result.mode, "RGBA", f"Failed for {name}")
 
+    def test_shadow_fades_out_instead_of_being_cut_off(self):
+        # The shadow was placed 2x its blur too far right and down, past the
+        # canvas edge, so the render's outer column and row held it at full
+        # strength -- a square cut (SLIP-0032). A soft shadow fades to near
+        # nothing at the edge. Full strength is _SHADOW_OPACITY * 255 = 102.
+        import numpy as np
+        for name in ("DVD Case", "Game Boy Box"):
+            for angle in (5, 30, 60):
+                renderer = BoxRenderer(
+                    case_type=CASE_TYPES[name],
+                    angle=angle,
+                    output_width=512,
+                    show_reflection=False,
+                    show_shadow=True,
+                    show_texture=False,
+                )
+                alpha = np.array(renderer.render(self._make_cover()))[:, :, 3]
+                with self.subTest(case=name, angle=angle):
+                    self.assertLess(alpha[:, -1].max(), 20)
+                    self.assertLess(alpha[-1, :].max(), 20)
+
     def test_render_saves_as_png(self):
         case_type = CASE_TYPES["Switch Case"]
         renderer = BoxRenderer(

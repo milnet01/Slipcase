@@ -48,6 +48,13 @@ _SHADOW_OFFSET = (3, 6)       # (x, y) offset before scale
 _SHADOW_BLUR = 8              # Blur radius before scale
 _SHADOW_OPACITY = 0.4
 _SHADOW_PASTE_OFFSET = (3, 8) # Paste offset before scale
+# How far the shadow reaches right of and below the box, before scale: both
+# offsets plus the blur's spread. The canvas keeps at least this much room on
+# those sides, or the shadow is cut off square at the edge (SLIP-0032).
+_SHADOW_REACH = (
+    _SHADOW_OFFSET[0] + _SHADOW_PASTE_OFFSET[0] + 2 * _SHADOW_BLUR,
+    _SHADOW_OFFSET[1] + _SHADOW_PASTE_OFFSET[1] + 2 * _SHADOW_BLUR,
+)
 
 # Shading intensities
 _SPINE_UNIFORM_SHADE = 0.25
@@ -178,9 +185,15 @@ class BoxRenderer:
         # Vertical perspective shrink for the far edge
         v_shrink = _V_SHRINK_BASE - (self.angle / 90.0) * _V_SHRINK_ANGLE_FACTOR
 
-        # Canvas dimensions (room for top and bottom faces)
-        total_w = proj_spine_w + proj_front_w + _CANVAS_PAD * scale
-        total_h = front_h + proj_top_h * 2 + _CANVAS_PAD * scale
+        # Canvas dimensions (room for top and bottom faces). The padding
+        # leaves _CANVAS_PAD // 2 right of the box and _CANVAS_PAD -
+        # _CANVAS_TOP_PAD below it; the shadow may need more on both sides.
+        shadow_w = shadow_h = 0
+        if self.show_shadow:
+            shadow_w = max(0, _SHADOW_REACH[0] - _CANVAS_PAD // 2) * scale
+            shadow_h = max(0, _SHADOW_REACH[1] - (_CANVAS_PAD - _CANVAS_TOP_PAD)) * scale
+        total_w = proj_spine_w + proj_front_w + _CANVAS_PAD * scale + shadow_w
+        total_h = front_h + proj_top_h * 2 + _CANVAS_PAD * scale + shadow_h
         reflection_space = front_h // 3 if self.show_reflection else 0
         canvas_h = total_h + reflection_space
 
@@ -273,14 +286,8 @@ class BoxRenderer:
         # --- Shadow ---
         if self.show_shadow:
             shadow = self._render_shadow(canvas, scale)
-            shadow_canvas = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
-            shadow_canvas.paste(
-                shadow,
-                (_SHADOW_PASTE_OFFSET[0] * scale, _SHADOW_PASTE_OFFSET[1] * scale),
-            )
+            canvas = Image.alpha_composite(shadow, canvas)
             del shadow
-            canvas = Image.alpha_composite(shadow_canvas, canvas)
-            del shadow_canvas
 
         # --- Reflection ---
         if self.show_reflection:
@@ -509,19 +516,26 @@ class BoxRenderer:
         return canvas
 
     def _render_shadow(self, canvas: Image.Image, scale: int) -> Image.Image:
-        """Generate a drop shadow for the box."""
+        """Generate the box's drop shadow, aligned to and sized as the canvas.
+
+        generate_shadow pads its image by 2 * blur_radius on each side so the
+        blur has room, and places the silhouette inside that padding. Cropping
+        from (0, 0) kept the padding and pushed the shadow 2 * blur further
+        right and down than its offsets say (SLIP-0032), so the crop starts
+        at the padding instead, less the paste offset. A crop reaching past
+        the shadow's edge is filled transparent.
+        """
+        blur = _SHADOW_BLUR * scale
         shadow = generate_shadow(
             canvas,
             offset=(_SHADOW_OFFSET[0] * scale, _SHADOW_OFFSET[1] * scale),
-            blur_radius=_SHADOW_BLUR * scale,
+            blur_radius=blur,
             opacity=_SHADOW_OPACITY,
         )
-        # Crop shadow to canvas size if needed
+        left = 2 * blur - _SHADOW_PASTE_OFFSET[0] * scale
+        top = 2 * blur - _SHADOW_PASTE_OFFSET[1] * scale
         cw, ch = canvas.size
-        sw, sh = shadow.size
-        if sw > cw or sh > ch:
-            shadow = shadow.crop((0, 0, min(sw, cw), min(sh, ch)))
-        return shadow
+        return shadow.crop((left, top, left + cw, top + ch))
 
     @staticmethod
     def _parse_bg_color(bg: str) -> tuple[int, int, int, int]:

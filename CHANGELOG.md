@@ -68,6 +68,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The shadow under the box fades softly instead of ending in a hard edge** (SLIP-0032)
+  It sat too far right and down and was cut off square at the image
+  edge. It now sits where intended and fades out on every side.
+
 - **Two smaller search-window fixes** (SLIP-0061)
   The 3D Boxart button could look available for a game that has none, and a failed preview said only "No preview" while discarding the reason. Covers SLIP-0061 and SLIP-0062.
 
