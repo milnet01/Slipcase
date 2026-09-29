@@ -151,6 +151,20 @@ class ScreenScraperAPI(APIClient):
             return self.download_image(result.front_url)
         return None
 
+    def download_front_preview(self, result: ScreenScraperResult) -> Image.Image | None:
+        """Download a small copy of the front cover, for the search preview.
+
+        mediaJeu.php resizes on request: measured 2026-09-29, a 848 KB
+        front came back as 53 KB at preview size (SLIP-0093). Twice the
+        150x200 label keeps it sharp on a high-density screen.
+        """
+        if result.front_url:
+            sep = "&" if "?" in result.front_url else "?"
+            return self.download_image(
+                f"{result.front_url}{sep}maxwidth=300&maxheight=400"
+            )
+        return None
+
     def download_back(self, result: ScreenScraperResult) -> Image.Image | None:
         """Download the back cover image."""
         if result.back_url:

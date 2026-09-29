@@ -16,6 +16,7 @@ class TheGamesDBResult:
     front_url: str | None
     back_url: str | None
     clearlogo_url: str | None
+    front_thumb_url: str | None = None
 
 
 class TheGamesDBAPI(APIClient):
@@ -60,12 +61,14 @@ class TheGamesDBAPI(APIClient):
         images = data.get("include", {}).get("boxart", {}).get("data", {})
         base_url = data.get("include", {}).get("boxart", {}).get("base_url", {})
         original_base = base_url.get("original", self.IMAGE_BASE + "/")
+        thumb_base = base_url.get("thumb")
 
         for game in games:
             game_id = game.get("id", 0)
             game_images = images.get(str(game_id), [])
 
             front_url = None
+            front_thumb_url = None
             back_url = None
 
             for img in game_images:
@@ -73,6 +76,8 @@ class TheGamesDBAPI(APIClient):
                 filename = img.get("filename", "")
                 if side == "front" and not front_url:
                     front_url = original_base + filename
+                    if thumb_base:
+                        front_thumb_url = thumb_base + filename
                 elif side == "back" and not back_url:
                     back_url = original_base + filename
 
@@ -84,6 +89,7 @@ class TheGamesDBAPI(APIClient):
                 front_url=front_url,
                 back_url=back_url,
                 clearlogo_url=None,
+                front_thumb_url=front_thumb_url,
             ))
 
         return results
@@ -92,6 +98,16 @@ class TheGamesDBAPI(APIClient):
         """Download the front cover image."""
         if result.front_url:
             return self.download_image(result.front_url)
+        return None
+
+    def download_front_preview(self, result: TheGamesDBResult) -> Image.Image | None:
+        """Download the 300-pixel thumb of the front cover, for the preview.
+
+        Measured 2026-09-29: 27 KB against 1.1 MB for the original
+        (SLIP-0093). The thumb base URL comes from the search reply.
+        """
+        if result.front_thumb_url:
+            return self.download_image(result.front_thumb_url)
         return None
 
     def download_back(self, result: TheGamesDBResult) -> Image.Image | None:

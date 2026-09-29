@@ -54,6 +54,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Search previews load a small copy of each cover instead of the full image.** (SLIP-0093)
+  Clicking through results now fetches tens of kilobytes per cover rather
+  than up to a megabyte. The full-size cover is downloaded once, when a
+  result is chosen.
+
 - **All window and dialog text is ready for translation** (SLIP-0094)
   The settings, search and animation dialogs, and the main window's status
   messages and message boxes, now route their text through Qt's

@@ -95,9 +95,16 @@ class TestTheGamesDBRecording(unittest.TestCase):
             "https://cdn.thegamesdb.net/images/original/boxart/back/1006-1.jpg",
         )
 
+    def test_the_preview_url_uses_the_reply_thumb_base_url(self):
+        self.assertEqual(
+            self.by_id[1006].front_thumb_url,
+            "https://cdn.thegamesdb.net/images/thumb/boxart/front/1006-1.jpg",
+        )
+
     def test_a_game_with_no_boxart_has_no_urls(self):
         self.assertIsNone(self.by_id[138013].front_url)
         self.assertIsNone(self.by_id[138013].back_url)
+        self.assertIsNone(self.by_id[138013].front_thumb_url)
 
 
 class TestRecordingsCarryNoCredentials(unittest.TestCase):

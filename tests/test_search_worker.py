@@ -141,24 +141,71 @@ class TestFrameTotal(unittest.TestCase):
         self.assertEqual(frames_in_file(2, True), 2)
 
 
-class TestSelectedCoverIsNotDownloadedTwice(unittest.TestCase):
-    """The preview already fetched the full-size front; selecting the result
-    fetched it again (SLIP-0035)."""
+class TestPreviewFetchesASmallCover(unittest.TestCase):
+    """The preview downloaded the full-size front -- up to a megabyte -- to
+    fill a 150x200 label (SLIP-0093). Both services serve a small copy."""
 
-    def test_a_given_front_is_used_instead_of_downloading_it(self):
-        cached = object()
-        ss = MagicMock()
-        ss.download_back.return_value = "back"
+    def _preview(self, source, client):
         seen = {}
-        worker = sd.DownloadWorker("ScreenScraper", "result", MagicMock(), front=cached)
-        worker.image_ready.connect(lambda f, b: seen.update(front=f, back=b))
-        with patch.object(sd, "_create_ss_client", lambda _c: ss):
+        worker = sd.PreviewWorker(source, "result", MagicMock(), row=0)
+        worker.preview_ready.connect(lambda img, _row: seen.update(img=img))
+        factory = "_create_ss_client" if source == "ScreenScraper" else "_create_tgdb_client"
+        with patch.object(sd, factory, lambda _c: client):
             worker.run()
-        ss.download_front.assert_not_called()
-        self.assertIs(seen["front"], cached)
-        self.assertEqual(seen["back"], "back")
+        return seen.get("img")
 
-    def test_without_a_given_front_it_is_downloaded(self):
+    def test_the_preview_asks_each_service_for_its_small_copy(self):
+        for source in ("ScreenScraper", "TheGamesDB"):
+            with self.subTest(source=source):
+                client = MagicMock()
+                client.download_front_preview.return_value = "small"
+                self.assertEqual(self._preview(source, client), "small")
+                client.download_front.assert_not_called()
+
+    def test_the_full_cover_is_the_fallback_when_no_small_copy_comes(self):
+        for source in ("ScreenScraper", "TheGamesDB"):
+            with self.subTest(source=source):
+                client = MagicMock()
+                client.download_front_preview.return_value = None
+                client.download_front.return_value = "full"
+                self.assertEqual(self._preview(source, client), "full")
+
+    def test_screenscraper_is_asked_for_twice_the_label_size(self):
+        from api.screenscraper import ScreenScraperAPI, ScreenScraperResult
+        client = ScreenScraperAPI()
+        result = ScreenScraperResult(
+            game_id=1, name="x", platform="y",
+            front_url="https://neoclone.screenscraper.fr/api2/mediaJeu.php?jeuid=1&media=box-2D(us)",
+        )
+        with patch.object(client, "download_image", return_value="img") as download:
+            client.download_front_preview(result)
+        client.close()
+        download.assert_called_once_with(
+            "https://neoclone.screenscraper.fr/api2/mediaJeu.php"
+            "?jeuid=1&media=box-2D(us)&maxwidth=300&maxheight=400"
+        )
+
+    def test_thegamesdb_is_asked_for_its_thumb_copy(self):
+        from api.thegamesdb import TheGamesDBAPI, TheGamesDBResult
+        client = TheGamesDBAPI()
+        result = TheGamesDBResult(
+            game_id=1, name="x", platform="y", release_date="",
+            front_url="https://cdn.thegamesdb.net/images/original/boxart/front/1-1.jpg",
+            back_url=None, clearlogo_url=None,
+            front_thumb_url="https://cdn.thegamesdb.net/images/thumb/boxart/front/1-1.jpg",
+        )
+        with patch.object(client, "download_image", return_value="img") as download:
+            client.download_front_preview(result)
+        client.close()
+        download.assert_called_once_with(result.front_thumb_url)
+
+
+class TestSelectedCoverIsFullSize(unittest.TestCase):
+    """Selecting a result reused the preview's image (SLIP-0035). The preview
+    is now a small copy (SLIP-0093), so reusing it would render a 300-pixel
+    cover; selecting downloads the full-size front."""
+
+    def test_the_front_is_downloaded_on_selection(self):
         ss = MagicMock()
         ss.download_front.return_value = "front"
         seen = {}
@@ -168,15 +215,14 @@ class TestSelectedCoverIsNotDownloadedTwice(unittest.TestCase):
             worker.run()
         self.assertEqual(seen["front"], "front")
 
-    def test_the_dialog_hands_the_cached_preview_to_the_download(self):
+    def test_the_dialog_does_not_hand_the_preview_to_the_download(self):
         dialog = MagicMock()
         dialog.results_list.currentRow.return_value = 0
         dialog._results = [("ScreenScraper", "Halo", "Xbox", "result")]
-        preview = object()
-        dialog._preview_cache = {0: preview}
+        dialog._preview_cache = {0: object()}
         with patch.object(sd, "DownloadWorker") as worker_cls:
             sd.SearchDialog._download_selected(dialog)
-        self.assertIs(worker_cls.call_args.kwargs.get("front"), preview)
+        self.assertNotIn("front", worker_cls.call_args.kwargs)
 
 
 def _animation_worker(**overrides):

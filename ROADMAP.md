@@ -790,13 +790,22 @@ making a build reproducible.
   Kind: doc.
   Source: review-contract-2026-09-03 SLIP-0081, surfaced not decided.
 
-- 📋 [SLIP-0093] **The search preview fetches a full-size cover to fill a small label.**
+- ✅ [SLIP-0093] **The search preview fetches a full-size cover to fill a small label.**
   PreviewWorker downloads the full front (up to the 50 MB cap) to fill a
   150x200 label. SLIP-0035 removed the second download on selection, so
   this is now the only full fetch, and selecting reuses it. Where an API
   exposes a thumbnail or a resize parameter, the preview could ask for that
   and let selection fetch full size. Needs checking against the live
   services first, which SLIP-0088 covers; not done blind.
+  Resolved (2026-09-29): measured live first. ScreenScraper's mediaJeu.php
+  honours maxwidth/maxheight (848 KB front -> 53 KB at 150x200, 190 KB at
+  300 wide); TheGamesDB's reply carries a thumb base URL (1.1 MB original
+  -> 27 KB at 300 px). The preview now asks ScreenScraper for 300x400 and
+  TheGamesDB for its thumb, falling back to the full front when no small
+  copy comes. Selecting a result therefore downloads the full front
+  itself: the SLIP-0035 reuse is removed for these two sources, since
+  reusing a preview would render a 300-pixel cover. libretro still hands
+  over its one full-size image. Verified live through both workers.
   **Layman:** Looking at a search result downloads the whole cover just to show a small preview.
   Kind: perf.
   Source: split from SLIP-0035, 2026-09-29.
