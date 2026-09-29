@@ -39,6 +39,19 @@ def _cover(width=700, height=1000):
     return img
 
 
+def _destroy_now(widget) -> None:
+    """Destroy a test's Qt widget at once, on this (the main) thread.
+
+    deleteLater() needs an event loop these tests never run, so the widget
+    lingered until the garbage collector freed it -- its signal lambdas form
+    reference cycles -- and the collector can run on a render worker thread.
+    A Qt widget destroyed off the GUI thread crashed the whole test run under
+    some shuffled orders.
+    """
+    from PyQt6 import sip
+    sip.delete(widget)
+
+
 class TestRenderAspectRatio(unittest.TestCase):
     """A render must keep the case's real-world proportions.
 
@@ -627,7 +640,7 @@ class TestFieldsAreNamedForScreenReaders(unittest.TestCase):
                 with self.subTest(field=name):
                     self.assertTrue(control.accessibleName(), "no accessible name")
                     self.assertIn(id(control), buddies, "no label is linked to it")
-            window.deleteLater()
+            _destroy_now(window)
 
     def test_the_search_box_has_an_accessible_name(self):
         from ui.search_dialog import SearchDialog
@@ -635,7 +648,7 @@ class TestFieldsAreNamedForScreenReaders(unittest.TestCase):
             dialog = SearchDialog(Config(config_path=os.path.join(d, "c.json")))
             self.assertTrue(dialog.search_input.accessibleName())
             self.assertTrue(dialog.preview_label.wordWrap())
-            dialog.deleteLater()
+            _destroy_now(dialog)
 
 
 class TestSpineFontIsLoadedOnce(unittest.TestCase):
@@ -684,7 +697,7 @@ class TestPreviewRescaleIsCoalesced(unittest.TestCase):
                 QCoreApplication.processEvents()
                 time.sleep(0.01)
         self.assertEqual(update.call_count, 1)
-        w.deleteLater()
+        _destroy_now(w)
 
 
 class TestSpineFontDiscovery(unittest.TestCase):
@@ -754,7 +767,7 @@ class TestSpineSliderStaysCheap(unittest.TestCase):
                     window.spine_left_slider.setValue(offset)
                     window._update_split_preview()
             self.assertEqual(a.call_count + b.call_count, 1)
-            window.deleteLater()
+            _destroy_now(window)
 
     def test_a_slider_drag_updates_the_preview_once(self):
         import time
@@ -770,7 +783,29 @@ class TestSpineSliderStaysCheap(unittest.TestCase):
                     QCoreApplication.processEvents()
                     time.sleep(0.01)
             self.assertEqual(update.call_count, 1)
-            window.deleteLater()
+            _destroy_now(window)
+
+
+class TestBatchHonoursCompressLevel(unittest.TestCase):
+    """Batch saved every PNG at the default level, ignoring the
+    rendering.compress_level setting (SLIP-0091)."""
+
+    def test_both_batch_paths_pass_the_level_to_the_saver(self):
+        from unittest.mock import patch
+        import ui.workers as workers
+        with tempfile.TemporaryDirectory() as d:
+            src = os.path.join(d, "Cover.png")
+            Image.new("RGB", (100, 140), (200, 50, 50)).save(src)
+            renderer = BoxRenderer(CASE_TYPES["DVD Case"], output_width=128)
+            worker = workers.BatchWorker([src], d, renderer, compress_level=9)
+
+            with patch("core.png_utils.save_optimized_png") as save:
+                workers._render_single_image(worker._args_for(src))
+            self.assertEqual(save.call_args.kwargs.get("compress_level"), 9)
+
+            with patch.object(workers, "save_optimized_png") as save:
+                worker._run_sequential(1)
+            self.assertEqual(save.call_args.kwargs.get("compress_level"), 9)
 
 if __name__ == "__main__":
     unittest.main()

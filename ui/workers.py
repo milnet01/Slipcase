@@ -41,7 +41,7 @@ def unique_output_path(output_dir: str, name: str, source_path: str) -> str:
 
 def _render_single_image(args: tuple) -> str:
     """Render one image in a worker process.  Returns the output filename stem."""
-    fp, output_dir, case_type, renderer_kwargs = args
+    fp, output_dir, case_type, renderer_kwargs, compress_level = args
     # Imports happen inside the child process (spawn context)
     from PIL import Image as _Img
     from core.renderer import BoxRenderer as _BR
@@ -54,7 +54,7 @@ def _render_single_image(args: tuple) -> str:
     result = renderer.render(front_image=img, title=name)
     del img
     out_path = unique_output_path(output_dir, name, fp)
-    _save(result, out_path)
+    _save(result, out_path, compress_level=compress_level)
     del result
     return name
 
@@ -107,10 +107,14 @@ class BatchWorker(QThread):
     finished_signal = pyqtSignal(int)  # number processed
     error = pyqtSignal(str)
 
-    def __init__(self, file_paths: list[str], output_dir: str, renderer: BoxRenderer):
+    def __init__(self, file_paths: list[str], output_dir: str, renderer: BoxRenderer,
+                 compress_level: int = 6):
         super().__init__()
         self.file_paths = file_paths
         self.output_dir = output_dir
+        # rendering.compress_level, which single exports already honoured;
+        # batch saved at the default (SLIP-0091).
+        self.compress_level = compress_level
         # Extract config for pickling to worker processes
         self._case_type = renderer.case_type
         self._renderer_kwargs = {
@@ -132,10 +136,7 @@ class BatchWorker(QThread):
         count = 0
         try:
             total = len(self.file_paths)
-            args_list = [
-                (fp, self.output_dir, self._case_type, self._renderer_kwargs)
-                for fp in self.file_paths
-            ]
+            args_list = [self._args_for(fp) for fp in self.file_paths]
             workers = max(1, min((os.cpu_count() or 2) - 1, 4))
 
             if total >= 4 and workers > 1:
@@ -146,6 +147,11 @@ class BatchWorker(QThread):
             self.error.emit(f"Batch failed: {e}")
         finally:
             self.finished_signal.emit(count)
+
+    def _args_for(self, fp: str) -> tuple:
+        """The picklable arguments _render_single_image takes for one file."""
+        return (fp, self.output_dir, self._case_type, self._renderer_kwargs,
+                self.compress_level)
 
     def _run_parallel(self, args_list: list, total: int, workers: int) -> int:
         count = 0
@@ -201,7 +207,7 @@ class BatchWorker(QThread):
                 result = renderer.render(front_image=img, title=name)
                 del img
                 out_path = unique_output_path(self.output_dir, name, fp)
-                save_optimized_png(result, out_path)
+                save_optimized_png(result, out_path, compress_level=self.compress_level)
                 del result
                 count += 1
             except Exception as e:

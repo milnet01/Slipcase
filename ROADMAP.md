@@ -1570,7 +1570,7 @@ building.
   Kind: security.
   Source: review-contract-2026-09-03 SLIP-0081 loop 3, lanes G and H.
 
-- 📋 [SLIP-0091] **Batch rendering ignores the rendering.compress_level config key.**
+- ✅ [SLIP-0091] **Batch rendering ignores the rendering.compress_level config key.**
   BatchWorker._run_sequential calls save_optimized_png(result, out_path) with no
   third argument (ui/workers.py:199), so the level falls back to the signature
   default of 6. The pooled path cannot supply it either: _renderer_kwargs carries
@@ -1586,6 +1586,10 @@ building.
   STANDARDS.md section 11 item 4 has been corrected to record the gap and cite
   this item. Fixing the code should let that qualification be deleted.
   All three loop-3 lanes found this independently.
+  Resolved (2026-09-29): BatchWorker takes compress_level (the window
+  passes _compress_level()) and hands it to save_optimized_png on both the
+  process-pool path and the sequential fallback. Test red before the fix,
+  covering both paths.
   **Layman:** A compression setting is applied to single exports but silently skipped for batches.
   Kind: fix.
   Source: review-contract-2026-09-03 SLIP-0081 loop 3, lanes G, H and I.

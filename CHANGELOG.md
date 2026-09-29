@@ -86,6 +86,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Batch mode now uses your PNG compression setting** (SLIP-0091)
+  It always saved at the default level, whatever the setting said.
+
 - **Spine titles use a proper bold font on more systems** (SLIP-0070)
   The app looked for its fonts in a few fixed places and, on openSUSE, found
   none and used a thin fallback font. It now finds installed

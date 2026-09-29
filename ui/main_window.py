@@ -1174,7 +1174,9 @@ class MainWindow(QMainWindow):
         self._batch_errors: list[str] = []
         self._batch_total = len(files)
 
-        self._batch_worker = BatchWorker(files, output_dir, renderer)
+        self._batch_worker = BatchWorker(
+            files, output_dir, renderer, compress_level=self._compress_level(),
+        )
         self._batch_worker.progress.connect(self._on_batch_progress)
         self._batch_worker.finished_signal.connect(self._on_batch_done)
         self._batch_worker.error.connect(self._on_batch_error)
