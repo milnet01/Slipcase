@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **You can tell the app an image is not a wraparound cover** (SLIP-0051)
+  A wide front-only image could be mistaken for back + spine + front and
+  cut into three. Untick "Full cover detected" to use the whole image as the
+  front.
+
 - **A subsystem map for review tooling** (SLIP-0086)
   docs/subsystems.md and .indie-review/partition.json divide the code by what it does rather than by directory, so a review is briefed per concern.
 

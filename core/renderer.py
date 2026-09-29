@@ -100,6 +100,7 @@ class BoxRenderer:
         case_color: tuple[int, int, int] | None = None,
         spine_left_offset: int = 0,
         spine_right_offset: int = 0,
+        full_cover: bool | None = None,
     ) -> Image.Image:
         """Render the 3D box.
 
@@ -113,6 +114,10 @@ class BoxRenderer:
             case_color: Override case plastic color for top/bottom faces.
             spine_left_offset: Pixel offset for left spine boundary.
             spine_right_offset: Pixel offset for right spine boundary.
+            full_cover: Whether front_image is a back + spine + front wrap.
+                None detects it from the aspect ratio; True or False overrules
+                that, since a landscape front-only image can fall inside the
+                detected band (SLIP-0051).
 
         Returns:
             RGBA image of the rendered 3D box.
@@ -128,7 +133,9 @@ class BoxRenderer:
 
         # Detect full cover (back + spine + front) and split if needed
         extracted_spine = None
-        if is_full_cover(front_image, self.case_type):
+        if full_cover is None:
+            full_cover = is_full_cover(front_image, self.case_type)
+        if full_cover:
             _back, extracted_spine, front_image = split_full_cover(
                 front_image, self.case_type,
                 left_offset=spine_left_offset, right_offset=spine_right_offset,

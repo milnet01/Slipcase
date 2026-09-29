@@ -457,13 +457,20 @@ making a build reproducible.
   Kind: enhancement.
   Source: review-code-2026-09-01 lane-2.
 
-- 📋 [SLIP-0051] **Full-cover detection cannot be overridden.**
+- ✅ [SLIP-0051] **Full-cover detection cannot be overridden.**
   is_full_cover decides on aspect ratio alone, and the accepted band for the
   Blu-ray case contains 16:9 while the DVD band contains 4:3 and 3:2. A
   landscape front-only artwork is therefore always split and two thirds of it
   discarded, with no way to say no.
   The code matches STANDARDS.md section 4 step 2 as written; the missing escape
   hatch is the defect.
+  Resolved (2026-09-29): BoxRenderer.render takes full_cover (None
+  detects, True/False overrules), passed by RenderWorker and AnimationWorker.
+  The spine panel's status line became a tick box, "Full cover detected:
+  split into back, spine and front", ticked on detection; unticking renders
+  the whole image as the front and disables the sliders and split export.
+  Batch still detects, having no per-image choice. Two tests red before the
+  fix; checked on screen with a wide cover, and the panel is no taller.
   **Layman:** If the app wrongly decides your image is a wraparound cover, you cannot tell it otherwise.
   Kind: ux.
   Source: review-code-2026-09-01 lane-2.
@@ -1593,3 +1600,14 @@ building.
   **Layman:** A compression setting is applied to single exports but silently skipped for batches.
   Kind: fix.
   Source: review-contract-2026-09-03 SLIP-0081 loop 3, lanes G, H and I.
+
+- 📋 [SLIP-0095] **The spine adjustment panel is squashed in an 800-pixel-tall window.**
+  At 1280x800 with a full cover loaded, the left column cannot fit the
+  spine panel: "Reset to Auto" is clipped to half height and the split
+  thumbnails are cut off. Seen on the private demoreel display before and
+  after SLIP-0051, so it predates that change. The left column is a fixed
+  stack with no scroll area; a QScrollArea around it, or a collapsible back
+  cover group, would fit it.
+  **Layman:** With a wraparound cover loaded, the spine controls are cramped and a button's text is cut off.
+  Kind: ux.
+  Source: in-session-2026-09-29, seen while checking SLIP-0051.

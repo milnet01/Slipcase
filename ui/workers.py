@@ -66,7 +66,7 @@ class RenderWorker(QThread):
 
     def __init__(self, renderer: BoxRenderer, front, back, title, serial,
                  platform, spine_color, case_color=None, spine_left_offset=0,
-                 spine_right_offset=0):
+                 spine_right_offset=0, full_cover: bool | None = None):
         super().__init__()
         self.renderer = renderer
         self.front = front
@@ -78,6 +78,7 @@ class RenderWorker(QThread):
         self.case_color = case_color
         self.spine_left_offset = spine_left_offset
         self.spine_right_offset = spine_right_offset
+        self.full_cover = full_cover
 
     def run(self):
         try:
@@ -91,6 +92,7 @@ class RenderWorker(QThread):
                 case_color=self.case_color,
                 spine_left_offset=self.spine_left_offset,
                 spine_right_offset=self.spine_right_offset,
+                full_cover=self.full_cover,
             )
             self.rendered.emit(result)
         except Exception as e:
@@ -246,6 +248,7 @@ class AnimationWorker(QThread):
         background: str,
         show_texture: bool = True,
         supersample: int = 2,
+        full_cover: bool | None = None,
     ):
         super().__init__()
         self.case_type = case_type
@@ -271,6 +274,7 @@ class AnimationWorker(QThread):
         self.background = background
         self.show_texture = show_texture
         self.supersample = supersample
+        self.full_cover = full_cover
 
     def run(self):
         try:
@@ -314,6 +318,7 @@ class AnimationWorker(QThread):
                     case_color=self.case_color,
                     spine_left_offset=self.spine_left_offset,
                     spine_right_offset=self.spine_right_offset,
+                    full_cover=self.full_cover,
                 )
                 if i == 0:
                     frame_w = max(frame.size[0], self.output_width)

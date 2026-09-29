@@ -355,8 +355,16 @@ class MainWindow(QMainWindow):
         self.spine_adjust_group = QGroupBox(self.tr("Spine Boundary Adjustment"))
         adj_layout = QVBoxLayout()
 
-        self.spine_status_label = QLabel(self.tr("No full cover loaded"))
-        adj_layout.addWidget(self.spine_status_label)
+        # Detection goes by aspect ratio alone, and some front-only artwork
+        # falls inside the full-cover band; this is the way to say no
+        # (SLIP-0051). It also replaces the old "Full cover detected" status
+        # line, so the panel gains no row.
+        self.full_cover_check = QCheckBox(
+            self.tr("Full cover detected: split into back, spine and front")
+        )
+        self.full_cover_check.setChecked(True)
+        self.full_cover_check.toggled.connect(self._on_full_cover_toggled)
+        adj_layout.addWidget(self.full_cover_check)
 
         # Left boundary slider (start of spine)
         left_row = QHBoxLayout()
@@ -905,9 +913,23 @@ class MainWindow(QMainWindow):
         self.spine_left_slider.setValue(0)
         self.spine_right_slider.setValue(0)
 
+    def _full_cover_choice(self) -> bool | None:
+        """What the renderer should assume: the user's answer where the
+        full-cover question was asked, otherwise None (detect)."""
+        if self.spine_adjust_group.isHidden():
+            return None
+        return self.full_cover_check.isChecked()
+
+    def _on_full_cover_toggled(self, checked: bool) -> None:
+        for widget in (self.spine_left_slider, self.spine_right_slider,
+                       self.export_split_btn):
+            widget.setEnabled(checked)
+        if checked:
+            self._update_split_preview()
+
     def _show_spine_adjustment(self) -> None:
         """Show the spine adjustment panel and populate the preview."""
-        self.spine_status_label.setText("Full cover detected — adjust if needed")
+        self.full_cover_check.setChecked(True)
         self.spine_adjust_group.show()
         self._update_split_preview()
 
@@ -979,6 +1001,7 @@ class MainWindow(QMainWindow):
             case_color=self._case_color,
             spine_left_offset=self.spine_left_slider.value(),
             spine_right_offset=self.spine_right_slider.value(),
+            full_cover=self._full_cover_choice(),
         )
         self._render_worker.rendered.connect(self._on_rendered)
         self._render_worker.error.connect(self._on_render_error)
@@ -1289,6 +1312,7 @@ class MainWindow(QMainWindow):
             case_color=self._case_color,
             spine_left_offset=self.spine_left_slider.value(),
             spine_right_offset=self.spine_right_slider.value(),
+            full_cover=self._full_cover_choice(),
             output_path=path,
             output_width=params["output_width"],
             start_angle=params["start_angle"],

@@ -633,6 +633,7 @@ class TestFieldsAreNamedForScreenReaders(unittest.TestCase):
         from PyQt6.QtWidgets import QLabel
         with tempfile.TemporaryDirectory() as d:
             window = MainWindow(Config(config_path=os.path.join(d, "c.json")))
+            self.addCleanup(_destroy_now, window)
             buddies = {id(lbl.buddy()) for lbl in window.findChildren(QLabel)
                        if lbl.buddy() is not None}
             for name in self.FIELDS:
@@ -640,15 +641,14 @@ class TestFieldsAreNamedForScreenReaders(unittest.TestCase):
                 with self.subTest(field=name):
                     self.assertTrue(control.accessibleName(), "no accessible name")
                     self.assertIn(id(control), buddies, "no label is linked to it")
-            _destroy_now(window)
 
     def test_the_search_box_has_an_accessible_name(self):
         from ui.search_dialog import SearchDialog
         with tempfile.TemporaryDirectory() as d:
             dialog = SearchDialog(Config(config_path=os.path.join(d, "c.json")))
+            self.addCleanup(_destroy_now, dialog)
             self.assertTrue(dialog.search_input.accessibleName())
             self.assertTrue(dialog.preview_label.wordWrap())
-            _destroy_now(dialog)
 
 
 class TestSpineFontIsLoadedOnce(unittest.TestCase):
@@ -686,6 +686,7 @@ class TestPreviewRescaleIsCoalesced(unittest.TestCase):
         # Patched before construction: the timer connects to the method then.
         with patch.object(PreviewWidget, "_update_display") as update:
             w = PreviewWidget()
+            self.addCleanup(_destroy_now, w)
             w.set_image(Image.new("RGBA", (400, 600), (255, 0, 0, 255)))
             update.reset_mock()
             from PyQt6.QtCore import QSize
@@ -697,7 +698,6 @@ class TestPreviewRescaleIsCoalesced(unittest.TestCase):
                 QCoreApplication.processEvents()
                 time.sleep(0.01)
         self.assertEqual(update.call_count, 1)
-        _destroy_now(w)
 
 
 class TestSpineFontDiscovery(unittest.TestCase):
@@ -747,6 +747,7 @@ class TestSpineSliderStaysCheap(unittest.TestCase):
         h = 300
         w = round(h * (2 * case.width + case.depth) / case.height)
         window = MainWindow(Config(config_path=os.path.join(d, "c.json")))
+        self.addCleanup(_destroy_now, window)
         window.case_combo.setCurrentText("DVD Case")
         window._set_front_image(Image.new("RGB", (w, h), (90, 120, 200)))
         return window
@@ -767,7 +768,6 @@ class TestSpineSliderStaysCheap(unittest.TestCase):
                     window.spine_left_slider.setValue(offset)
                     window._update_split_preview()
             self.assertEqual(a.call_count + b.call_count, 1)
-            _destroy_now(window)
 
     def test_a_slider_drag_updates_the_preview_once(self):
         import time
@@ -783,7 +783,6 @@ class TestSpineSliderStaysCheap(unittest.TestCase):
                     QCoreApplication.processEvents()
                     time.sleep(0.01)
             self.assertEqual(update.call_count, 1)
-            _destroy_now(window)
 
 
 class TestBatchHonoursCompressLevel(unittest.TestCase):
@@ -806,6 +805,45 @@ class TestBatchHonoursCompressLevel(unittest.TestCase):
             with patch.object(workers, "save_optimized_png") as save:
                 worker._run_sequential(1)
             self.assertEqual(save.call_args.kwargs.get("compress_level"), 9)
+
+
+class TestFullCoverCanBeOverruled(unittest.TestCase):
+    """A landscape front-only image inside the full-cover aspect band was
+    always split, two thirds discarded, with no way to say no (SLIP-0051)."""
+
+    CASE = CASE_TYPES["DVD Case"]
+
+    def _wide(self):
+        h = 300
+        w = round(h * (2 * self.CASE.width + self.CASE.depth) / self.CASE.height)
+        return Image.new("RGB", (w, h), (90, 120, 200))
+
+    def test_the_renderer_can_be_told_it_is_not_a_full_cover(self):
+        from unittest.mock import patch
+        import core.renderer as renderer_mod
+        r = BoxRenderer(self.CASE, output_width=128)
+        with patch.object(renderer_mod, "split_full_cover",
+                          wraps=renderer_mod.split_full_cover) as split:
+            r.render(self._wide(), full_cover=False)
+            self.assertEqual(split.call_count, 0)
+            r.render(self._wide())  # unset: detected as before
+            self.assertEqual(split.call_count, 1)
+
+    def test_unticking_the_box_reaches_the_render(self):
+        from unittest.mock import patch
+        from PyQt6.QtWidgets import QApplication
+        # Kept: an application nobody references is freed at once.
+        self._app = QApplication.instance() or QApplication([])
+        with tempfile.TemporaryDirectory() as d:
+            window = MainWindow(Config(config_path=os.path.join(d, "c.json")))
+            self.addCleanup(_destroy_now, window)
+            window.case_combo.setCurrentText("DVD Case")
+            window._set_front_image(self._wide())
+            self.assertTrue(window.full_cover_check.isChecked())
+            window.full_cover_check.setChecked(False)
+            with patch("ui.main_window.RenderWorker") as worker_cls:
+                window._generate()
+            self.assertIs(worker_cls.call_args.kwargs.get("full_cover"), False)
 
 if __name__ == "__main__":
     unittest.main()
