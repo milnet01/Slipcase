@@ -683,6 +683,15 @@ making a build reproducible.
   Kind: perf.
   Source: split from SLIP-0035, 2026-09-29.
 
+- 📋 [SLIP-0094] **The settings, search and animation dialogs still show untranslatable text.**
+  SLIP-0041 wrapped the main window's builders in tr(). The three dialogs
+  and the main window's runtime messages (status bar, message boxes) were not
+  in its scope. Extend the lock test in test_regressions.py to cover them
+  when they are done.
+  **Layman:** The rest of the app's windows still need the same groundwork for other languages.
+  Kind: enhancement.
+  Source: split from SLIP-0041, 2026-09-29.
+
 ## Feature ideas
 
 Suggested rather than requested. Each is worth a decision before it is worth
