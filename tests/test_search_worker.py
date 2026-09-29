@@ -82,9 +82,6 @@ class TestNoSourcesQueried(unittest.TestCase):
         self.assertEqual(seen["sources"], 1)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class TestFrameTotal(unittest.TestCase):
     """Bounce nearly doubles the frames written (SLIP-0072).
@@ -205,3 +202,7 @@ class TestAnimationMemory(unittest.TestCase):
         self.assertEqual(len(seen["errors"]), 1)
         self.assertIn("memory", seen["errors"][0])
         self.assertNotIn("done", seen)
+
+
+if __name__ == "__main__":
+    unittest.main()
