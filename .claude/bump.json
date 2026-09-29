@@ -1,5 +1,5 @@
 {
-  "$comment": "Recipe consumed by ~/.claude/skills/bump/SKILL.md. Source of truth is __version__ in core/version.py, which ui/ imports so the About dialog cannot go stale. Test suite is the gate: post_check runs pytest.",
+  "$comment": "Recipe consumed by ~/.claude/skills/cut-release/SKILL.md. Source of truth is __version__ in core/version.py, which ui/ imports so the About dialog cannot go stale. Test suite is the gate: post_check runs pytest. The dated CHANGELOG section, with its **Theme:** line, is cut before a release is run (changelog_log op:\"release\"); cut-release checks it exists.",
   "version_source": "core/version.py",
   "version_pattern": "__version__\\s*=\\s*\"([0-9]+\\.[0-9]+\\.[0-9]+)\"",
   "files": [
@@ -9,9 +9,6 @@
       "replace": "__version__ = \"{NEW}\""
     }
   ],
-  "post_check": "python3 -m pytest tests/ -v --tb=short",
-  "todos": [
-    "Add a `## [{NEW}] — {TODAY}` section to CHANGELOG.md, in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format the file already uses. Per the project's STANDARDS.md `All tests must pass before any commit`, the post_check pytest gate has already run.",
-    "Tag the release: `git tag v{NEW}`."
-  ]
+  "tag": "v{NEW}",
+  "post_check": "python3 -m pytest tests/ -v --tb=short"
 }
