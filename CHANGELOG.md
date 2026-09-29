@@ -114,6 +114,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The left column scrolls instead of squashing the spine panel** (SLIP-0095)
+  In an 800-pixel-tall window with a full cover loaded, "Reset to Auto"
+  was clipped and the split thumbnails were cut off.
+
 - **Batch mode now uses your PNG compression setting** (SLIP-0091)
   It always saved at the default level, whatever the setting said.
 

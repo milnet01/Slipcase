@@ -9,8 +9,8 @@ from PyQt6.QtCore import QByteArray, Qt, QTimer
 from PyQt6.QtGui import QAction, QKeySequence, QPixmap, QImage
 from PyQt6.QtWidgets import (
     QApplication, QCheckBox, QColorDialog, QComboBox, QFileDialog,
-    QGroupBox, QHBoxLayout, QLabel, QLineEdit, QMainWindow,
-    QMessageBox, QPushButton, QSlider, QSpinBox, QSplitter, QStatusBar,
+    QFrame, QGroupBox, QHBoxLayout, QLabel, QLineEdit, QMainWindow,
+    QMessageBox, QPushButton, QScrollArea, QSlider, QSpinBox, QSplitter, QStatusBar,
     QStackedWidget, QVBoxLayout, QWidget, QProgressBar,
 )
 
@@ -348,7 +348,21 @@ class MainWindow(QMainWindow):
         left_layout.addWidget(batch_btn)
 
         left_layout.addStretch()
-        return left
+
+        # Scrolls rather than squashes: with the spine panel shown the column
+        # is taller than an 800-pixel window, and Qt shrank its rows to fit,
+        # clipping "Reset to Auto" and the split thumbnails (SLIP-0095).
+        scroll = QScrollArea()
+        scroll.setWidget(left)
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        # Room for the column plus the scroll bar, so showing the bar never
+        # clips the column's side (horizontal scrolling is off).
+        scroll.setMinimumWidth(
+            left.minimumSizeHint().width() + scroll.verticalScrollBar().sizeHint().width()
+        )
+        return scroll
 
     def _build_spine_adjustment(self, parent_layout: QVBoxLayout) -> None:
         """Build the spine boundary adjustment panel."""

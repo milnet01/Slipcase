@@ -463,6 +463,10 @@ making a build reproducible.
   ui/single_instance.py's lock fallback both use it. Existing configs are
   not migrated; the CHANGELOG says so. TestConfigDirectoryFollowsXdg,
   red before the fix.
+  Correction (2026-09-29): the note above says the variable is unset
+  for this user. It is set, to /home/ants/.config, so the directory
+  is unchanged here. It does mean a throwaway HOME no longer isolates
+  the app in a demoreel run; XDG_CONFIG_HOME must be overridden too.
   **Layman:** Put settings where the user's system says they should go.
   Kind: enhancement.
   Source: review-code-2026-09-01 lane-2.
@@ -1636,13 +1640,18 @@ building.
   Kind: fix.
   Source: review-contract-2026-09-03 SLIP-0081 loop 3, lanes G, H and I.
 
-- 📋 [SLIP-0095] **The spine adjustment panel is squashed in an 800-pixel-tall window.**
+- ✅ [SLIP-0095] **The spine adjustment panel is squashed in an 800-pixel-tall window.**
   At 1280x800 with a full cover loaded, the left column cannot fit the
   spine panel: "Reset to Auto" is clipped to half height and the split
   thumbnails are cut off. Seen on the private demoreel display before and
   after SLIP-0051, so it predates that change. The left column is a fixed
   stack with no scroll area; a QScrollArea around it, or a collapsible back
   cover group, would fit it.
+  Resolved (2026-09-29): the left column is wrapped in a QScrollArea
+  (no frame, no horizontal scrolling, width reserved for the scroll bar).
+  The window's minimum height with the spine panel shown was 1070 px; it
+  now fits 800. TestLeftColumnFitsASmallScreen, red before the fix.
+  Checked on a private 1280x800 display with a full cover loaded.
   **Layman:** With a wraparound cover loaded, the spine controls are cramped and a button's text is cut off.
   Kind: ux.
   Source: in-session-2026-09-29, seen while checking SLIP-0051.

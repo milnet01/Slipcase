@@ -976,3 +976,22 @@ class TestConfigDirectoryFollowsXdg(unittest.TestCase):
                 patch.dict(os.environ, {"XDG_CONFIG_HOME": d}), \
                 patch.object(si.QStandardPaths, "writableLocation", return_value=""):
             self.assertEqual(si.default_runtime_dir(), os.path.join(d, "slipcase"))
+
+
+class TestLeftColumnFitsASmallScreen(unittest.TestCase):
+    """With a full cover loaded, the left column's minimum height outgrew an
+    800-pixel window, so Qt squashed the spine panel: "Reset to Auto" was
+    clipped and the split thumbnails were cut off (SLIP-0095). The column
+    now scrolls instead, so it no longer sets the window's minimum height."""
+
+    @classmethod
+    def setUpClass(cls):
+        from PyQt6.QtWidgets import QApplication
+        cls._app = QApplication.instance() or QApplication([])
+
+    def test_the_window_fits_800_pixels_with_the_spine_panel_shown(self):
+        with tempfile.TemporaryDirectory() as d:
+            window = MainWindow(Config(config_path=os.path.join(d, "c.json")))
+            self.addCleanup(_destroy_now, window)
+            window.spine_adjust_group.show()
+            self.assertLessEqual(window.minimumSizeHint().height(), 800)
