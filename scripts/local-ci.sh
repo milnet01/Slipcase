@@ -20,6 +20,7 @@ step() {
 
 step "ruff" ruff check .
 step "pytest" python3 -m pytest tests/ -q
+step "doc links" python3 scripts/check-doc-links.py
 
 if [[ $status -eq 0 ]]; then
     printf '\ngate: PASS\n'

@@ -50,7 +50,7 @@
     {
       "name": "ci-and-gate",
       "summary": "The one list of checks and the workflow that calls it. Not Python, so the computed partition never covered it.",
-      "sourcePaths": [".github/workflows/ci.yml", "scripts/local-ci.sh"]
+      "sourcePaths": [".github/workflows/ci.yml", "scripts/local-ci.sh", "scripts/check-doc-links.py"]
     },
     {
       "name": "packaging",
