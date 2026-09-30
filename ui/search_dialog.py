@@ -466,6 +466,13 @@ class SearchDialog(QDialog):
         self._start_preview(source, obj, row)
 
     def _on_preview_ready(self, image: Image.Image, row: int) -> None:
+        # Only for the result it was fetched for. A new search may have
+        # replaced the list while this fetch ran, and the row number alone
+        # would file the old game's cover under a new result (SLIP-0102).
+        worker = self._preview_worker
+        if (worker is None or not (0 <= row < len(self._results))
+                or self._results[row][3] is not worker.result_obj):
+            return
         self._preview_cache[row] = image
         if self.results_list.currentRow() == row:
             self._show_preview(image)

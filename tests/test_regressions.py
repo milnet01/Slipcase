@@ -1223,3 +1223,22 @@ class TestPreviewNeverBlocksTheWindow(unittest.TestCase):
         self.dialog.results_list.setCurrentRow(0)
         self._finish(_FakePreviewWorker.made[0])       # ended with nothing cached
         self.assertEqual(len(_FakePreviewWorker.made), 1)
+
+    def test_a_preview_from_an_earlier_search_is_not_shown_against_a_new_one(self):
+        # A fetch for the old list's row 0 is still running when a new search
+        # replaces the results. Its image must not be filed under the new
+        # list's row 0 (SLIP-0102).
+        self.dialog.results_list.addItems(["a", "b", "c"])
+        self.dialog.results_list.setCurrentRow(0)
+        self.dialog._results = [
+            ("TheGamesDB", "Another game", "PS2", SimpleNamespace(box3d_url=None))
+        ]
+        self.dialog._preview_cache.clear()
+        self.dialog._on_preview_ready(Image.new("RGB", (4, 4)), 0)
+        self.assertNotIn(0, self.dialog._preview_cache)
+
+    def test_a_preview_for_the_result_it_was_fetched_for_is_kept(self):
+        self.dialog.results_list.addItems(["a", "b", "c"])
+        self.dialog.results_list.setCurrentRow(0)
+        self.dialog._on_preview_ready(Image.new("RGB", (4, 4)), 0)
+        self.assertIn(0, self.dialog._preview_cache)

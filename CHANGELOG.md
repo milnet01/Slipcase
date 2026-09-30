@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A cover preview from an earlier search no longer appears beside a newer result** (SLIP-0102)
+  Searching again while a preview was still downloading could show the old
+  game's cover against a result from the new search.
+
 - **Clicking quickly through search results no longer freezes the window** (SLIP-0099)
   Choosing another result while a preview was still downloading made the
   window wait up to a second for it. The running download is now left to

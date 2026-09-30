@@ -1832,13 +1832,17 @@ building.
   Kind: security.
   Source: review-contract-2026-09-30 STANDARDS.md loop 8 lane-b, measured.
 
-- 📋 [SLIP-0102] **A preview from an earlier search can land on a row of a newer search.**
+- ✅ [SLIP-0102] **A preview from an earlier search can land on a row of a newer search.**
   ui/search_dialog.py keeps previews in _preview_cache by row number. A new
   search clears the cache and the results, but a PreviewWorker started for
   the old results may still be running; its preview_ready(image, row) then
   stores the old image under that row of the new list. Accept a preview only
   when the row still holds the result object the worker was given. Found
   while fixing SLIP-0099; not made worse by it.
+  Resolved (2026-09-30): _on_preview_ready() keeps a preview only when the
+  row still holds the result object the running worker was given. Checked
+  with real threads: a fetch started for the old list's row was dropped
+  after the list was replaced, and the new row then fetched its own.
   **Layman:** Search again while a preview is still downloading, and the old game's cover can appear beside a result from the new search.
   Kind: fix.
   Source: in-session-2026-09-30.
