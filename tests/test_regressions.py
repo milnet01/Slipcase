@@ -1087,3 +1087,28 @@ class TestLeftColumnFitsASmallScreen(unittest.TestCase):
             self.addCleanup(_destroy_now, window)
             window.spine_adjust_group.show()
             self.assertLessEqual(window.minimumSizeHint().height(), 800)
+
+
+class TestReviewPartitionCoversTheCode(unittest.TestCase):
+    """Every Python file with code in it belongs to a review lane.
+
+    .indie-review/partition.json tells the review tooling which files make
+    up which subsystem, and a file in no lane is a file no review reads.
+    ui/single_instance.py and three test files had been added without being
+    listed (SLIP-0097).
+    """
+
+    def test_no_python_file_is_outside_every_lane(self):
+        root = pathlib.Path(__file__).resolve().parent.parent
+        partition = json.loads(
+            (root / ".indie-review" / "partition.json").read_text(encoding="utf-8"))
+        listed = {p for lane in partition["lanes"] for p in lane["sourcePaths"]}
+        found = set()
+        for folder in ("", "api", "core", "ui", "tests"):
+            for path in (root / folder).glob("*.py"):
+                if path.read_text(encoding="utf-8").strip():    # empty __init__.py
+                    found.add(path.relative_to(root).as_posix())
+        self.assertTrue(found, "found no Python files; the search has gone stale")
+        self.assertEqual(sorted(found - listed), [], "in no review lane")
+        missing = sorted(p for p in listed if not (root / p).exists())
+        self.assertEqual(missing, [], "listed in a lane but not on disk")

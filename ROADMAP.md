@@ -867,11 +867,14 @@ making a build reproducible.
   Kind: chore.
   Source: session-message-2026-09-28 claude-config (mailbox 138, 157).
 
-- 📋 [SLIP-0097] **The review partition leaves out files that exist.**
+- ✅ [SLIP-0097] **The review partition leaves out files that exist.**
   ui/single_instance.py is in no lane of .indie-review/partition.json, and
   the tests lane omits tests/test_api_recordings.py,
   tests/test_search_worker.py and tests/test_single_instance.py. Found while
   adding the packaging lane for SLIP-0018; docs/subsystems.md changes with it.
+  Resolved (2026-09-30): ui/single_instance.py joined the entry-point lane
+  and the three test files the tests lane. A test now fails when a Python
+  file with code in it is in no lane, or a lane lists a file that is gone.
   **Layman:** The list that tells review tools which files belong to which part of the app is missing a few files, so a review would skip them.
   Kind: doc-fix.
   Source: in-session-2026-09-30.

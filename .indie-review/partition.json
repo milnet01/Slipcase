@@ -44,8 +44,8 @@
     },
     {
       "name": "entry-point",
-      "summary": "Process start-up: the decompression-bomb ceiling, theme selection, and constructing the window.",
-      "sourcePaths": ["main.py", "__init__.py"]
+      "summary": "Process start-up: the decompression-bomb ceiling, the one-copy-at-a-time lock, theme selection, constructing the window, and the --smoke self-check the packaged builds run.",
+      "sourcePaths": ["main.py", "__init__.py", "ui/single_instance.py"]
     },
     {
       "name": "ci-and-gate",
@@ -60,7 +60,7 @@
     {
       "name": "tests",
       "summary": "The test suite. review-code excludes this lane; review-tests is exactly this lane.",
-      "sourcePaths": ["tests/test_regressions.py", "tests/test_renderer.py", "tests/test_security.py", "tests/test_libretro.py", "tests/test_smoke.py", "tests/conftest.py"]
+      "sourcePaths": ["tests/test_regressions.py", "tests/test_renderer.py", "tests/test_security.py", "tests/test_libretro.py", "tests/test_smoke.py", "tests/test_api_recordings.py", "tests/test_search_worker.py", "tests/test_single_instance.py", "tests/conftest.py"]
     }
   ]
 }
