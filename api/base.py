@@ -12,6 +12,12 @@ from PIL import Image
 # Maximum image download size (50 MB) to prevent memory exhaustion
 MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024
 
+# Maximum size of a JSON reply from a cover-art service (5 MB). The recorded
+# search replies in tests/fixtures are under 20 KB, so this is some hundreds
+# of times a real one and far below anything that would strain memory
+# (SLIP-0100).
+MAX_REPLY_BYTES = 5 * 1024 * 1024
+
 # Decompression-bomb ceiling, in pixels. Well above any real cover scan
 # (~4000 x 10000) and far below a decode that would exhaust memory.
 #
@@ -36,11 +42,11 @@ ALLOWED_IMAGE_DOMAINS: set[str] = {
     "thumbnails.libretro.com",
 }
 
-# Wall-clock budget for one download, in seconds. timeout=(10, 30) bounds the
-# gap between reads, not the total: a server sending one byte every 29 seconds
-# holds a worker thread and a connection open indefinitely while never
-# reaching MAX_DOWNLOAD_BYTES, so neither the size cap nor the timeout ever
-# fires (SLIP-0065).
+# Wall-clock budget for reading one reply body, in seconds. timeout=(10, 30)
+# bounds the gap between reads, not the total: a server sending one byte
+# every 29 seconds holds a worker thread and a connection open indefinitely
+# while never reaching the size cap, so neither the cap nor the timeout ever
+# fires (SLIP-0065). _read_body() is what enforces it.
 MAX_DOWNLOAD_SECONDS = 60.0
 
 # Accepted image formats. The list exists to keep the decoder attack surface
@@ -88,6 +94,36 @@ def _is_allowed_url(url: str) -> bool:
         if host == domain or host.endswith("." + domain):
             return True
     return False
+
+
+def _read_body(response: requests.Response, max_bytes: int) -> bytes:
+    """Read a streamed reply under `max_bytes` and MAX_DOWNLOAD_SECONDS.
+
+    Both limits are checked after every read, and each read returns as soon
+    as the socket has anything: read1(), not iter_content() or read(), which
+    do not return until a whole chunk has arrived. A trickling server kept
+    those waiting for 64 KiB, so the deadline beside them was never reached
+    (SLIP-0101). A reply that stops altogether is cut by the 30 second read
+    timeout instead.
+
+    Raises requests.RequestException when either limit is passed.
+    """
+    declared = response.headers.get("Content-Length", "")
+    if declared.isdigit() and int(declared) > max_bytes:
+        raise requests.RequestException("Reply larger than the size limit")
+    deadline = time.monotonic() + MAX_DOWNLOAD_SECONDS
+    chunks: list[bytes] = []
+    size = 0
+    while True:
+        chunk = response.raw.read1(65_536, decode_content=True)
+        if not chunk:
+            return b"".join(chunks)
+        size += len(chunk)
+        if size > max_bytes:
+            raise requests.RequestException("Reply larger than the size limit")
+        if time.monotonic() > deadline:
+            raise requests.RequestException("Reply took longer than the time limit")
+        chunks.append(chunk)
 
 
 class APIClient:
@@ -142,10 +178,20 @@ class APIClient:
         if not _is_allowed_url(full_url):
             raise requests.RequestException("URL not permitted by allowlist")
         try:
-            response = self._get_validated(
-                full_url, params=params, stream=False, **kwargs
-            )
-            response.raise_for_status()
+            response = self._get_validated(full_url, params=params, **kwargs)
+            # Read the body here, bounded, and hand it to the Response the way
+            # requests itself stores one, so .json() and .text work. Letting
+            # requests read it (stream=False) applied no size cap and no
+            # deadline to a JSON reply (SLIP-0100).
+            unread = response._content is False    # requests' "not read yet"
+            try:
+                response.raise_for_status()
+                if unread:
+                    response._content = _read_body(response, MAX_REPLY_BYTES)
+                    response._content_consumed = True
+            finally:
+                if unread:
+                    response.close()
         except requests.RequestException as e:
             raise requests.RequestException(_sanitize_message(str(e))) from None
         return response
@@ -219,30 +265,13 @@ class APIClient:
             return None
         try:
             response = self._get_validated(url)
-            response.raise_for_status()
-
-            # Fast reject via Content-Length header
-            cl = response.headers.get("Content-Length")
-            if cl and int(cl) > MAX_DOWNLOAD_BYTES:
+            try:
+                response.raise_for_status()
+                body = _read_body(response, MAX_DOWNLOAD_BYTES)
+            finally:
                 response.close()
-                return None
 
-            # Stream with enforced byte limit
-            chunks: list[bytes] = []
-            downloaded = 0
-            deadline = time.monotonic() + MAX_DOWNLOAD_SECONDS
-            for chunk in response.iter_content(chunk_size=65_536):
-                downloaded += len(chunk)
-                if downloaded > MAX_DOWNLOAD_BYTES:
-                    response.close()
-                    return None
-                if time.monotonic() > deadline:
-                    # A trickle never trips the size cap or the read timeout.
-                    response.close()
-                    return None
-                chunks.append(chunk)
-
-            img = Image.open(BytesIO(b"".join(chunks)))
+            img = Image.open(BytesIO(body))
             if img.format not in _ALLOWED_IMAGE_FORMATS:
                 return None
             # Reject a decompression bomb BEFORE decoding. Pillow only warns

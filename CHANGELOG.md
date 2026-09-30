@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **A cover that arrives one byte at a time is now cut off at the time limit** (SLIP-0101)
+  The 60 second download limit was only checked once a full 64 KiB block had
+  arrived, so a server trickling bytes could hold a download open far past
+  it. Every read now returns as soon as anything arrives, and the limit is
+  checked each time.
+
+- **Search replies are capped in size and time, like image downloads** (SLIP-0100)
+  A reply from a cover-art service was read whole with no limit. It is now
+  held to 5 MB and to the same 60 second limit as an image.
+
 ## [1.3.0] - 2026-09-30
 
 **Theme:** Windows and Mac downloads.

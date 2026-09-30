@@ -2,13 +2,16 @@
 
 Every test here locks a rule that a refactor could silently remove: the URL
 allowlist, credential scrubbing, the download size cap and the
-decompression-bomb limit. These are pure functions with no network in them.
+decompression-bomb limit. Nothing here reaches the internet: the replies are
+fakes, except in TestBodyReadsAreBounded, which serves them from a local
+socket because a fake cannot stall.
 
 Covers ROADMAP SLIP-0021.
 """
 
 import os
 import sys
+import time
 import unittest
 from io import BytesIO
 from unittest.mock import MagicMock, patch
@@ -247,7 +250,7 @@ class TestDownloadLimits(unittest.TestCase):
             is_redirect=False, is_permanent_redirect=False, headers={},
         )
         response.raise_for_status.return_value = None
-        response.iter_content.return_value = iter(chunks)
+        response.raw.read1.side_effect = [*chunks, b""]
         with patch.object(client._session, "get", return_value=response):
             self.assertIsNone(
                 client.download_image("https://screenscraper.fr/big.png")
@@ -265,7 +268,7 @@ class TestDownloadLimits(unittest.TestCase):
             is_redirect=False, is_permanent_redirect=False, headers={},
         )
         response.raise_for_status.return_value = None
-        response.iter_content.return_value = iter([b"fake-png-bytes"])
+        response.raw.read1.side_effect = [b"fake-png-bytes", b""]
         bomb = MagicMock(format="PNG", size=(60_000, 60_000))
         with patch.object(client._session, "get", return_value=response), \
                 patch("api.base.Image.open", return_value=bomb):
@@ -280,7 +283,7 @@ class TestDownloadLimits(unittest.TestCase):
             is_redirect=False, is_permanent_redirect=False, headers={},
         )
         response.raise_for_status.return_value = None
-        response.iter_content.return_value = iter([b"bytes"])
+        response.raw.read1.side_effect = [b"bytes", b""]
         svg = MagicMock(format="SVG", size=(10, 10))
         with patch.object(client._session, "get", return_value=response), \
                 patch("api.base.Image.open", return_value=svg):
@@ -309,7 +312,7 @@ class TestAcceptedImageFormats(unittest.TestCase):
                     is_redirect=False, is_permanent_redirect=False, headers={},
                 )
                 response.raise_for_status.return_value = None
-                response.iter_content.return_value = iter([b"bytes"])
+                response.raw.read1.side_effect = [b"bytes", b""]
                 img = MagicMock(format=fmt, size=(10, 10))
                 with patch.object(client._session, "get", return_value=response), \
                         patch("api.base.Image.open", return_value=img):
@@ -458,9 +461,9 @@ class TestDownloadDeadline(unittest.TestCase):
         )
         response.raise_for_status.return_value = None
         payload = _png_bytes()
-        response.iter_content.return_value = iter(
-            [payload[i:i + 4] for i in range(0, len(payload), 4)]
-        )
+        response.raw.read1.side_effect = [
+            *[payload[i:i + 4] for i in range(0, len(payload), 4)], b"",
+        ]
         return response
 
     def test_a_slow_trickle_is_abandoned(self):
@@ -479,4 +482,141 @@ class TestDownloadDeadline(unittest.TestCase):
         with patch.object(client._session, "get", return_value=self._response()):
             image = client.download_image("https://screenscraper.fr/ok.png")
         self.assertIsNotNone(image, "the payload itself must be downloadable")
+        self.assertEqual(image.size, (8, 8))
+
+
+class _SlowServer:
+    """A real local HTTP server whose replies misbehave on purpose.
+
+    The doubles above hand download_image() its chunks ready-made, so they
+    cannot express the failure that matters: a read that does not RETURN.
+    These tests put a real socket under the real read loop (SLIP-0100,
+    SLIP-0101).
+    """
+
+    def __init__(self):
+        import http.server
+        import threading
+
+        png = _png_bytes()
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            protocol_version = "HTTP/1.1"
+
+            def log_message(self, *args):
+                pass
+
+            def _trickle(self, body, content_type):
+                self.send_response(200)
+                self.send_header("Content-Type", content_type)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                try:
+                    for i in range(len(body)):
+                        self.wfile.write(body[i:i + 1])
+                        self.wfile.flush()
+                        time.sleep(0.05)
+                except OSError:
+                    pass        # the client gave up, which is the point
+
+            def do_GET(self):
+                if self.path == "/trickle.png":
+                    self._trickle(png * 3, "image/png")
+                elif self.path == "/trickle.json":
+                    self._trickle(b'{"a": "' + b"x" * 200 + b'"}', "application/json")
+                elif self.path == "/big.json":
+                    # No Content-Length: the size is only known by reading.
+                    self.send_response(200)
+                    self.send_header("Connection", "close")
+                    self.end_headers()
+                    self.wfile.write(b'{"a": "' + b"x" * 5000 + b'"}')
+                elif self.path == "/chunked.json":
+                    self.send_response(200)
+                    self.send_header("Transfer-Encoding", "chunked")
+                    self.end_headers()
+                    for part in (b'{"games": ', b'["Nebula', b' Drift"]}'):
+                        self.wfile.write(b"%x\r\n%s\r\n" % (len(part), part))
+                    self.wfile.write(b"0\r\n\r\n")
+                elif self.path == "/gzip.json":
+                    import gzip
+                    body = gzip.compress(b'{"games": ["Nebula Drift"]}')
+                    self.send_response(200)
+                    self.send_header("Content-Encoding", "gzip")
+                    self.send_header("Content-Length", str(len(body)))
+                    self.end_headers()
+                    self.wfile.write(body)
+                else:
+                    body = png
+                    self.send_response(200)
+                    self.send_header("Content-Length", str(len(body)))
+                    self.end_headers()
+                    self.wfile.write(body)
+
+        self._server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        self._server.daemon_threads = True
+        self.url = f"http://127.0.0.1:{self._server.server_address[1]}"
+        threading.Thread(target=self._server.serve_forever, daemon=True).start()
+
+    def close(self):
+        self._server.shutdown()
+        self._server.server_close()
+
+
+class TestBodyReadsAreBounded(unittest.TestCase):
+    """Every reply body is read under a byte cap and a wall-clock deadline.
+
+    download_image() checked its deadline only after iter_content(65_536)
+    handed back a chunk, and that call does not return until 64 KiB has
+    arrived -- so a one-byte-at-a-time reply was never cut off (SLIP-0101).
+    get() read a JSON reply whole, with no cap and no deadline (SLIP-0100).
+
+    The allowlist is patched open so the client can reach the local server;
+    the allowlist has its own tests above.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.server = _SlowServer()
+        cls.addClassCleanup(cls.server.close)
+
+    def setUp(self):
+        self.client = APIClient(base_url=self.server.url, min_request_interval=0)
+        self.addCleanup(self.client.close)
+        allow = patch.object(base, "_is_allowed_url", return_value=True)
+        allow.start()
+        self.addCleanup(allow.stop)
+
+    def _timed(self, call):
+        started = time.monotonic()
+        try:
+            return call(), time.monotonic() - started
+        except requests.RequestException as e:
+            return e, time.monotonic() - started
+
+    def test_a_trickled_image_is_abandoned_at_the_deadline(self):
+        # The whole trickle takes about ten seconds; the deadline is half a
+        # second. Returning None only once it has all arrived is the defect.
+        with patch.object(base, "MAX_DOWNLOAD_SECONDS", 0.5):
+            result, took = self._timed(
+                lambda: self.client.download_image(self.server.url + "/trickle.png"))
+        self.assertIsNone(result)
+        self.assertLess(took, 3.0, "the download outlived its deadline")
+
+    def test_a_trickled_json_reply_is_abandoned_at_the_deadline(self):
+        with patch.object(base, "MAX_DOWNLOAD_SECONDS", 0.5):
+            result, took = self._timed(lambda: self.client.get_json("trickle.json"))
+        self.assertIsInstance(result, requests.RequestException)
+        self.assertLess(took, 3.0, "the reply outlived its deadline")
+
+    def test_an_oversized_json_reply_is_refused(self):
+        with patch.object(base, "MAX_REPLY_BYTES", 1000):
+            result, _ = self._timed(lambda: self.client.get_json("big.json"))
+        self.assertIsInstance(result, requests.RequestException)
+
+    def test_ordinary_replies_still_arrive_whole(self):
+        for path in ("chunked.json", "gzip.json"):
+            with self.subTest(path=path):
+                self.assertEqual(self.client.get_json(path), {"games": ["Nebula Drift"]})
+        image = self.client.download_image(self.server.url + "/ok.png")
+        self.assertIsNotNone(image)
         self.assertEqual(image.size, (8, 8))

@@ -446,7 +446,7 @@ them, so a rule is changed here and nowhere else.
 - **Decoder surface**: `_ALLOWED_IMAGE_FORMATS` limits decoding to PNG, JPEG
   and WEBP. Every accepted format is one more Pillow decoder reachable from a
   remote response, so adding one back is a deliberate decision.
-- **Size limit**: `MAX_DOWNLOAD_BYTES = 50MB` — responses exceeding this are rejected before loading into memory.
+- **Size limit**: `MAX_DOWNLOAD_BYTES = 50MB` for an image and `MAX_REPLY_BYTES = 5MB` for a JSON reply. `_read_body()` reads every reply body, on both paths, and stops at the cap, so an oversized one is never held in memory.
 - **TLS enforcement**: All API requests use `verify=True`. Never disable certificate verification.
 
 ### Credential Protection
@@ -464,8 +464,12 @@ them, so a rule is changed here and nowhere else.
 - **No code execution**: User-provided text (titles, serials, filenames) is only rendered as image text via PIL, never passed to `eval`, `exec`, `subprocess`, or shell commands.
 - **File dialogs**: Filter by image extensions to prevent accidental loading of non-image files.
 - **Network**: HTTPS only. `timeout=(10, 30)` bounds the connect and each read
-  but not the total, so `MAX_DOWNLOAD_SECONDS` caps the body transfer -- a slow
-  trickle trips neither the size cap nor the read timeout. That budget starts
+  but not the total, so `_read_body()` also holds every body, image or JSON,
+  to `MAX_DOWNLOAD_SECONDS` -- a slow trickle trips neither the size cap nor
+  the read timeout. It checks after each `read1()`, which returns as soon as
+  any bytes arrive; a read that waits for a full chunk never reaches the check
+  on a trickle (SLIP-0101). A reply that stops altogether is cut by the read
+  timeout. That budget starts
   once the response is open, so the connect and redirect phases sit outside it
   and are bounded by `timeout` and `MAX_REDIRECTS`. Rate limiting via
   `APIClient._rate_limit()`.

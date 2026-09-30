@@ -1785,7 +1785,7 @@ building.
   Kind: fix.
   Source: review-contract-2026-09-30 STANDARDS.md loop 6 lane-a.
 
-- 📋 [SLIP-0100] **A JSON reply from a cover-art service has no size or total-time limit.**
+- ✅ [SLIP-0100] **A JSON reply from a cover-art service has no size or total-time limit.**
   STANDARDS.md section 10 says MAX_DOWNLOAD_SECONDS caps the body transfer,
   without limiting that to images. In api/base.py only download_image()
   applies that deadline and MAX_DOWNLOAD_BYTES; get() calls
@@ -1793,11 +1793,16 @@ building.
   per-read timeout alone. Decide which is wrong: cap the JSON path, or scope
   the sentence in section 10 to download_image().
   Outside the change loop 7 was gating, so filed rather than fixed there.
+  Resolved (2026-09-30): the code was wrong, not the document. get() now
+  reads the reply through _read_body() under MAX_REPLY_BYTES (5 MB) and
+  MAX_DOWNLOAD_SECONDS. Tests serve an oversized and a trickled JSON reply
+  from a local socket; both were red before the fix. A live TheGamesDB
+  search returned 20 results through the new path.
   **Layman:** Image downloads are capped in size and time, but the search replies are not, so a misbehaving service could make a search hang or use a lot of memory.
   Kind: security.
   Source: review-contract-2026-09-30 STANDARDS.md loop 7 lane-a.
 
-- 📋 [SLIP-0101] **A slow-trickle image download is not stopped by the download time limit.**
+- ✅ [SLIP-0101] **A slow-trickle image download is not stopped by the download time limit.**
   download_image() in api/base.py checks MAX_DOWNLOAD_SECONDS only after
   iter_content(65_536) yields a chunk, and that call does not return until
   64 KiB has arrived. Measured 2026-09-30 against a local server sending one
@@ -1807,6 +1812,12 @@ building.
   deadline covers exactly this case. SLIP-0100 (no cap on JSON replies) is
   the neighbouring gap; its byte cap is missing as well as its deadline.
   Outside the change loop 8 was gating, so filed rather than fixed there.
+  Resolved (2026-09-30): _read_body() reads with read1(), which returns as
+  soon as any bytes arrive, and checks the byte cap and the deadline after
+  every read. The test trickles a PNG from a local socket with the deadline
+  at half a second: 11.5 seconds before the fix, under 3 after. A live
+  libretro cover downloaded through the new path. Worst case is now the
+  deadline plus one 30 second read timeout.
   **Layman:** A server that sends an image one byte at a time can keep a download going far past the time limit that is meant to stop it.
   Kind: security.
   Source: review-contract-2026-09-30 STANDARDS.md loop 8 lane-b, measured.
