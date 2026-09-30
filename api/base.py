@@ -12,11 +12,13 @@ from PIL import Image
 # Maximum image download size (50 MB) to prevent memory exhaustion
 MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024
 
-# Maximum size of a JSON reply from a cover-art service (5 MB). The recorded
-# search replies in tests/fixtures are under 20 KB, so this is some hundreds
-# of times a real one and far below anything that would strain memory
-# (SLIP-0100).
-MAX_REPLY_BYTES = 5 * 1024 * 1024
+# Maximum size of a JSON reply from a cover-art service (25 MB), counted
+# after decompression. A live ScreenScraper search for "Crash Bandicoot" with
+# no system chosen came to 2.7 MB on 2026-09-30, so this is about nine times
+# the largest reply seen and still far below anything that would strain
+# memory. The recordings in tests/fixtures are trimmed and say nothing about
+# real sizes (SLIP-0100).
+MAX_REPLY_BYTES = 25 * 1024 * 1024
 
 # Decompression-bomb ceiling, in pixels. Well above any real cover scan
 # (~4000 x 10000) and far below a decode that would exhaust memory.

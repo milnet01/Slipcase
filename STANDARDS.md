@@ -446,7 +446,7 @@ them, so a rule is changed here and nowhere else.
 - **Decoder surface**: `_ALLOWED_IMAGE_FORMATS` limits decoding to PNG, JPEG
   and WEBP. Every accepted format is one more Pillow decoder reachable from a
   remote response, so adding one back is a deliberate decision.
-- **Size limit**: `MAX_DOWNLOAD_BYTES = 50MB` for an image and `MAX_REPLY_BYTES = 5MB` for a JSON reply. `_read_body()` reads every reply body, on both paths, and stops at the cap, so an oversized one is never held in memory.
+- **Size limit**: `MAX_DOWNLOAD_BYTES = 50MB` for an image and `MAX_REPLY_BYTES = 25MB` for a JSON reply, counted after decompression. `_read_body()` reads every reply body, on both paths, and stops at the cap, so an oversized one is never held in memory.
 - **TLS enforcement**: All API requests use `verify=True`. Never disable certificate verification.
 
 ### Credential Protection

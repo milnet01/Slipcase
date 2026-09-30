@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Search replies are capped in size and time, like image downloads** (SLIP-0100)
   A reply from a cover-art service was read whole with no limit. It is now
-  held to 5 MB and to the same 60 second limit as an image.
+  held to 25 MB and to the same 60 second limit as an image.
 
 ## [1.3.0] - 2026-09-30
 
