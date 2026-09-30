@@ -1756,3 +1756,15 @@ building.
   **Layman:** With a wraparound cover loaded, the spine controls are cramped and a button's text is cut off.
   Kind: ux.
   Source: in-session-2026-09-29, seen while checking SLIP-0051.
+
+- 📋 [SLIP-0099] **The search dialog waits on the main thread when a new preview replaces a running one.**
+  ui/search_dialog.py, where a result row needs a preview, calls
+  existing.wait(1000) on the main thread and then rebinds
+  self._preview_worker. STANDARDS.md section 2 allows a main-thread wait only
+  when a window or dialog closes, and section 12 forbids clearing a worker
+  reference while its thread still runs. Decide which is wrong: make the
+  code conform, or name this wait as a third exception in section 2.
+  Outside the change loop 6 was gating, so filed rather than fixed there.
+  **Layman:** Clicking quickly through search results can freeze the window for up to a second each time, and may drop a worker that is still running.
+  Kind: fix.
+  Source: review-contract-2026-09-30 STANDARDS.md loop 6 lane-a.
