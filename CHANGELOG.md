@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A one-file Windows download: Slipcase-windows-x64.exe** (SLIP-0019)
+  A portable program: double-click it, nothing is installed. It is not
+  signed, so Windows shows its "Windows protected your PC" screen the
+  first time; choose More info, then Run anyway.
+
+- **The tests run on Windows and macOS at every push** (SLIP-0019)
+  A new CI job runs the suite on both, which no Linux machine can do
+  locally.
+
+### Changed
+
+- **On Windows the settings live in %APPDATA%\slipcase** (SLIP-0019)
+  Running from source on Windows used to put them in a `.config` folder in
+  your user folder; a settings file there is not moved. The lock that keeps
+  one copy running sits in the settings folder on Windows and macOS.
+
 ## [1.2.0] - 2026-09-30
 
 **Theme:** A one-file Linux download.

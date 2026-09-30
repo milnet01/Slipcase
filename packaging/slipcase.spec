@@ -1,10 +1,12 @@
-# PyInstaller recipe for the packaged builds of Slipcase (SLIP-0018, SLIP-0019).
+# PyInstaller recipe for the packaged builds of Slipcase (SLIP-0018, SLIP-0019,
+# SLIP-0020).
 #
 # Bundles the interpreter, the dependencies and resources/.
 #   Linux:   one folder, dist/slipcase/, which scripts/build-appimage.sh wraps
 #            into an AppImage.
 #   Windows: one file, dist/Slipcase-windows-x64.exe, built by
 #            scripts/build-windows.ps1.
+#   macOS:   Slipcase.app, which scripts/build-macos.sh puts in a disk image.
 # Run it through those scripts rather than directly: they pin the tools and
 # run the self-check on what comes out.
 #
@@ -12,6 +14,7 @@
 # core/spine_generator.py already look for it (relative to their own file),
 # so the application code needs no "am I packaged?" branch.
 
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -78,4 +81,19 @@ else:
         name="slipcase",
         console=False,
     )
-    COLLECT(exe, a.binaries, a.datas, name="slipcase")  # noqa: F821
+    folder = COLLECT(exe, a.binaries, a.datas, name="slipcase")  # noqa: F821
+    if sys.platform == "darwin":
+        version = re.search(
+            r'__version__ = "([^"]+)"',
+            (ROOT / "core" / "version.py").read_text(encoding="utf-8"),
+        ).group(1)
+        BUNDLE(  # noqa: F821
+            folder,
+            name="Slipcase.app",
+            icon=str(ROOT / "resources" / "icon_256.png"),
+            bundle_identifier="io.github.milnet01.slipcase",
+            info_plist={
+                "CFBundleShortVersionString": version,
+                "NSHighResolutionCapable": True,
+            },
+        )

@@ -55,7 +55,15 @@ chmod +x Slipcase-x86_64.AppImage
 
 It is built on Ubuntu 22.04, so it needs a Linux system at least that recent.
 
-**From the source code:** you'll need **Python 3.12** on Linux.
+**The easy way, on Windows:** download `Slipcase-windows-x64.exe` from the
+same page and double-click it. It is one file and installs nothing. It unpacks
+itself each time it starts, so give it a moment.
+
+The file is not signed, so the first time you run it Windows shows a blue
+"Windows protected your PC" screen. Click **More info**, then **Run anyway**.
+It needs 64-bit Windows, and has been tried on Windows 10.
+
+**From the source code:** you'll need **Python 3.12**.
 
 ```bash
 pip install -r requirements.txt
@@ -79,10 +87,13 @@ keep the project somewhere other than where it is now.
 
 ## Your settings and logins
 
-Slipcase keeps its settings in `~/.config/slipcase/`, or in
+On Linux, Slipcase keeps its settings in `~/.config/slipcase/`, or in
 `$XDG_CONFIG_HOME/slipcase/` if you have set that variable. That folder is locked to
 your user account only, and the settings file is saved so that only you can
 read it.
+
+On Windows they are in `%APPDATA%\slipcase\`, which is inside your own user
+folder.
 
 If you sign in to ScreenScraper, those details are stored there — **not in the
 project folder**, so they can't be committed to version control by accident.
