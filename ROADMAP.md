@@ -1270,6 +1270,11 @@ building.
   Ants_Terminal's working file; filed in Slipcase_Ants_MCP_Feedback.md the
   same day. Still open. The CHANGELOG bullet no longer cites this id on
   its head line, so the release does not claim it shipped.
+  Progress (2026-09-30): narrowed to a minimal repro and filed. The verb
+  fills a lane only for files under a literal src/ directory: a lane naming
+  api/base.py comes back empty, the same lane naming src/base.py works,
+  and the declared source_roots do not change it. Slipcase has no src/, so
+  nothing here can fix it. Still open, waiting on Ants MCP.
   **Layman:** The code-review tooling has to guess how the project is organised.
   Kind: doc.
   Source: in-session-2026-09-01.
