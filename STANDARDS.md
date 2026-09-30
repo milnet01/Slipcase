@@ -290,10 +290,17 @@ The application uses a centralized theme system (`ui/themes.py`):
 
 ### Storage
 
-- **Path**: `$XDG_CONFIG_HOME/slipcase/config.json`. When `XDG_CONFIG_HOME`
-  is unset, empty, or not an absolute path, it is `~/.config/slipcase/config.json`
-  -- the XDG Base Directory rule, which says a relative value is ignored
-- **Permissions**: `chmod 600` (contains API credentials)
+- **Path**: `$XDG_CONFIG_HOME/slipcase/config.json`, on every operating
+  system. When `XDG_CONFIG_HOME` is unset, empty, or not an absolute path --
+  the XDG Base Directory rule says a relative value is ignored -- the folder
+  depends on the system:
+  - Linux and macOS: `~/.config/slipcase/config.json`
+  - Windows: `%APPDATA%\slipcase\config.json`, or
+    `~\AppData\Roaming\slipcase\config.json` when `APPDATA` is unset or not
+    an absolute path
+- **Permissions**: `chmod 600` on Linux and macOS (contains API credentials).
+  Windows has no such permission bits and none are set there: `%APPDATA%` is
+  inside the user's profile, which Windows already closes to other users
 - **Format**: JSON with nested sections
 
 ### Schema
@@ -321,7 +328,13 @@ ui/
   runtime directory, or in the config directory above when there is none,
   taken before the settings load. A second launch asks
   the running copy to show its window and exits, so two copies never hold
-  the settings at once
+  the settings at once. On Windows the lock is always in the config
+  directory, because Qt reports the user's home folder as the runtime
+  directory there. The second launch reaches the running copy through a
+  socket file beside the lock on Linux and macOS, and on Windows through a
+  named pipe called `slipcase-` plus the first 16 hex digits of the SHA-256
+  of the lock directory's path: a pipe name is shared by the whole machine
+  and cannot be a file path, and the digest keeps two users' pipes apart
 - Version: a file older than `CONFIG_VERSION` (no `version` key counts as 0)
   is upgraded one step at a time by `_MIGRATIONS` before the merge. A file
   from a newer app keeps its version number when saved. A file that is not a
