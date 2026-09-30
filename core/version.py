@@ -5,4 +5,4 @@ imports __version__ from here rather than repeating the literal, so a bump
 cannot leave one copy behind.
 """
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
