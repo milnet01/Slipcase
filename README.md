@@ -63,6 +63,19 @@ The file is not signed, so the first time you run it Windows shows a blue
 "Windows protected your PC" screen. Click **More info**, then **Run anyway**.
 It needs 64-bit Windows, and has been tried on Windows 10.
 
+**On a Mac:** download `Slipcase-macos-arm64.dmg` for a Mac with Apple
+silicon (M1 and later), or `Slipcase-macos-x86_64.dmg` for an Intel Mac. Open
+it and drag Slipcase onto Applications.
+
+The app is not signed with an Apple developer certificate, so macOS blocks
+the first launch. Try to open it once, then open **System Settings**, click
+**Privacy & Security**, scroll down and click **Open Anyway**. Those are
+Apple's own steps for an app it does not recognise.
+
+**Nobody has tried the Mac build by hand on a real Mac.** It is built on
+GitHub's Mac machines, where it passes the same automatic self-check as the
+other builds. If it misbehaves for you, please report it.
+
 **From the source code:** you'll need **Python 3.12**.
 
 ```bash
@@ -87,7 +100,7 @@ keep the project somewhere other than where it is now.
 
 ## Your settings and logins
 
-On Linux, Slipcase keeps its settings in `~/.config/slipcase/`, or in
+On Linux and macOS, Slipcase keeps its settings in `~/.config/slipcase/`, or in
 `$XDG_CONFIG_HOME/slipcase/` if you have set that variable. That folder is locked to
 your user account only, and the settings file is saved so that only you can
 read it.

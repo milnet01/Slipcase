@@ -126,7 +126,7 @@ which covers the source repository going public.
   Kind: package.
   Source: user-request-2026-08-27.
 
-- 📋 [SLIP-0019] **Publish a Windows build.**
+- ✅ [SLIP-0019] **Publish a Windows build.**
   Two things must be settled before packaging. The config layer writes to
   ~/.config/slipcase and sets POSIX permission bits (0o700 on the directory,
   600 on the file), which have no Windows equivalent. And slipcase.desktop is
@@ -136,11 +136,19 @@ which covers the source repository going public.
   Decided (2026-09-30, user): a single portable .exe, no installer, unsigned;
   the website warns about the first-run SmartScreen screen. Follows SLIP-0018.
   The user's Windows 10 machine is reachable over SSH for a real run.
+  Resolved (2026-09-30): settings live in %APPDATA%\slipcase on Windows with no
+  permission bits set, the lock sits in the settings folder, and a second
+  launch reaches the first through a named pipe (STANDARDS.md sections 7 and
+  10, gated in loops 6 to 8). scripts/build-windows.ps1 builds
+  Slipcase-windows-x64.exe; release.yml attaches it. The file GitHub built
+  was run on the user's Windows 10 machine: checksum matched, self-check
+  passed, a second launch handed over. The window itself was not looked at
+  there. First shipped in 1.3.0.
   **Layman:** A Windows download people can run without installing Python.
   Kind: package.
   Source: user-request-2026-08-27.
 
-- 📋 [SLIP-0020] **Publish a macOS build.**
+- ✅ [SLIP-0020] **Publish a macOS build.**
   Ship an .app bundle. macOS is POSIX, so the config layer's permission bits
   carry over, but the desktop entry does not — a bundle declares its own
   launcher metadata.
@@ -158,6 +166,14 @@ which covers the source repository going public.
   Decided (2026-09-30, user): ship a Mac build if the automatic tests pass on
   GitHub's macOS runner, marked on the website as not tried by hand on a real
   Mac. Still unsigned, as decided 2026-09-02. Follows SLIP-0019.
+  Resolved (2026-09-30): scripts/build-macos.sh builds Slipcase.app into
+  Slipcase-macos-arm64.dmg and Slipcase-macos-x86_64.dmg and runs the
+  self-check from inside the mounted image; release.yml attaches both. The
+  test suite passes on GitHub's macos-14 runner. Unsigned, and not tried by
+  hand on a real Mac. The README gives Apple's current first-launch steps
+  (System Settings, Privacy and Security, Open Anyway) rather than the
+  right-click route named above, which Apple no longer documents. First
+  shipped in 1.3.0.
   **Layman:** A Mac download that opens like any other Mac app.
   Kind: package.
   Source: user-request-2026-08-27.
