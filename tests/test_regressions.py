@@ -1112,3 +1112,114 @@ class TestReviewPartitionCoversTheCode(unittest.TestCase):
         self.assertEqual(sorted(found - listed), [], "in no review lane")
         missing = sorted(p for p in listed if not (root / p).exists())
         self.assertEqual(missing, [], "listed in a lane but not on disk")
+
+
+class _FakePreviewWorker:
+    """Stands in for PreviewWorker: a fetch that is still running until the
+    test says otherwise, and that records whether anyone waited on it."""
+
+    made: list["_FakePreviewWorker"] = []
+
+    def __init__(self, source, result_obj, config, row):
+        from unittest.mock import MagicMock
+        self.row = row
+        self.result_obj = result_obj
+        self.running = False
+        self.waited = False
+        self.preview_ready = MagicMock()
+        self.error = MagicMock()
+        self.finished = MagicMock()
+        _FakePreviewWorker.made.append(self)
+
+    def start(self):
+        self.running = True
+
+    def isRunning(self):
+        return self.running
+
+    def wait(self, *_args):
+        self.waited = True
+        return False
+
+    def requestInterruption(self):
+        pass
+
+    def quit(self):
+        pass
+
+    def deleteLater(self):
+        pass
+
+
+class TestPreviewNeverBlocksTheWindow(unittest.TestCase):
+    """Choosing another search result while a preview is still downloading
+    must not wait for that download on the main thread, nor drop the running
+    worker. It did both: wait(1000) froze the window for up to a second per
+    row, and the reference was then replaced while the thread still ran,
+    which STANDARDS.md § 12 forbids (SLIP-0099). The next preview now starts
+    when the running one finishes."""
+
+    @classmethod
+    def setUpClass(cls):
+        from PyQt6.QtWidgets import QApplication
+        cls._app = QApplication.instance() or QApplication([])
+
+    def setUp(self):
+        from unittest.mock import patch
+        import ui.search_dialog as sd
+        self._dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self._dir.cleanup)
+        _FakePreviewWorker.made = []
+        patcher = patch.object(sd, "PreviewWorker", _FakePreviewWorker)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.dialog = sd.SearchDialog(Config(config_path=os.path.join(self._dir.name, "c.json")))
+        self.addCleanup(_destroy_now, self.dialog)
+        self.dialog._results = [
+            ("ScreenScraper", f"Game {i}", "PS1", SimpleNamespace(box3d_url=None))
+            for i in range(3)
+        ]
+        self.addCleanup(self._finish_all)
+
+    def _finish_all(self):
+        for worker in _FakePreviewWorker.made:
+            worker.running = False
+
+    def _finish(self, worker):
+        worker.running = False
+        self.dialog._on_preview_finished()
+
+    def test_a_second_selection_neither_waits_nor_drops_the_running_fetch(self):
+        self.dialog._on_result_selected(0)
+        first = _FakePreviewWorker.made[0]
+        self.dialog._on_result_selected(1)
+        self.assertFalse(first.waited, "the main thread waited for the download")
+        self.assertIs(self.dialog._preview_worker, first,
+                      "the running worker's reference was replaced")
+        self.assertEqual(len(_FakePreviewWorker.made), 1, "a second fetch ran alongside")
+
+    def test_the_row_chosen_last_is_fetched_when_the_running_one_finishes(self):
+        self.dialog.results_list.addItems(["a", "b", "c"])
+        self.dialog.results_list.setCurrentRow(0)
+        first = _FakePreviewWorker.made[0]
+        self.dialog.results_list.setCurrentRow(1)
+        self.dialog.results_list.setCurrentRow(2)
+        self._finish(first)
+        self.assertEqual([w.row for w in _FakePreviewWorker.made], [0, 2],
+                         "only the row still selected is worth fetching")
+
+    def test_nothing_is_fetched_when_the_wanted_preview_is_already_there(self):
+        self.dialog.results_list.addItems(["a", "b", "c"])
+        self.dialog.results_list.setCurrentRow(0)
+        first = _FakePreviewWorker.made[0]
+        self.dialog.results_list.setCurrentRow(1)
+        self.dialog.results_list.setCurrentRow(0)
+        self.dialog._preview_cache[0] = Image.new("RGB", (4, 4))
+        self._finish(first)
+        self.assertEqual(len(_FakePreviewWorker.made), 1)
+
+    def test_a_failed_fetch_is_not_retried_while_its_row_stays_selected(self):
+        self.dialog.results_list.addItems(["a", "b", "c"])
+        self.dialog.results_list.setCurrentRow(0)
+        self._finish(_FakePreviewWorker.made[0])       # ended with nothing cached
+        self.assertEqual(len(_FakePreviewWorker.made), 1)

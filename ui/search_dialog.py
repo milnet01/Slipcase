@@ -428,22 +428,42 @@ class SearchDialog(QDialog):
 
         # Fetch preview in background for ScreenScraper / TheGamesDB.
         # One at a time: arrow-keying the list would otherwise start a thread
-        # per row, each assignment dropping the previous running one.
-        existing = getattr(self, "_preview_worker", None)
-        if existing is not None:
-            try:
-                if existing.isRunning():
-                    existing.requestInterruption()
-                    existing.quit()
-                    existing.wait(1000)
-            except RuntimeError:
-                pass
+        # per row. A fetch already running is left to finish -- it is a
+        # network read and cannot be hurried -- and _on_preview_finished()
+        # then fetches whichever row is selected by that point. Waiting for
+        # it here froze the window, and replacing the reference dropped a
+        # worker whose thread was still running (SLIP-0099).
         self.preview_label.setText(self.tr("Loading..."))
-        self._preview_worker = PreviewWorker(source, obj, self.config, row)
-        self._preview_worker.preview_ready.connect(self._on_preview_ready)
-        self._preview_worker.error.connect(self._on_preview_error)
-        self._preview_worker.finished.connect(self._preview_worker.deleteLater)
-        self._preview_worker.start()
+        if self._preview_worker is None:
+            self._start_preview(source, obj, row)
+
+    def _start_preview(self, source: str, obj: SearchResult, row: int) -> None:
+        worker = PreviewWorker(source, obj, self.config, row)
+        worker.preview_ready.connect(self._on_preview_ready)
+        worker.error.connect(self._on_preview_error)
+        worker.finished.connect(self._on_preview_finished)
+        worker.finished.connect(worker.deleteLater)
+        self._preview_worker = worker
+        worker.start()
+
+    def _on_preview_finished(self) -> None:
+        """The running preview fetch ended: fetch the row selected now, if it
+        still needs one.
+
+        Not when that row is the result just fetched: it either has its
+        preview or its fetch failed, and asking again would retry a failure
+        for as long as the row stayed selected.
+        """
+        done, self._preview_worker = self._preview_worker, None
+        row = self.results_list.currentRow()
+        if not (0 <= row < len(self._results)) or row in self._preview_cache:
+            return
+        source, _name, _platform, obj = self._results[row]
+        if done is not None and obj is done.result_obj:
+            return
+        if source == "libretro" and isinstance(obj, Image.Image):
+            return
+        self._start_preview(source, obj, row)
 
     def _on_preview_ready(self, image: Image.Image, row: int) -> None:
         self._preview_cache[row] = image

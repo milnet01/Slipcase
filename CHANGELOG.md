@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Clicking quickly through search results no longer freezes the window** (SLIP-0099)
+  Choosing another result while a preview was still downloading made the
+  window wait up to a second for it. The running download is now left to
+  finish, and the preview for whichever result is selected by then follows.
+
 ### Security
 
 - **A cover that arrives one byte at a time is now cut off at the time limit** (SLIP-0101)

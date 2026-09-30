@@ -1776,7 +1776,7 @@ building.
   Kind: ux.
   Source: in-session-2026-09-29, seen while checking SLIP-0051.
 
-- 📋 [SLIP-0099] **The search dialog waits on the main thread when a new preview replaces a running one.**
+- ✅ [SLIP-0099] **The search dialog waits on the main thread when a new preview replaces a running one.**
   ui/search_dialog.py, where a result row needs a preview, calls
   existing.wait(1000) on the main thread and then rebinds
   self._preview_worker. STANDARDS.md section 2 allows a main-thread wait only
@@ -1784,6 +1784,13 @@ building.
   reference while its thread still runs. Decide which is wrong: make the
   code conform, or name this wait as a third exception in section 2.
   Outside the change loop 6 was gating, so filed rather than fixed there.
+  Resolved (2026-09-30): the code was wrong, not the document. Selecting
+  another result while a preview is downloading no longer waits for it and
+  no longer replaces the running worker. One fetch runs at a time; when it
+  ends, the row selected by then is fetched, unless it is the result just
+  fetched. With real worker threads slowed to 0.8 s, three quick selections
+  took 0.000 s on the main thread (up to a second each before) and the last
+  row still got its preview. STANDARDS.md section 2 is unchanged and true.
   **Layman:** Clicking quickly through search results can freeze the window for up to a second each time, and may drop a worker that is still running.
   Kind: fix.
   Source: review-contract-2026-09-30 STANDARDS.md loop 6 lane-a.
@@ -1824,3 +1831,14 @@ building.
   **Layman:** A server that sends an image one byte at a time can keep a download going far past the time limit that is meant to stop it.
   Kind: security.
   Source: review-contract-2026-09-30 STANDARDS.md loop 8 lane-b, measured.
+
+- 📋 [SLIP-0102] **A preview from an earlier search can land on a row of a newer search.**
+  ui/search_dialog.py keeps previews in _preview_cache by row number. A new
+  search clears the cache and the results, but a PreviewWorker started for
+  the old results may still be running; its preview_ready(image, row) then
+  stores the old image under that row of the new list. Accept a preview only
+  when the row still holds the result object the worker was given. Found
+  while fixing SLIP-0099; not made worse by it.
+  **Layman:** Search again while a preview is still downloading, and the old game's cover can appear beside a result from the new search.
+  Kind: fix.
+  Source: in-session-2026-09-30.
