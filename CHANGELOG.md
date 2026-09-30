@@ -7,7 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-30
+
+**Theme:** Windows and Mac downloads.
+
 ### Added
+
+- **Mac downloads: Slipcase-macos-arm64.dmg and Slipcase-macos-x86_64.dmg** (SLIP-0020)
+  One disk image for Apple silicon and one for Intel. The app is not signed
+  with an Apple developer certificate, so macOS asks you to allow the first
+  launch under System Settings, Privacy & Security. Built and self-checked
+  on GitHub's Mac machines; nobody has tried it by hand on a real Mac.
 
 - **A one-file Windows download: Slipcase-windows-x64.exe** (SLIP-0019)
   A portable program: double-click it, nothing is installed. It is not
