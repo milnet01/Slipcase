@@ -174,10 +174,13 @@ class TestRenderer(unittest.TestCase):
             supersample=1,
         )
         result = renderer.render(self._make_cover(), title="Save Test")
-        with tempfile.NamedTemporaryFile(suffix=".png", delete=True) as f:
-            result.save(f.name, "PNG")
-            saved = Image.open(f.name)
-            self.assertEqual(saved.mode, "RGBA")
+        # A folder, not NamedTemporaryFile: Windows will not let a second
+        # writer open a file the first still holds open.
+        with tempfile.TemporaryDirectory() as folder:
+            path = os.path.join(folder, "save.png")
+            result.save(path, "PNG")
+            with Image.open(path) as saved:
+                self.assertEqual(saved.mode, "RGBA")
 
 
 class TestConfig(unittest.TestCase):

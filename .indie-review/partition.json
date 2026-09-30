@@ -54,8 +54,8 @@
     },
     {
       "name": "packaging",
-      "summary": "Turns the source tree into the downloads attached to a release: the bundling recipe, the AppImage build script and the workflow that runs it. Reviewed for pinned, checksum-verified tools and for a self-check on every build.",
-      "sourcePaths": ["packaging/slipcase.spec", "packaging/linux/AppRun", "packaging/linux/slipcase.desktop", "scripts/build-appimage.sh", ".github/workflows/release.yml"]
+      "summary": "Turns the source tree into the downloads attached to a release: the bundling recipe, the AppImage and Windows build scripts and the workflow that runs them. Reviewed for pinned, checksum-verified tools and for a self-check on every build.",
+      "sourcePaths": ["packaging/slipcase.spec", "packaging/linux/AppRun", "packaging/linux/slipcase.desktop", "scripts/build-appimage.sh", "scripts/build-windows.ps1", ".github/workflows/release.yml"]
     },
     {
       "name": "tests",

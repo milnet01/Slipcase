@@ -2,6 +2,7 @@
 
 import json
 import os
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any, Callable
@@ -82,13 +83,23 @@ DEFAULT_CONFIG = {
 def config_dir() -> Path:
     """The slipcase config directory, per STANDARDS.md § 7 (SLIP-0050).
 
-    $XDG_CONFIG_HOME/slipcase, falling back to ~/.config/slipcase when the
-    variable is unset, empty or relative -- the XDG Base Directory spec says
-    a relative value is ignored. Also the single-instance lock's fallback,
-    so the two always agree. Does not create the directory.
+    On Linux and macOS: $XDG_CONFIG_HOME/slipcase, falling back to
+    ~/.config/slipcase when the variable is unset, empty or relative -- the
+    XDG Base Directory spec says a relative value is ignored.
+
+    On Windows: %APPDATA%\\slipcase, falling back to ~\\AppData\\Roaming in
+    the same three cases. XDG_CONFIG_HOME is not read there (SLIP-0019).
+
+    Also the single-instance lock's fallback, so the two always agree. Does
+    not create the directory.
     """
-    base = os.environ.get("XDG_CONFIG_HOME", "")
-    root = Path(base) if os.path.isabs(base) else Path.home() / ".config"
+    if sys.platform == "win32":
+        base = os.environ.get("APPDATA", "")
+        fallback = Path.home() / "AppData" / "Roaming"
+    else:
+        base = os.environ.get("XDG_CONFIG_HOME", "")
+        fallback = Path.home() / ".config"
+    root = Path(base) if os.path.isabs(base) else fallback
     return root / "slipcase"
 
 
@@ -99,7 +110,10 @@ class Config:
         if config_path is None:
             directory = config_dir()
             directory.mkdir(parents=True, exist_ok=True)
-            directory.chmod(0o700)
+            # Windows has no such permission bits; STANDARDS.md § 10 says
+            # what protects the folder there.
+            if os.name == "posix":
+                directory.chmod(0o700)
             self._path = directory / "config.json"
         else:
             self._path = Path(config_path)
@@ -174,7 +188,10 @@ class Config:
             dir=str(self._path.parent), prefix=".config-", suffix=".tmp"
         )
         try:
-            os.fchmod(fd, 0o600)
+            # POSIX only: os.fchmod does not exist on Windows before Python
+            # 3.13, and sets nothing useful there after it.
+            if os.name == "posix":
+                os.fchmod(fd, 0o600)
             with os.fdopen(fd, "w", encoding="utf-8") as f:
                 json.dump(self._data, f, indent=2)
                 f.flush()

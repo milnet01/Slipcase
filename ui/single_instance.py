@@ -8,11 +8,13 @@ launch hands over to the running copy and exits.
 A QLockFile decides who runs. It records the owner's pid, so a lock left
 behind by a crash is recognised as stale and taken over. A QLocalServer
 beside it lets a second launch ask the running copy to show its window.
-Both live in the user's runtime directory, which only that user can reach.
+STANDARDS.md § 7 says where each lives on each operating system.
 """
 
+import hashlib
 import logging
 import os
+import sys
 from collections.abc import Callable
 
 from PyQt6.QtCore import QLockFile, QStandardPaths
@@ -27,10 +29,17 @@ _CONNECT_MS = 1000
 
 
 def default_runtime_dir() -> str:
-    """The per-user runtime directory, or the config directory without one."""
-    path = QStandardPaths.writableLocation(
-        QStandardPaths.StandardLocation.RuntimeLocation
-    )
+    """The per-user runtime directory, or the config directory without one.
+
+    Windows and macOS always take the config directory: Qt reports a
+    general-purpose folder as the runtime directory there (the home folder
+    on Windows), and a lock file does not belong loose in one (SLIP-0019).
+    """
+    path = ""
+    if sys.platform not in ("win32", "darwin"):
+        path = QStandardPaths.writableLocation(
+            QStandardPaths.StandardLocation.RuntimeLocation
+        )
     if not path:
         path = str(config_dir())
     os.makedirs(path, mode=0o700, exist_ok=True)
@@ -43,7 +52,15 @@ class SingleInstance:
     def __init__(self, runtime_dir: str | None = None):
         directory = runtime_dir or default_runtime_dir()
         self._lock = QLockFile(os.path.join(directory, "slipcase.lock"))
-        self._socket_path = os.path.join(directory, "slipcase.sock")
+        if sys.platform == "win32":
+            # A named pipe, not a file: its name is shared by the whole
+            # machine and cannot be a path. The digest of the lock directory
+            # keeps two users' pipes apart (STANDARDS.md § 7).
+            where = os.path.normcase(os.path.abspath(directory))
+            digest = hashlib.sha256(where.encode("utf-8")).hexdigest()[:16]
+            self._socket_path = f"slipcase-{digest}"
+        else:
+            self._socket_path = os.path.join(directory, "slipcase.sock")
         self._server: QLocalServer | None = None
         self._on_activate: Callable[[], None] | None = None
 

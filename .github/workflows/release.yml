@@ -68,3 +68,40 @@ jobs:
         run: |
           gh release upload "$TAG" --clobber --repo "$GITHUB_REPOSITORY" \
             dist/Slipcase-x86_64.AppImage dist/Slipcase-x86_64.AppImage.sha256
+
+  windows:
+    name: Windows portable exe
+    runs-on: windows-2022
+    timeout-minutes: 30
+    permissions:
+      contents: write  # attach the files to the release
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Build and self-check
+        shell: pwsh
+        run: ./scripts/build-windows.ps1
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: Slipcase-windows-x64.exe
+          path: |
+            dist/Slipcase-windows-x64.exe
+            dist/Slipcase-windows-x64.exe.sha256
+          if-no-files-found: error
+
+      - name: Attach to the release
+        if: github.event_name == 'release'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          gh release upload "$TAG" --clobber --repo "$GITHUB_REPOSITORY" \
+            dist/Slipcase-windows-x64.exe dist/Slipcase-windows-x64.exe.sha256

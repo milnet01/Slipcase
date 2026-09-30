@@ -150,6 +150,8 @@ class TestConfigDurability(unittest.TestCase):
         self.dir = pathlib.Path(tempfile.mkdtemp())
         self.path = self.dir / "config.json"
 
+    @unittest.skipUnless(os.name == "posix",
+                         "Windows has no permission bits (STANDARDS.md § 10)")
     def test_config_file_is_owner_only(self):
         cfg = Config(config_path=self.path)
         cfg.set("api", "screenscraper", "password", "hunter2")
@@ -965,6 +967,8 @@ if __name__ == "__main__":
     unittest.main()
 
 
+@unittest.skipIf(sys.platform == "win32",
+                 "XDG_CONFIG_HOME is not read on Windows (STANDARDS.md § 7)")
 class TestConfigDirectoryFollowsXdg(unittest.TestCase):
     """The config directory honours XDG_CONFIG_HOME (SLIP-0050, STANDARDS.md
     § 7): an absolute value is used, and an unset, empty or relative one falls
@@ -998,6 +1002,72 @@ class TestConfigDirectoryFollowsXdg(unittest.TestCase):
                 patch.dict(os.environ, {"XDG_CONFIG_HOME": d}), \
                 patch.object(si.QStandardPaths, "writableLocation", return_value=""):
             self.assertEqual(si.default_runtime_dir(), os.path.join(d, "slipcase"))
+
+
+class TestSettingsPlacesOnWindowsAndMac(unittest.TestCase):
+    """Where the settings, the lock and the wake-up channel live off Linux
+    (SLIP-0019, STANDARDS.md § 7). On Windows the settings folder is under
+    %APPDATA% and XDG_CONFIG_HOME is not read. On Windows and macOS the lock
+    sits in the settings folder, because Qt reports a general-purpose folder
+    as the runtime directory there. On Windows the wake-up channel is a named
+    pipe, whose name cannot be a file path.
+
+    The platform is patched, so the rules are checked on every system the
+    suite runs on."""
+
+    def _dir_on(self, platform, **variables):
+        from unittest.mock import patch
+        from core.config import config_dir
+        env = dict(os.environ)
+        for name in ("APPDATA", "XDG_CONFIG_HOME"):
+            env.pop(name, None)
+        env.update(variables)
+        with patch.object(sys, "platform", platform), \
+                patch.dict(os.environ, env, clear=True):
+            return config_dir()
+
+    def test_windows_uses_appdata_and_ignores_xdg(self):
+        with tempfile.TemporaryDirectory() as appdata, \
+                tempfile.TemporaryDirectory() as xdg:
+            found = self._dir_on("win32", APPDATA=appdata, XDG_CONFIG_HOME=xdg)
+            self.assertEqual(found, pathlib.Path(appdata) / "slipcase")
+
+    def test_windows_without_a_usable_appdata_falls_back(self):
+        fallback = pathlib.Path.home() / "AppData" / "Roaming" / "slipcase"
+        with tempfile.TemporaryDirectory() as xdg:
+            for value in (None, "", "relative/dir"):
+                with self.subTest(value=value):
+                    variables = {"XDG_CONFIG_HOME": xdg}
+                    if value is not None:
+                        variables["APPDATA"] = value
+                    self.assertEqual(self._dir_on("win32", **variables), fallback)
+
+    def test_the_lock_is_in_the_settings_folder_on_windows_and_mac(self):
+        from unittest.mock import patch
+        import ui.single_instance as si
+        cases = (("win32", "APPDATA"), ("darwin", "XDG_CONFIG_HOME"))
+        for platform, variable in cases:
+            with self.subTest(platform=platform), \
+                    tempfile.TemporaryDirectory() as d, \
+                    tempfile.TemporaryDirectory() as elsewhere, \
+                    patch.object(sys, "platform", platform), \
+                    patch.dict(os.environ, {variable: d}), \
+                    patch.object(si.QStandardPaths, "writableLocation",
+                                 return_value=elsewhere):
+                self.assertEqual(si.default_runtime_dir(), os.path.join(d, "slipcase"))
+
+    def test_the_windows_wake_up_channel_is_a_pipe_name_not_a_path(self):
+        from unittest.mock import patch
+        import ui.single_instance as si
+        with tempfile.TemporaryDirectory() as one, \
+                tempfile.TemporaryDirectory() as two, \
+                patch.object(sys, "platform", "win32"):
+            first = si.SingleInstance(one)._socket_path
+            again = si.SingleInstance(one)._socket_path
+            other = si.SingleInstance(two)._socket_path
+        self.assertRegex(first, r"^slipcase-[0-9a-f]{16}$")
+        self.assertEqual(first, again)
+        self.assertNotEqual(first, other)
 
 
 class TestLeftColumnFitsASmallScreen(unittest.TestCase):

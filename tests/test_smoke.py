@@ -28,7 +28,8 @@ class TestSmoke(unittest.TestCase):
     def _run(self, *args: str, scratch: str) -> subprocess.CompletedProcess:
         # A private config and runtime folder: a self-check must never read
         # or write the settings of the person running it.
-        env = dict(os.environ, QT_QPA_PLATFORM="offscreen",
+        # APPDATA is where Windows keeps them; the XDG pair is Linux and macOS.
+        env = dict(os.environ, QT_QPA_PLATFORM="offscreen", APPDATA=scratch,
                    XDG_CONFIG_HOME=scratch, XDG_RUNTIME_DIR=scratch)
         return subprocess.run(  # noqa: S603 -- our own interpreter and script
             [sys.executable, str(ROOT / "main.py"), *args],
