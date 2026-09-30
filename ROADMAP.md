@@ -1780,3 +1780,17 @@ building.
   **Layman:** Image downloads are capped in size and time, but the search replies are not, so a misbehaving service could make a search hang or use a lot of memory.
   Kind: security.
   Source: review-contract-2026-09-30 STANDARDS.md loop 7 lane-a.
+
+- 📋 [SLIP-0101] **A slow-trickle image download is not stopped by the download time limit.**
+  download_image() in api/base.py checks MAX_DOWNLOAD_SECONDS only after
+  iter_content(65_536) yields a chunk, and that call does not return until
+  64 KiB has arrived. Measured 2026-09-30 against a local server sending one
+  byte a second with a Content-Length: the first chunk had not returned after
+  12 seconds, when the server closed. With each byte inside the 30 second
+  read timeout, neither limit fires. STANDARDS.md section 10 says the
+  deadline covers exactly this case. SLIP-0100 (no cap on JSON replies) is
+  the neighbouring gap; its byte cap is missing as well as its deadline.
+  Outside the change loop 8 was gating, so filed rather than fixed there.
+  **Layman:** A server that sends an image one byte at a time can keep a download going far past the time limit that is meant to stop it.
+  Kind: security.
+  Source: review-contract-2026-09-30 STANDARDS.md loop 8 lane-b, measured.
