@@ -857,12 +857,24 @@ making a build reproducible.
   Kind: enhancement.
   Source: split from SLIP-0041, 2026-09-29.
 
-- 📋 [SLIP-0096] **Give the gate a documentation mode and take the CI speed-ups that apply.**
+- ✅ [SLIP-0096] **Give the gate a documentation mode and take the CI speed-ups that apply.**
   scripts/local-ci.sh has no --docs mode, so a docs-only push runs the whole
   gate. ci.yml sets no concurrency group, no timeout-minutes and no
   dependency cache. The catalogue is ~/.claude/standards/local-gate.md
   section 9: one lever per change, measure before and after, fail closed.
   Reply to claude-config by session_message with the timings.
+  Resolved (2026-09-30), one lever per commit:
+  - Documentation mode: scripts/local-ci.sh --docs runs the link check only
+    (the one check that reads a document). 27.8 s down to 0.04 s.
+  - The link check itself is new, in both modes: scripts/check-doc-links.py.
+  - timeout-minutes 15 on the gate job; concurrency in the skeleton's form.
+  - Package cache: tried and taken out. It saved about a second on Linux
+    and Windows and cost four on macOS.
+  Not taken, with reasons: a paths-ignore on GitHub (the repository is
+  public, so a documentation push costs no quota, and it would skip the
+  link check there); test parallelism (a 27 s suite, and it needs a new
+  dependency); the rest of the catalogue is for compiled projects.
+  `ci-gate` now reports no advisory for this project.
   **Layman:** Make a docs-only push skip the slow checks safely, and make the GitHub run faster without dropping any check.
   Kind: chore.
   Source: session-message-2026-09-28 claude-config (mailbox 138, 157).
