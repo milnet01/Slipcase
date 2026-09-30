@@ -107,7 +107,7 @@ and memory rules every item must comply with.
 Getting a runnable Slipcase into a user's hands. Separate from Publication,
 which covers the source repository going public.
 
-- 🚧 [SLIP-0018] **Publish an AppImage for Linux.**
+- ✅ [SLIP-0018] **Publish an AppImage for Linux.**
   Bundle the interpreter, PyQt6 and the imaging dependencies into a single
   self-contained executable so the app runs without a Python environment.
   Builds on the same machine family it targets, so this is the cheapest of
@@ -116,6 +116,12 @@ which covers the source repository going public.
   items; each platform is released as soon as it works. The website links one
   release file per operating system and tells them apart by name, so the
   asset is named Slipcase-x86_64.AppImage.
+  Resolved (2026-09-30): scripts/build-appimage.sh builds
+  Slipcase-x86_64.AppImage and runs the `--smoke` self-check on it;
+  .github/workflows/release.yml runs that script on Ubuntu 22.04 when a
+  release is published and attaches the file. The file GitHub built from
+  c408431 was downloaded and run on openSUSE Tumbleweed: checksum matched,
+  self-check passed, window opened. First shipped in 1.2.0.
   **Layman:** One file a Linux user downloads and runs — nothing to install.
   Kind: package.
   Source: user-request-2026-08-27.
