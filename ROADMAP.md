@@ -1768,3 +1768,15 @@ building.
   **Layman:** Clicking quickly through search results can freeze the window for up to a second each time, and may drop a worker that is still running.
   Kind: fix.
   Source: review-contract-2026-09-30 STANDARDS.md loop 6 lane-a.
+
+- 📋 [SLIP-0100] **A JSON reply from a cover-art service has no size or total-time limit.**
+  STANDARDS.md section 10 says MAX_DOWNLOAD_SECONDS caps the body transfer,
+  without limiting that to images. In api/base.py only download_image()
+  applies that deadline and MAX_DOWNLOAD_BYTES; get() calls
+  _get_validated(stream=False), so a JSON body is read whole under the
+  per-read timeout alone. Decide which is wrong: cap the JSON path, or scope
+  the sentence in section 10 to download_image().
+  Outside the change loop 7 was gating, so filed rather than fixed there.
+  **Layman:** Image downloads are capped in size and time, but the search replies are not, so a misbehaving service could make a search hang or use a lot of memory.
+  Kind: security.
+  Source: review-contract-2026-09-30 STANDARDS.md loop 7 lane-a.

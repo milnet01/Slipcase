@@ -297,8 +297,7 @@ The application uses a centralized theme system (`ui/themes.py`):
     says a relative value is ignored
   - Windows: `%APPDATA%\slipcase\config.json`, or
     `~\AppData\Roaming\slipcase\config.json` when `APPDATA` is unset or not
-    an absolute path. `XDG_CONFIG_HOME` is not read on Windows, so the file
-    stays inside the user's profile
+    an absolute path. `XDG_CONFIG_HOME` is not read on Windows
 - **Permissions**: § 10, Credential Protection, states them
 - **Format**: JSON with nested sections
 
@@ -327,9 +326,11 @@ ui/
   runtime directory, or in the config directory above when there is none,
   taken before the settings load. A second launch asks
   the running copy to show its window and exits, so two copies never hold
-  the settings at once. On Windows the lock is always in the config
-  directory, because Qt reports the user's home folder as the runtime
-  directory there. The second launch reaches the running copy through a
+  the settings at once. On Windows and macOS the lock is always in the
+  config directory, because Qt reports a general-purpose folder as the
+  runtime directory there: the user's home folder on Windows, and
+  `~/Library/Application Support` on macOS according to Qt's documentation
+  (not measured on a Mac). The second launch reaches the running copy through a
   socket file beside the lock on Linux and macOS, and on Windows through a
   named pipe called `slipcase-` plus the first 16 hex digits of the SHA-256
   of the lock directory's path: a pipe name is shared by the whole machine
@@ -449,7 +450,7 @@ them, so a rule is changed here and nowhere else.
 
 ### Credential Protection
 - **Scrubbing**: `_sanitize_message()` strips credential values from error messages and URLs before display or logging. Pattern: `(devpassword|devid|sspassword|ssid|apikey|api_key|password)=***`
-- **Config permissions**: on Linux and macOS the `slipcase/` config directory (§ 7 gives its location) is created with `0o700` and the config file is saved with `chmod 600`. On Windows neither is set: it has no such permission bits, and § 7 keeps the directory inside the user's profile, which Windows already closes to other users.
+- **Config permissions**: on Linux and macOS the `slipcase/` config directory (§ 7 gives its location) is created with `0o700` and the config file is saved with `chmod 600`. On Windows neither is set: it has no such permission bits, so the file has whatever protection Windows gives the `%APPDATA%` folder § 7 names. By default that folder is inside the user's profile and closed to other users; a user who points `APPDATA` elsewhere is not second-guessed.
 - **No logging of secrets**: Never print, log, or emit API keys or passwords in status bar or error dialogs.
 
 ### Input Safety
@@ -592,3 +593,4 @@ four questions; Q4 is not asked of a standard.
 | 4 | 2026-09-29 | 2, cold — genre pinned `standard`, headless (`neutral-lane`), every lane held every question | 0 | 0 | 1 | n/a | **1 verified, 1 fixed; none dismissed.** Armed by SLIP-0050 (§ 7's path now honours `XDG_CONFIG_HOME`) and SLIP-0092 (§§ 10-12 declared the only statement of the security, performance and memory rules; `CLAUDE.md` now points here). **Both lanes found the same gap**, one as a finding and one as an open question: § 7 moved the config directory but its lock bullet did not say that `ui/single_instance.py`'s fallback, used when there is no runtime directory, is that same directory — `default_runtime_dir()` hard-codes `~/.config/slipcase`, so an implementer changing only `Config.__init__` would leave the two disagreeing. Fixed by extending the lock bullet rather than adding a rule. **Two open questions resolved clean**: what happens to a config left at `~/.config` when `XDG_CONFIG_HOME` points elsewhere (no other code binds to that choice, so it is the implementer's), and `README.md`'s stale path (not a document anything is built from; updated with the code). 1b windowed every changed passage; one packet fact was wrong before dispatch (a function name) and was corrected. |
 | 5 | 2026-09-29 | 2, cold — identical brief, packet rebuilt from disk, every lane held every question | 0 | 0 | 0 | n/a | **0 verified; 1 dismissed. Converged.** Lane B filed a Q1 that § 7's lock bullet is false because `default_runtime_dir()` still hard-codes `~/.config/slipcase`. Dismissed: that is the code lagging the direction this gate exists to approve (SLIP-0050 implements it next), and lane A read the same lines as already directing the builder to move both. The packet's source facts named only `Config.__init__` as lagging, which is the orchestrator's error and what made the lag look like a document defect. Open questions resolved clean: `default_runtime_dir()` already creates its directory with `0o700`; the README path and a config left behind at `~/.config` ride with the SLIP-0050 code. Neither lane found loop 4's fix wrong. |
 | 6 | 2026-09-30 | 2, cold — genre pinned `standard`, headless (`neutral-lane`), every lane held every question | 1 | 1 | 0 | n/a | **3 verified, 2 fixed, 1 filed; none dismissed.** Armed by SLIP-0019: § 7 now says where the settings, the lock and the wake-up pipe live on Windows. **Both lanes found the same contradiction**: § 10's config-permissions bullet was unqualified and § 10 says it is the only statement of the security rules, while § 7 carved Windows out. Fixed by moving the whole permissions rule into § 10 and leaving § 7 a pointer. Lane A filed, and lane B raised as an open question, that `XDG_CONFIG_HOME` was honoured "on every operating system", so on Windows the file could sit outside the profile the protection claim rests on; fixed by not reading that variable on Windows. Lane A's third finding, a main-thread wait in `ui/search_dialog.py` outside § 2's two exceptions, is true and outside the armed change: filed as SLIP-0099, not fixed here. Open questions settled by measurement: `icacls` on the Windows machine shows `%APPDATA%` open to the user, SYSTEM and Administrators only; Pillow's bomb check warns above the limit and raises above twice it, as § 10 says. `os.fchmod` on Windows under Python 3.12 was not measurable here (that machine has 3.13 only); the release build on Python 3.12 runs the tests and will show it. Mechanical layer: `doc_integrity` clean; `check-doc.py` ran no path, symbol, count or version check because the document carries no `Genre:` line. |
+| 7 | 2026-09-30 | 2, cold — identical brief, packet rebuilt from disk, every lane held every question | 1 | 1 | 0 | n/a | **3 verified, 2 fixed, 1 filed; none dismissed.** **Loop 6's two fixes held in substance, and one of them overreached**: both lanes found that § 7 and § 10 now rested on the file "staying inside the user's profile", which loop 6 wrote and which `APPDATA`, an environment variable like the one just excluded, does not guarantee. Fixed by deleting the claim from both sections; § 10 now says the file has whatever protection Windows gives `%APPDATA%`. Both lanes asked for a measurement of Qt's runtime directory on macOS; Qt's own documentation lists `~/Library/Application Support`, so the lock rule now treats macOS like Windows and says the macOS half is from documentation, not measured. Lane A's finding that § 10's download deadline is not scoped to `download_image()` while the JSON path has no cap is true and outside the armed change: filed as SLIP-0100. Three open questions resolved clean (the test is a method of a class, `_font_path_cache` exists, the Windows skip of the owner-only test is the builder's). |
