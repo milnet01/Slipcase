@@ -29,12 +29,6 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version: '3.12'
-          # Reuse downloaded packages between runs. Keyed on the files that
-          # decide what is installed, so a changed pin misses and downloads.
-          cache: pip
-          cache-dependency-path: |
-            requirements.lock
-            requirements-dev.txt
 
       - name: Install Qt runtime libraries
         # PyQt6 bundles Qt but links against the system EGL/GL and input
@@ -75,12 +69,6 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version: '3.12'
-          # Reuse downloaded packages between runs. Keyed on the files that
-          # decide what is installed, so a changed pin misses and downloads.
-          cache: pip
-          cache-dependency-path: |
-            requirements.lock
-            requirements-dev.txt
 
       - name: Install dependencies
         run: python -m pip install -r requirements.lock -r requirements-dev.txt
