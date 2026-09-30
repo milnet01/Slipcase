@@ -191,6 +191,12 @@ which covers the source repository going public.
   private-key material. Signing needs an Ed25519 implementation, which means a
   cryptography dependency this project does not have yet.
   Blocked-by: SLIP-0018 (nothing to sign until a build artifact exists).
+  Decided (2026-09-30, user): leave signing for later. It matters only once
+  the app can update itself (SLIP-0031), which is not built, and every
+  download already has a checksum beside it. Not urgent despite its kind;
+  do not start it, and do not ask again about where the key lives, until
+  SLIP-0031 is being taken up. The three custody options put to the user
+  were: a GitHub secret, this machine only, or later.
   **Layman:** Put a tamper-proof seal on each download so the app can tell a real release from a fake one.
   Kind: security.
   Source: user-request-2026-08-27.
@@ -944,6 +950,10 @@ building.
   resources/case_colors.json is the precedent for the loading path, and
   SLIP-0053 (a truncated case_colors.json kills startup) is the failure
   mode a second data file must not repeat."
+  Decided (2026-09-30, user): a case in the user's file with the same name
+  as a built-in REPLACES the built-in, and the app says so in its status
+  line. So people can correct a built-in's measurements as well as add new
+  cases. This settles the open design question above.
   **Layman:** Let people add a case for a console the app does not know about yet.
   Kind: feature.
   Source: in-session-2026-08-27.
@@ -1867,5 +1877,17 @@ building.
   with real threads: a fetch started for the old list's row was dropped
   after the list was replaced, and the new row then fetched its own.
   **Layman:** Search again while a preview is still downloading, and the old game's cover can appear beside a result from the new search.
+  Kind: fix.
+  Source: in-session-2026-09-30.
+
+- 📋 [SLIP-0103] **A ScreenScraper search can take longer to start answering than the 30 second timeout allows.**
+  Measured 2026-09-30 with a working login, searching "Crash Bandicoot" with
+  no system chosen: the first reply byte arrived after 10.7 s on one try and
+  46.4 s on another; three tries in a row hit the 30 second read timeout in
+  api/base.py (timeout=(10, 30)). The body itself (2.7 MB) then reads in
+  half a second. Decide between a longer wait for the first byte on the JSON
+  path, a narrower default query, or a clearer message than the raw timeout.
+  Whether a search WITH a system chosen is as slow was not measured.
+  **Layman:** A search on ScreenScraper sometimes fails with "Read timed out" although the service would have answered a little later.
   Kind: fix.
   Source: in-session-2026-09-30.

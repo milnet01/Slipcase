@@ -86,6 +86,20 @@ the change is for and how you checked it — "the gate is green" is a fine
 answer when the tests cover it, and a description of what you did by hand is
 the right answer when they do not.
 
+## How a release gets its downloads
+
+Publishing a release on GitHub starts `.github/workflows/release.yml`. It
+builds the Linux AppImage, the Windows `.exe` and the two Mac disk images, runs
+each one's self-check (`--smoke`), and attaches them to that release with a
+`.sha256` file beside each. A build that fails its self-check is not attached.
+
+To try the builds without a release, run that workflow by hand
+(`gh workflow run release.yml`): the files stay on the run as artifacts.
+
+The build scripts are `scripts/build-appimage.sh`, `scripts/build-windows.ps1`
+and `scripts/build-macos.sh`; each can be run on a machine of its own kind.
+`.claude/bump.json` holds the version bump.
+
 ## Reporting things
 
 - **A bug or an idea:** open an issue.
