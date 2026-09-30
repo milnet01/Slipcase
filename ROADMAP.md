@@ -107,11 +107,15 @@ and memory rules every item must comply with.
 Getting a runnable Slipcase into a user's hands. Separate from Publication,
 which covers the source repository going public.
 
-- 📋 [SLIP-0018] **Publish an AppImage for Linux.**
+- 🚧 [SLIP-0018] **Publish an AppImage for Linux.**
   Bundle the interpreter, PyQt6 and the imaging dependencies into a single
   self-contained executable so the app runs without a Python environment.
   Builds on the same machine family it targets, so this is the cheapest of
   the three platforms to reach from here.
+  Decided (2026-09-30, user): start now, Linux first, ahead of the other open
+  items; each platform is released as soon as it works. The website links one
+  release file per operating system and tells them apart by name, so the
+  asset is named Slipcase-x86_64.AppImage.
   **Layman:** One file a Linux user downloads and runs — nothing to install.
   Kind: package.
   Source: user-request-2026-08-27.
@@ -123,6 +127,9 @@ which covers the source repository going public.
   a freedesktop launcher entry that Windows does not read, so the installed
   shortcut needs a separate mechanism.
   Building needs a Windows machine or a Windows CI runner.
+  Decided (2026-09-30, user): a single portable .exe, no installer, unsigned;
+  the website warns about the first-run SmartScreen screen. Follows SLIP-0018.
+  The user's Windows 10 machine is reachable over SSH for a real run.
   **Layman:** A Windows download people can run without installing Python.
   Kind: package.
   Source: user-request-2026-08-27.
@@ -142,6 +149,9 @@ which covers the source repository going public.
   must document the right-click -> Open step that clears it. Signing and
   notarisation are out of scope for this item; reopen only if the
   warning proves to be a real barrier.
+  Decided (2026-09-30, user): ship a Mac build if the automatic tests pass on
+  GitHub's macOS runner, marked on the website as not tried by hand on a real
+  Mac. Still unsigned, as decided 2026-09-02. Follows SLIP-0019.
   **Layman:** A Mac download that opens like any other Mac app.
   Kind: package.
   Source: user-request-2026-08-27.

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Slipcase - Entry point."""
 
+import multiprocessing
 import sys
 import os
 
@@ -25,7 +26,65 @@ from ui.single_instance import SingleInstance
 Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
 
 
+def _smoke(app: QApplication, report_path: str | None) -> int:
+    """Check the parts a packaged build can lose, and say so in one line.
+
+    A bundle missing its resources, a Qt plugin, or the worker-process hook
+    still starts without an error, so the packaging scripts run this against
+    every build (SLIP-0018). The line goes to stdout and, when a path is
+    given, to that file: a Windows build has no console to print to.
+    Uses a temporary settings file, never the user's.
+    """
+    import tempfile
+    from concurrent.futures import ProcessPoolExecutor
+    from multiprocessing import get_context
+
+    from core.case_types import CASE_TYPES
+    from core.spine_generator import CASE_COLORS_ERROR
+    from core.version import __version__
+    from ui.workers import _render_single_image
+
+    try:
+        if CASE_COLORS_ERROR:
+            raise RuntimeError(CASE_COLORS_ERROR)
+        if app.windowIcon().isNull():
+            raise RuntimeError("the application icons are missing")
+
+        with tempfile.TemporaryDirectory() as scratch:
+            # The batch path: a worker process that imports the renderer and
+            # writes a PNG. In a frozen build without freeze_support() the
+            # worker re-runs the application instead and this never returns.
+            cover = os.path.join(scratch, "cover.jpg")
+            Image.new("RGB", (300, 420), (40, 90, 160)).save(cover)
+            case_type = next(iter(CASE_TYPES.values()))
+            with ProcessPoolExecutor(1, mp_context=get_context("spawn")) as pool:
+                job = (cover, scratch, case_type, {"output_width": 256}, 6)
+                name = pool.submit(_render_single_image, job).result(timeout=120)
+            with Image.open(os.path.join(scratch, f"{name}.png")) as rendered:
+                rendered.load()
+                if rendered.getbbox() is None:
+                    raise RuntimeError("the batch render came out empty")
+
+            # The window: every dialog import and the platform plugin.
+            window = MainWindow(Config(os.path.join(scratch, "config.json")))
+            window.show()
+            app.processEvents()
+            window.close()
+            app.processEvents()
+        line, code = f"slipcase smoke OK {__version__}", 0
+    except Exception as e:
+        line, code = f"slipcase smoke FAIL {type(e).__name__}: {e}", 1
+
+    print(line, flush=True)
+    if report_path:
+        Path(report_path).write_text(line + "\n", encoding="utf-8")
+    return code
+
+
 def main():
+    smoke = next((a for a in sys.argv[1:]
+                  if a == "--smoke" or a.startswith("--smoke=")), None)
+
     app = QApplication(sys.argv)
     app.setApplicationName("Slipcase")
     app.setOrganizationName("Slipcase")
@@ -44,6 +103,11 @@ def main():
             icon.addFile(str(icon_file))
     if not icon.isNull():
         app.setWindowIcon(icon)
+
+    # Before the single-instance check and Config(): a self-check must not
+    # talk to a running copy or touch the user's settings.
+    if smoke is not None:
+        sys.exit(_smoke(app, smoke.partition("=")[2] or None))
 
     # One copy at a time: two copies each held their own settings and the
     # last to save overwrote the other's (SLIP-0049). A second launch brings
@@ -90,4 +154,8 @@ def main():
 
 
 if __name__ == "__main__":
+    # In a packaged build a worker process starts by running this file
+    # again. freeze_support() is what turns that run into the worker; without
+    # it every batch render opens another copy of the application.
+    multiprocessing.freeze_support()
     main()

@@ -1,0 +1,50 @@
+# PyInstaller recipe for the packaged builds of Slipcase (SLIP-0018).
+#
+# Bundles the interpreter, the dependencies and resources/ into one folder,
+# dist/slipcase/, which scripts/build-appimage.sh wraps into an AppImage.
+# Run it through that script rather than directly: the script pins the tools
+# and runs the self-check on what comes out.
+#
+# resources/ is placed beside the bundled modules, which is where main.py and
+# core/spine_generator.py already look for it (relative to their own file),
+# so the application code needs no "am I packaged?" branch.
+
+import subprocess
+from pathlib import Path
+
+ROOT = Path(SPECPATH).parent  # noqa: F821 -- SPECPATH is injected by PyInstaller
+
+a = Analysis(  # noqa: F821
+    [str(ROOT / "main.py")],
+    pathex=[str(ROOT)],
+    datas=[(str(ROOT / "resources"), "resources")],
+)
+# Leave out Qt's GTK theme plugin. It drags the build machine's own GTK
+# libraries into the bundle, and those fail to load against another
+# distribution's system libraries. Without it Qt draws its own dialogs.
+#
+# By this point the plugin's own libraries are already in the list with
+# nothing to say who asked for them, so ask the linker: drop whatever the
+# plugin needs that nothing else in the bundle does.
+def _needs(path):
+    listing = subprocess.run(["ldd", path], capture_output=True, text=True).stdout
+    return {line.split()[0] for line in listing.splitlines() if "=>" in line}
+
+
+_kept = [b for b in a.binaries if "libqgtk3" not in b[0]]
+_plugin_needs = set().union(*(_needs(b[1]) for b in a.binaries if "libqgtk3" in b[0]))
+_others = [b for b in _kept if Path(b[0]).name not in _plugin_needs]
+_gtk_only = _plugin_needs - set().union(*(_needs(b[1]) for b in _others))
+a.binaries = [b for b in _kept if Path(b[0]).name not in _gtk_only]
+if any("libgtk" in b[0] for b in a.binaries):
+    raise SystemExit("GTK is still being bundled; see the comment above")
+
+pyz = PYZ(a.pure)  # noqa: F821
+exe = EXE(  # noqa: F821
+    pyz,
+    a.scripts,
+    exclude_binaries=True,
+    name="slipcase",
+    console=False,
+)
+COLLECT(exe, a.binaries, a.datas, name="slipcase")  # noqa: F821

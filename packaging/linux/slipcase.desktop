@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Slipcase
+Comment=Convert 2D game cover art into realistic 3D boxart renders
+Exec=slipcase
+Icon=slipcase
+Terminal=false
+Type=Application
+Categories=Graphics;Utility;Game;
+Keywords=boxart;3d;retro;gaming;cover;launchbox;retroarch;
+StartupWMClass=Slipcase

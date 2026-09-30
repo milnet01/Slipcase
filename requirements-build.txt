@@ -1,0 +1,6 @@
+# Tooling the packaged builds need, pinned so two builds of one release are
+# made by the same bundler.
+#
+# scripts/build-appimage.sh installs these beside requirements.lock.
+pyinstaller==6.22.3
+pyinstaller-hooks-contrib==2026.7

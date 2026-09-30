@@ -548,7 +548,8 @@ All memory patterns listed here are **mandatory** and must be followed in any co
 
 Runtime dependencies and their minimum versions are in `requirements.txt`.
 `requirements.lock` pins exact versions, transitive ones included, for CI, and
-`requirements-dev.txt` pins the tools the gate runs.
+`requirements-dev.txt` pins the tools the gate runs. `requirements-build.txt`
+pins the bundler the packaged builds are made with.
 
 | Package | Purpose |
 |---------|---------|

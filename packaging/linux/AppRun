@@ -1,0 +1,4 @@
+#!/bin/sh
+# Entry point of the AppImage: start the bundled application.
+here="$(dirname "$(readlink -f "$0")")"
+exec "$here/usr/lib/slipcase/slipcase" "$@"

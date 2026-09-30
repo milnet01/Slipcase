@@ -15,7 +15,8 @@ are four concerns reviewed against four different contracts.
 - workers — The QThread and process-pool workers for batch rendering, animation export and search, reviewed against the memory and cleanup rules in `CLAUDE.md`. `ui/workers.py`
 - dialogs — The screens reached from the main window, and the preview surface. `ui/search_dialog.py`, `ui/settings_dialog.py`, `ui/animation_dialog.py`, `ui/preview_widget.py`
 - theming — Palette definitions and stylesheet generation. `ui/themes.py`
-- entry-point — Process start-up: the decompression-bomb ceiling, theme selection, and constructing the window. `main.py`
+- entry-point — Process start-up: the decompression-bomb ceiling, theme selection, constructing the window, and the `--smoke` self-check the packaged builds run. `main.py`
+- packaging — Turns the source tree into the downloads attached to a release: the bundling recipe, the AppImage build script and the workflow that runs it. `packaging/slipcase.spec`, `packaging/linux/`, `scripts/build-appimage.sh`, `.github/workflows/release.yml`
 
 The authoritative file-to-subsystem assignment is `.indie-review/partition.json`,
 which this document describes in prose. Change both together.
