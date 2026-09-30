@@ -39,6 +39,18 @@ a.binaries = [b for b in _kept if Path(b[0]).name not in _gtk_only]
 if any("libgtk" in b[0] for b in a.binaries):
     raise SystemExit("GTK is still being bundled; see the comment above")
 
+# Leave these to the system the AppImage runs on. They are the entries of the
+# AppImage project's excludelist (AppImageCommunity/pkg2appimage) that the
+# bundler picks up from the build machine. Shipping the build machine's
+# fontconfig is the one that shows: it cannot read a newer system's font
+# settings, so the window comes up in a fallback font.
+_SYSTEM_LIBS = {
+    "libcom_err.so.2", "libexpat.so.1", "libfontconfig.so.1", "libfreetype.so.6",
+    "libgcc_s.so.1", "libgpg-error.so.0", "libstdc++.so.6", "libuuid.so.1",
+    "libX11.so.6", "libX11-xcb.so.1", "libz.so.1",
+}
+a.binaries = [b for b in a.binaries if b[0] not in _SYSTEM_LIBS]
+
 pyz = PYZ(a.pure)  # noqa: F821
 exe = EXE(  # noqa: F821
     pyz,
