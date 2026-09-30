@@ -11,6 +11,9 @@ jobs:
   gate:
     name: Lint and test
     runs-on: ubuntu-latest
+    # A cold run takes about a minute; a hung one would otherwise hold a
+    # runner for six hours.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
