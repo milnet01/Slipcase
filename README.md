@@ -43,7 +43,19 @@ Universal Cart Case
 
 ## Getting it running
 
-You'll need **Python 3.12** on Linux.
+**The easy way, on Linux:** download `Slipcase-x86_64.AppImage` from the
+[latest release](https://github.com/milnet01/Slipcase/releases/latest). It is
+one file with everything inside, so there is nothing to install. Allow it to
+run, then start it:
+
+```bash
+chmod +x Slipcase-x86_64.AppImage
+./Slipcase-x86_64.AppImage
+```
+
+It is built on Ubuntu 22.04, so it needs a Linux system at least that recent.
+
+**From the source code:** you'll need **Python 3.12** on Linux.
 
 ```bash
 pip install -r requirements.txt
@@ -52,7 +64,7 @@ python3 main.py
 
 That's it — the app opens a window.
 
-To add it to your applications menu, copy `slipcase.desktop` into
+To add the source copy to your applications menu, copy `slipcase.desktop` into
 `~/.local/share/applications/`. Edit the `Exec` and `Icon` lines first if you
 keep the project somewhere other than where it is now.
 

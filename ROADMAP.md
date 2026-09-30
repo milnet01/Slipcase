@@ -835,6 +835,33 @@ making a build reproducible.
   Kind: enhancement.
   Source: split from SLIP-0041, 2026-09-29.
 
+- 📋 [SLIP-0096] **Give the gate a documentation mode and take the CI speed-ups that apply.**
+  scripts/local-ci.sh has no --docs mode, so a docs-only push runs the whole
+  gate. ci.yml sets no concurrency group, no timeout-minutes and no
+  dependency cache. The catalogue is ~/.claude/standards/local-gate.md
+  section 9: one lever per change, measure before and after, fail closed.
+  Reply to claude-config by session_message with the timings.
+  **Layman:** Make a docs-only push skip the slow checks safely, and make the GitHub run faster without dropping any check.
+  Kind: chore.
+  Source: session-message-2026-09-28 claude-config (mailbox 138, 157).
+
+- 📋 [SLIP-0097] **The review partition leaves out files that exist.**
+  ui/single_instance.py is in no lane of .indie-review/partition.json, and
+  the tests lane omits tests/test_api_recordings.py,
+  tests/test_search_worker.py and tests/test_single_instance.py. Found while
+  adding the packaging lane for SLIP-0018; docs/subsystems.md changes with it.
+  **Layman:** The list that tells review tools which files belong to which part of the app is missing a few files, so a review would skip them.
+  Kind: doc-fix.
+  Source: in-session-2026-09-30.
+
+- 📋 [SLIP-0098] **ci.yml pins older releases of checkout and setup-python than release.yml.**
+  release.yml was written against the current releases (checkout v7,
+  setup-python v7); ci.yml is still on v5 and v6. Read the release notes for
+  the range crossed before bumping.
+  **Layman:** Two GitHub recipes use different versions of the same building blocks; bring the older one up to date.
+  Kind: chore.
+  Source: in-session-2026-09-30.
+
 ## Feature ideas
 
 Suggested rather than requested. Each is worth a decision before it is worth

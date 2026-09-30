@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A one-file Linux download: Slipcase-x86_64.AppImage** (SLIP-0018)
+  Each release now carries an AppImage with Python, Qt and the imaging
+  libraries inside, so the app runs without installing anything. It is
+  built on Ubuntu 22.04 and needs a system at least that recent.
+
+- **`--smoke` checks that a packaged build is whole** (SLIP-0018)
+  Renders one box in a worker process and opens the main window against a
+  temporary settings file, then prints one line and exits. Every packaged
+  build must pass it before it is attached to a release.
+
+### Fixed
+
+- **A packaged batch render no longer opens another copy of the app** (SLIP-0018)
+  Batch rendering starts worker processes, and in a packaged build each
+  worker began by running the application again. `main.py` now calls
+  `multiprocessing.freeze_support()`, which is what turns that run into
+  the worker.
+
 ## [1.1.0] - 2026-09-29
 
 **Theme:** Cover-art search checked against the real services, lighter previews, and a long run of fixes.
