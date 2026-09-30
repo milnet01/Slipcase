@@ -879,10 +879,16 @@ making a build reproducible.
   Kind: doc-fix.
   Source: in-session-2026-09-30.
 
-- 📋 [SLIP-0098] **ci.yml pins older releases of checkout and setup-python than release.yml.**
+- ✅ [SLIP-0098] **ci.yml pins older releases of checkout and setup-python than release.yml.**
   release.yml was written against the current releases (checkout v7,
   setup-python v7); ci.yml is still on v5 and v6. Read the release notes for
   the range crossed before bumping.
+  Resolved (2026-09-30): ci.yml now pins checkout v7.0.1 and setup-python
+  v7.0.0, the same commits release.yml uses. Release notes read for the
+  range crossed: checkout v6 stores credentials in a separate file (this
+  workflow sets persist-credentials false), v7 refuses fork checkouts on
+  two triggers this workflow does not use; setup-python v7 removes the
+  pip-install input, which is not used here.
   **Layman:** Two GitHub recipes use different versions of the same building blocks; bring the older one up to date.
   Kind: chore.
   Source: in-session-2026-09-30.
