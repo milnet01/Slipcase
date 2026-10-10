@@ -967,6 +967,13 @@ building.
   (session_message to retrodb, 2026-10-10). Spans two projects with a
   shared format, so it gets a spec (spec-format.md § 1) once the
   details are agreed.
+  User context (2026-10-10): they have made many boxes in Slipcase and
+  imported them into RetroDB. That library was wiped and they are
+  rebuilding it from the covers they kept. The turnable box should look
+  like the real console case (per-platform size and colour). So Slipcase
+  exports a per-game box file (size, colour, front/back/spine images)
+  from single saves and batch renders, and RetroDB imports it, ideally
+  in bulk. Sent to RetroDB the same day.
   **Layman:** See the whole game box, every side, and turn it around or zoom in with the mouse.
   Kind: feature.
   Source: user-request-2026-10-10.
