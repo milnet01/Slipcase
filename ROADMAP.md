@@ -974,6 +974,13 @@ building.
   exports a per-game box file (size, colour, front/back/spine images)
   from single saves and batch renders, and RetroDB imports it, ideally
   in bulk. Sent to RetroDB the same day.
+  Progress (2026-10-10): RetroDB answered (message 560, user-approved):
+  match by ROM base name in a folder per system; JSON plus images with a
+  version; CSS 3D on its game detail page; fill-only import; 10 MB per
+  image. Spec drafted at docs/specs/SLIP-0104-turnable-3d-box.md, NOT yet
+  checked or reviewed. Next: check-doc-facts, ask the user its two open
+  questions (box file on by default? how are covers named?), run
+  review-contract, then send RetroDB the spec path for its review.
   **Layman:** See the whole game box, every side, and turn it around or zoom in with the mouse.
   Kind: feature.
   Source: user-request-2026-10-10.
