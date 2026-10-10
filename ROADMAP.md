@@ -1246,7 +1246,7 @@ building.
   Source: check-code-2026-09-01.
   Lanes: ci.
 
-- 📋 [SLIP-0086] **There is no subsystem map, so review tooling partitions by directory.**
+- ✅ [SLIP-0086] **There is no subsystem map, so review tooling partitions by directory.**
   indie_review_partition looks for docs/subsystems.md or a `## Module map`
   heading in CLAUDE.md. Neither exists, so it falls back to grouping source files
   by directory -- which review-code's own procedure forbids, since a directory is
@@ -1285,6 +1285,10 @@ building.
   api/base.py comes back empty, the same lane naming src/base.py works,
   and the declared source_roots do not change it. Slipcase has no src/, so
   nothing here can fix it. Still open, waiting on Ants MCP.
+  Resolved (2026-10-10): Ants MCP fixed the verb (ANTS-5583). It now reads
+  .indie-review/partition.json and returns all twelve lanes with their
+  files. One leftover, filed with Ants MCP the same day: non-Python files
+  a lane names are still counted as unassigned.
   **Layman:** The code-review tooling has to guess how the project is organised.
   Kind: doc.
   Source: in-session-2026-09-01.
