@@ -958,6 +958,19 @@ building.
   Kind: feature.
   Source: in-session-2026-08-27.
 
+- 📋 [SLIP-0104] **A 3D box viewer the user can rotate and zoom, shared with RetroDB.**
+  The user asked (2026-10-10) for a model of the box, all six sides,
+  that the viewer can rotate and zoom, with the usual controls that go
+  with that. The same feature goes into RetroDB once it is built here,
+  agreed with the RetroDB session. Asked RetroDB about missing back and
+  spine art, viewer library, placement and a shared box file
+  (session_message to retrodb, 2026-10-10). Spans two projects with a
+  shared format, so it gets a spec (spec-format.md § 1) once the
+  details are agreed.
+  **Layman:** See the whole game box, every side, and turn it around or zoom in with the mouse.
+  Kind: feature.
+  Source: user-request-2026-10-10.
+
 ## Project record
 
 - ✅ [SLIP-0007] **Migrate the roadmap to the roadmap store.**
