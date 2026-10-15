@@ -51,7 +51,10 @@ half of the work.
   2026-10-10. Recorded so this spec does not re-decide it.
 - **Slipcase's viewer draws with `QPainter`, adding no dependency.** Slipcase,
   2026-10-10, from the prototype in § 8. Open to the user's veto.
-- **Two calls left to the user** — § 15.
+- **The box file is on by default.** User, 2026-10-15.
+- **Cover files are named after their ROMs.** User, 2026-10-15. So batch
+  output, which keeps each cover's file name as its stem, matches RetroDB's
+  ROM base names with no renaming step.
 
 ## 4. Design
 
@@ -91,7 +94,7 @@ S.back.png        back cover (absent when there is none)
   upright. The spine is on the front's left as seen from the front, as on
   every case in `CASE_TYPES`.
 - **Pictures** are PNG, RGB with no alpha, longest edge at most 1600 px, never
-  enlarged. Measured worst case: 1600 × 1600 random noise through
+  enlarged. Measured worst case (2026-10-10): 1600 × 1600 random noise through
   `save_optimized_png` is 6,743,128 bytes, under RetroDB's 10 MB limit.
 - **`generator`** is informational. Readers ignore it and any key they do not
   know, so version 1 can gain optional keys.
@@ -153,7 +156,7 @@ tests, and it is the reference for RetroDB's reader.
 ### 4.4 When a box file is written
 
 - **Setting** `export/box_file` (bool) in `core/config.py`, shown in the
-  settings dialog. Default: § 15 item 1.
+  settings dialog. Default: on (§ 3).
 - **Export PNG.** With the setting on, `MainWindow._export_png` also writes
   the box file beside the PNG. Stem: the PNG's stem with a trailing
   ` 3D Boxart` removed.
@@ -308,7 +311,7 @@ tests keep the `QApplication` on the class and clean up with
   already have.
 - **Qt Quick 3D or an OpenGL widget in Slipcase.** Real 3D, but more
   packaged size and a graphics-driver dependency the packaged builds do not
-  have today. A prototype of § 4.5's method (one 270 × 380 face drawn into a
+  have today. A prototype of § 4.5's method (2026-10-10; one 270 × 380 face drawn into a
   600 × 600 image with `quadToQuad` and `drawImage`, offscreen) drew
   perspective-correct and took about 0.3 ms per frame.
 - **A web view in Slipcase showing RetroDB's CSS viewer.** One viewer for
@@ -365,9 +368,10 @@ Rows live in `../reviews/SLIP-0104-turnable-3d-box-loop-log.md`.
 
 - No new dependency.
 - Memory: one `BoxModel` per render, three RGB faces of at most
-  1600 × 1600, plus their `QImage` copies in the viewer — under 62 MB at the
-  cap, about 6 MB for a typical DVD cover at 1600 px tall. Released when a new
-  model arrives and when the window closes.
+  1600 × 1600 (3 bytes a pixel), plus their 32-bit `QImage` copies in the
+  viewer (4 bytes a pixel) — at most 3 × 1600 × 1600 × 7 bytes, about 54 MB.
+  A DVD box at 1600 px tall (front and back 1137 × 1600, spine 118 × 1600) is
+  about 27 MB. Released when a new model arrives and when the window closes.
 - Disk: up to three extra PNGs and a small JSON per box, only with the
   setting on.
 
@@ -378,10 +382,4 @@ config key with a default, so an old `config.json` loads unchanged.
 
 ## 15. Open questions
 
-1. **Is the box file on by default?** Recommendation: on. The user is
-   rebuilding a library and RetroDB is the main reader; a user who wants
-   only the PNG turns it off once.
-2. **How are the user's cover files named?** RetroDB matches by ROM base
-   name. Batch output takes each cover's own file name, so covers named after
-   their ROMs match with no extra step. If they are named otherwise, renaming
-   is a separate tool, not part of this spec.
+None. The two left to the user were answered on 2026-10-15 and are in § 3.
