@@ -102,7 +102,8 @@ S.back.png        back cover (absent when there is none)
 **Reading rules**, for any reader: refuse a `format` other than
 `slipcase-box` or a `version` other than 1; refuse a face name that is not a
 single plain file name (contains `/` or `\`, is `.` or `..`, starts with
-`.`); refuse a missing `front` or `spine` file; refuse a size that is not a
+`.`); refuse a `front` or `spine` that is null or whose file is missing, and
+a `back` that names a missing file; refuse a size that is not a
 positive number at most 1000; refuse a colour that is not `#RRGGBB`. RetroDB
 adds its own image checks (§ 11).
 
@@ -147,23 +148,30 @@ def read_box_file(path: str) -> BoxModel: ...              # raises BoxFileError
 def box_paths(folder: str, stem: str) -> list[str]: ...    # the four paths
 ```
 
-`write_box_file` saves each face with `save_optimized_png`, then the JSON
-through a temporary file and `os.replace`, so a `.box.json` never names a face
-that was not written. If a face fails, it deletes the faces it wrote and
-raises. `read_box_file` applies § 4.1's reading rules; Slipcase uses it in
-tests, and it is the reference for RetroDB's reader.
+`write_box_file` first refuses, writing nothing, a stem whose face names
+would fail § 4.1's name rule. It then deletes any existing `S.box.json`,
+saves each face with `save_optimized_png`, and writes the JSON last through a
+temporary file and `os.replace`, so a `.box.json` never names a face that was
+not written. If a face fails, it deletes the faces it wrote and raises.
+`read_box_file` applies § 4.1's reading rules and builds `case_type` from the
+JSON `case` with `platforms=()`. Slipcase uses it in tests, and it is the
+reference for RetroDB's reader.
 
 ### 4.4 When a box file is written
 
 - **Setting** `export/box_file` (bool) in `core/config.py`, shown in the
   settings dialog. Default: on (§ 3).
 - **Export PNG.** With the setting on, `MainWindow._export_png` also writes
-  the box file beside the PNG. Stem: the PNG's stem with a trailing
-  ` 3D Boxart` removed.
+  the `BoxModel` paired with the shown render (§ 4.5) beside the PNG. Stem:
+  the chosen PNG's stem with a trailing ` 3D Boxart` removed. A box file
+  already there under that stem is replaced; the dialog's overwrite question
+  for the PNG covers it.
 - **Batch.** With the setting on, `_render_single_image` and
   `BatchWorker._run_sequential` write the box file after the PNG, with the
-  PNG's stem. `unique_output_path` picks a stem for which none of the PNG and
-  the four `box_paths` exists, so a batch never overwrites a file.
+  PNG's stem. `BatchWorker` picks every stem in its own thread before any
+  render starts: one for which neither the PNG nor any of the four
+  `box_paths` exists, and that no other file in the batch was given. Each
+  render receives its stem, so parallel workers cannot pick the same one.
 - A box-file failure is reported like a PNG failure (a message for a single
   export, the batch `error` signal per file); the PNG already saved stays.
 
@@ -186,7 +194,8 @@ and the shortcut Ctrl+3 (unused today; added to `STANDARDS.md` § 6).
   fit. An **Auto-spin** button turns the yaw at 30 degrees a second through a
   `QTimer`; any drag stops it.
 - **Data.** `RenderWorker` builds the `BoxModel` after the render and emits it
-  as a new `model_ready(object)` signal. The viewer converts the faces to
+  as a new `model_ready(object)` signal. `MainWindow` keeps it with the
+  render it belongs to, for the viewer and for Export PNG. The viewer converts the faces to
   `QImage` once per model, never in `paintEvent`.
 
 ## 5. Invariants
@@ -200,20 +209,24 @@ and the shortcut Ctrl+3 (unused today; added to `STANDARDS.md` § 6).
   colour is written as a list.
 
 - **INV-2** — `read_box_file` refuses every case in § 4.1's reading rules and
-  accepts what `write_box_file` writes, giving back an equal `BoxModel`.
+  accepts what `write_box_file` writes. The model read back has the written
+  case name and sizes, the written colours, `case_type.platforms == ()`, and
+  face pixels equal to the written faces after `save_optimized_png`'s
+  low-bit strip (`& 0xFE`).
   *Test:* `tests/test_box_file.py::test_reader_refuses` (one fixture per rule:
   `../x.png`, `a/b.png`, `.hidden.png`, version 2, `depth_mm` 0, colour
-  `red`, a missing spine file), and `::test_round_trip`.
+  `red`, a missing spine file, a `back` naming a missing file), and
+  `::test_round_trip`.
   *Breaks when:* the name check strips folders instead of refusing, so
   `../x.png` is read as `x.png` — the fixture places a valid `x.png` beside
   the JSON so only the name rule can refuse it.
 
 - **INV-3** — A `.box.json` exists only when every face it names was written.
   *Test:* `tests/test_box_file.py::test_failed_face_leaves_no_json` makes
-  saving the spine raise and checks that no `.box.json` and no face file
-  remains.
-  *Breaks when:* the JSON is written before the faces, or the written faces
-  are not removed.
+  saving the spine raise, in a folder already holding a valid box file of
+  that stem, and checks that no `.box.json` and no face file remains.
+  *Breaks when:* the JSON is written before the faces, the old `.box.json` is
+  left in place, or the written faces are not removed.
 
 - **INV-4** — Every face picture is RGB, its longest edge at most 1600 px and
   never larger than its source.
@@ -231,12 +244,15 @@ and the shortcut Ctrl+3 (unused today; added to `STANDARDS.md` § 6).
   *Breaks when:* the offsets are not passed through, or a split back
   replaces a loaded one.
 
-- **INV-6** — A batch with the setting on never overwrites an existing file,
-  and the box file's stem equals its PNG's stem.
+- **INV-6** — A batch with the setting on never overwrites an existing file
+  or another file of the same batch, and the box file's stem equals its PNG's
+  stem.
   *Test:* `tests/test_box_file.py::test_batch_does_not_overwrite`: an output
-  folder already holding `game.box.json` but no `game.png`.
-  *Breaks when:* `unique_output_path` checks only the `.png` — that fixture
-  passes such a check, so only the wider check can move the stem.
+  folder already holding `game.box.json` but no `game.png`, and two sources
+  `A/game.png` and `B/game.png`; the stems picked are distinct and none is
+  `game`.
+  *Breaks when:* the stem check looks only at the `.png` — the first fixture
+  passes such a check — or stems are picked inside the worker processes.
 
 - **INV-7** — The viewer draws exactly the faces turned towards the camera.
   *Test:* `tests/test_box_viewer.py::test_visible_faces`: yaw 0 and pitch 0
@@ -260,14 +276,16 @@ and the shortcut Ctrl+3 (unused today; added to `STANDARDS.md` § 6).
   *Breaks when:* `build_box_model` is called from a slot on the main thread,
   or `paintEvent` converts PIL images.
 
-- **INV-10** — Trust boundary: a box file's face names come from a title the
-  user typed or a cover-art service sent. Slipcase passes the stem through
-  `MainWindow._safe_filename` (single export) or takes it from a file name on
-  disk (batch), so no written face lands outside the chosen folder.
-  *Test:* `tests/test_box_file.py::test_stem_cannot_escape` writes with the
-  stem `_safe_filename("../../evil")` and checks every written path is inside
-  the folder.
-  *Breaks when:* the single export builds the stem from the raw title.
+- **INV-10** — Trust boundary: a stem comes from a file name the user typed
+  or a cover file on disk. `write_box_file` refuses, before writing anything,
+  a stem whose face names fail § 4.1's name rule. So no face lands outside
+  the chosen folder, and Slipcase never writes a face name its own reader
+  refuses.
+  *Test:* `tests/test_box_file.py::test_stem_cannot_escape` tries the stems
+  `../../evil`, `a/b`, `a\b`, `.x` and the empty string, and checks each
+  raises `BoxFileError` and leaves the folder empty.
+  *Breaks when:* the check runs after a face is saved, or tests the stem
+  rather than the face names built from it.
 
 ## 6. Failure modes
 
