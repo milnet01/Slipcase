@@ -1,5 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
+<!-- ants-roadmap-id-high-water: SLIP=105 -->
 
 # Slipcase — Roadmap
 
@@ -1922,3 +1923,21 @@ building.
   **Layman:** A search on ScreenScraper sometimes fails with "Read timed out" although the service would have answered a little later.
   Kind: fix.
   Source: in-session-2026-09-30.
+
+- 📋 [SLIP-0105] **An exported animation's box grows and shrinks as it turns.**
+  Reported by ants-projects-hub-website (message 609): in the trailer
+  the saved Nebula Drift DVD animation (10 to 50 degrees, bounce) shows
+  the box clearly taller at the sharp angle. Seen in
+  /mnt/Games/Trailers/incoming/slipcase/slipcase-demo.mp4, 31.5-37.4 s.
+  Cause, confirmed by reading (not yet reproduced): AnimationWorker builds
+  a BoxRenderer per frame at the same output_width, and
+  _compute_box_dimensions fits front*cos + spine*sin to that width, so
+  pixels_per_mm changes with the angle. For a DVD case that is about
+  135 mm at 10 degrees against 98 mm at 50, so about 39% taller. Fix
+  direction: one scale for the whole sweep (the widest angle's).
+  When released, message ants-projects-hub-website so the trailer can be
+  re-recorded.
+  **Layman:** In a turning-box animation the box should stay the same size; today it gets taller at sharp angles.
+  Kind: fix.
+  Source: session-message-609-2026-10-12.
+  Lanes: core/renderer.py, ui/workers.py.
