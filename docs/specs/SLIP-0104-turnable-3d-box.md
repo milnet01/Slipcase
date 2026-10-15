@@ -1,7 +1,7 @@
 <!-- ants-spec-format: 1 -->
 # SLIP-0104 — Show a turnable 3D box, and save it as a box file RetroDB can load
 
-**Status:** spec draft (2026-10-10).
+**Status:** accepted (2026-10-15).
 **Kind:** implement.
 **Source:** ROADMAP SLIP-0104 (user request 2026-10-10; details agreed with
 the RetroDB session the same day).
@@ -39,7 +39,8 @@ half of the work.
   sides, that the viewer can rotate and zoom, "and whatever else goes with
   that"; add it to RetroDB too, worked out with the RetroDB session.
 - **The box looks like the real case.** User, 2026-10-10: true per-platform
-  size and colour, from `CASE_TYPES` in `core/case_types.py`.
+  size from `CASE_TYPES` in `core/case_types.py`, and the colours the render
+  uses (§ 4.1).
 - **JSON plus images, not a 3D model file.** Proposed by Slipcase, accepted
   by RetroDB 2026-10-10 (reply approved by the user).
 - **Matched by ROM base name.** RetroDB, 2026-10-10: its bulk import matches
@@ -54,7 +55,8 @@ half of the work.
 - **The box file is on by default.** User, 2026-10-15.
 - **Cover files are named after their ROMs.** User, 2026-10-15. So batch
   output, which keeps each cover's file name as its stem, matches RetroDB's
-  ROM base names with no renaming step.
+  ROM base names with no renaming step when the output folder holds no
+  earlier files of those names (§ 4.4 never overwrites them).
 
 ## 4. Design
 
@@ -84,9 +86,10 @@ S.back.png        back cover (absent when there is none)
 
 - **`case`** copies the `CaseType` used for the render: `width` is the front
   face's width, `height` its height, `depth` the spine's width, all in mm.
-- **`colours`** are `#RRGGBB`. `top` and `bottom` are the colours
-  `BoxRenderer.render` gives those faces: `case_color` when set, else
-  `extract_dominant_edge_color` of the front picture at that edge. `edge` is
+- **`colours`** are `#RRGGBB`, written in upper case; readers accept either
+  case. `top` and `bottom` are `case_color` when set, else
+  `extract_dominant_edge_color` of the front cover at that edge (the split
+  front for a full cover), whatever view was rendered. `edge` is
   the opening side opposite the spine: `case_color` when set, else `top`.
 - **`faces`** values are file names in the same folder. `back` is `null`
   when the box has no back cover; a viewer then fills it with `edge`.
@@ -149,8 +152,8 @@ def box_paths(folder: str, stem: str) -> list[str]: ...    # the four paths
 ```
 
 `write_box_file` first refuses, writing nothing, a stem whose face names
-would fail § 4.1's name rule. It then deletes any existing `S.box.json`,
-saves each face with `save_optimized_png`, and writes the JSON last through a
+would fail § 4.1's name rule. It then deletes every existing file among the
+four `box_paths`, saves each face with `save_optimized_png`, and writes the JSON last through a
 temporary file and `os.replace`, so a `.box.json` never names a face that was
 not written. If a face fails, it deletes the faces it wrote and raises.
 `read_box_file` applies § 4.1's reading rules and builds `case_type` from the
@@ -163,15 +166,16 @@ reference for RetroDB's reader.
   settings dialog. Default: on (§ 3).
 - **Export PNG.** With the setting on, `MainWindow._export_png` also writes
   the `BoxModel` paired with the shown render (§ 4.5) beside the PNG. Stem:
-  the chosen PNG's stem with a trailing ` 3D Boxart` removed. A box file
-  already there under that stem is replaced; the dialog's overwrite question
-  for the PNG covers it.
+  the chosen PNG's stem with a trailing ` 3D Boxart` removed. When any of
+  that stem's `box_paths` exists, Slipcase asks before replacing the box
+  file; on No, the PNG is saved and the box file is not.
 - **Batch.** With the setting on, `_render_single_image` and
   `BatchWorker._run_sequential` write the box file after the PNG, with the
-  PNG's stem. `BatchWorker` picks every stem in its own thread before any
-  render starts: one for which neither the PNG nor any of the four
-  `box_paths` exists, and that no other file in the batch was given. Each
-  render receives its stem, so parallel workers cannot pick the same one.
+  PNG's stem. New `pick_output_stems(file_paths, output_dir) -> list[str]` in
+  `ui/workers.py`, called by `BatchWorker` before any render starts, picks
+  each stem: one for which neither the PNG nor any of the four `box_paths`
+  exists, and that no earlier file in the list was given. Each render
+  receives its stem.
 - A box-file failure is reported like a PNG failure (a message for a single
   export, the batch `error` signal per file); the PNG already saved stays.
 
@@ -214,8 +218,9 @@ and the shortcut Ctrl+3 (unused today; added to `STANDARDS.md` § 6).
   face pixels equal to the written faces after `save_optimized_png`'s
   low-bit strip (`& 0xFE`).
   *Test:* `tests/test_box_file.py::test_reader_refuses` (one fixture per rule:
-  `../x.png`, `a/b.png`, `.hidden.png`, version 2, `depth_mm` 0, colour
-  `red`, a missing spine file, a `back` naming a missing file), and
+  `format` `foo`, version 2, `../x.png`, `a/b.png`, `a\b.png`, `..`,
+  `.hidden.png`, a null `front`, a missing spine file, a `back` naming a
+  missing file, `depth_mm` 0, `width_mm` 5000, colour `red`), and
   `::test_round_trip`.
   *Breaks when:* the name check strips folders instead of refusing, so
   `../x.png` is read as `x.png` — the fixture places a valid `x.png` beside
@@ -247,12 +252,12 @@ and the shortcut Ctrl+3 (unused today; added to `STANDARDS.md` § 6).
 - **INV-6** — A batch with the setting on never overwrites an existing file
   or another file of the same batch, and the box file's stem equals its PNG's
   stem.
-  *Test:* `tests/test_box_file.py::test_batch_does_not_overwrite`: an output
-  folder already holding `game.box.json` but no `game.png`, and two sources
-  `A/game.png` and `B/game.png`; the stems picked are distinct and none is
-  `game`.
-  *Breaks when:* the stem check looks only at the `.png` — the first fixture
-  passes such a check — or stems are picked inside the worker processes.
+  *Test:* `tests/test_box_file.py::test_batch_does_not_overwrite` calls
+  `pick_output_stems` for two sources `A/game.png` and `B/game.png` and an
+  output folder already holding `game.box.json` but no `game.png`; the stems
+  are distinct and neither is `game`.
+  *Breaks when:* the check looks only at the `.png` — the fixture passes such
+  a check — or ignores stems already given in the batch.
 
 - **INV-7** — The viewer draws exactly the faces turned towards the camera.
   *Test:* `tests/test_box_viewer.py::test_visible_faces`: yaw 0 and pitch 0
@@ -273,8 +278,8 @@ and the shortcut Ctrl+3 (unused today; added to `STANDARDS.md` § 6).
   *Test:* `tests/test_box_viewer.py::test_model_from_worker` checks
   `RenderWorker` emits `model_ready` with a `BoxModel`, and that two
   `paintEvent`s on one model convert no picture again.
-  *Breaks when:* `build_box_model` is called from a slot on the main thread,
-  or `paintEvent` converts PIL images.
+  *Breaks when:* `RenderWorker` stops building the model, or `paintEvent`
+  converts PIL images.
 
 - **INV-10** — Trust boundary: a stem comes from a file name the user typed
   or a cover file on disk. `write_box_file` refuses, before writing anything,
