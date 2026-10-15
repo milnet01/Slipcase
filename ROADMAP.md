@@ -982,6 +982,12 @@ building.
   checked or reviewed. Next: check-doc-facts, ask the user its two open
   questions (box file on by default? how are covers named?), run
   review-contract, then send RetroDB the spec path for its review.
+  Progress (2026-10-15): user answered the two open questions (box file on by
+  default; covers are named after their ROMs). Spec checked and gated by
+  review-contract: 2 loops, 16 verified findings, all fixed; capped at
+  the spec cap, calm. Status accepted (2026-10-15), commit 510936e. Spec
+  path sent to RetroDB for its review of § 4.1. Next: wait for RetroDB's
+  reply on § 4.1, then build with write-code.
   **Layman:** See the whole game box, every side, and turn it around or zoom in with the mouse.
   Kind: feature.
   Source: user-request-2026-10-10.
