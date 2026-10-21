@@ -1085,6 +1085,8 @@ building.
   chose, 2026-10-21: 3D viewer only, since the still render shows those
   edges as thin slivers. The box file's top and bottom are plain colours
   today, so they need an optional picture each.
+  The user, 2026-10-21: "Don't delay the pressed in logo too much,
+  perhaps the next session should include it." Next up, ahead of SLIP-0107.
   **Layman:** When you turn the box in the 3D viewer to look at its top or bottom edge, you see the PlayStation logo moulded into the plastic, as on a real case.
   Kind: feature.
   Source: user-request-2026-10-21.

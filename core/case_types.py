@@ -23,6 +23,9 @@ class CaseType:
     jewel: JewelGeometry | None = None
     # Bare plastic colour; the wrap layout ignores it for now.
     plastic: tuple[int, int, int] | None = None
+    # A jewel lid clear only over the booklet: the hinge strip is the tray's
+    # matte plastic, so the lid's gloss stops at the booklet's side.
+    matte_hinge_strip: bool = False
 
     @property
     def layout(self) -> str:
@@ -79,13 +82,14 @@ CASE_TYPES: dict[str, CaseType] = {
         jewel=_STANDARD_PAPER, plastic=_BLACK_TRAY,
     ),
     # Only thicker than the standard case. Its back card is measured from a
-    # PAL scan: wider, with end strips that wrap the 18 mm sides.
+    # PAL scan: wider, with end strips that wrap the 18 mm sides. Its black
+    # parts are matte, its clear parts glossy (the user, 2026-10-21).
     "PS1 Jewel Case (PAL)": CaseType(
         name="PS1 Jewel Case (PAL)",
         width=142, height=125, depth=18,
         platforms=(),
         jewel=JewelGeometry(booklet=(120, 120), back_card=(158, 118), strip=13.5),
-        plastic=_BLACK_TRAY,
+        plastic=_BLACK_TRAY, matte_hinge_strip=True,
     ),
     "PS1 Jewel Case (NTSC-J)": CaseType(
         name="PS1 Jewel Case (NTSC-J)",

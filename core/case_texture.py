@@ -17,11 +17,13 @@ from core.case_types import CaseType
 SHINE_ALPHA = 48
 
 
-def generate_front_texture(case_type: CaseType, width: int, height: int) -> Image.Image:
+def generate_front_texture(case_type: CaseType, width: int, height: int,
+                           back: bool = False) -> Image.Image:
     """Generate a front face texture overlay for the given case type.
 
     Returns an RGBA image with subtle emboss/deboss features drawn as
-    semi-transparent highlight/shadow pairs.
+    semi-transparent highlight/shadow pairs. `back` says the overlay is for
+    a jewel case's back, whose clear base is glossy all over.
     """
     overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
@@ -30,8 +32,13 @@ def generate_front_texture(case_type: CaseType, width: int, height: int) -> Imag
     # Every jewel entry, whatever its name, is the same moulding (SLIP-0106).
     if case_type.layout == "jewel":
         _draw_jewel_front(draw, case_type, width, height)
-        overlay.alpha_composite(generate_lid_shine(width, height))
-        overlay.alpha_composite(_lid_streak(width, height))
+        gloss = generate_lid_shine(width, height)
+        gloss.alpha_composite(_lid_streak(width, height))
+        if case_type.matte_hinge_strip and not back:
+            p = width / case_type.width
+            window_x = _booklet_x(case_type, p) - (2 * JEWEL_RIDGE_MM + JEWEL_RIDGE_GAP_MM) * p
+            gloss.paste((0, 0, 0, 0), (0, 0, max(0, round(window_x)), height))
+        overlay.alpha_composite(gloss)
     elif name == "DVD Case":
         _draw_dvd_front(draw, width, height)
     elif name == "Blu-ray Case":
@@ -164,14 +171,18 @@ def _draw_jewel_front(draw: ImageDraw.ImageDraw, case_type: CaseType,
     rim = max(1, round(JEWEL_RIM_MM * p))
     draw.rectangle([(0, 0), (w - 1, h - 1)], outline=(255, 255, 255, _RIM_ALPHA),
                    width=rim)
-    # The booklet's left edge, as jewel_faces places it.
-    booklet_w, booklet_h = case_type.jewel.booklet
-    margin = (case_type.height - booklet_h) / 2
-    booklet_x = (case_type.width - margin - booklet_w) * p
+    booklet_x = _booklet_x(case_type, p)
     ridge = max(1, round(JEWEL_RIDGE_MM * p))
     for x in (booklet_x - ridge, booklet_x - ridge - JEWEL_RIDGE_GAP_MM * p):
         draw.rectangle([(round(x), rim), (round(x) + ridge - 1, h - 1 - rim)],
                        fill=(255, 255, 255, _RIDGE_ALPHA))
+
+
+def _booklet_x(case_type: CaseType, p: float) -> float:
+    """The booklet's left edge in px at `p` px/mm, as jewel_faces places it."""
+    booklet_w, booklet_h = case_type.jewel.booklet
+    margin = (case_type.height - booklet_h) / 2
+    return (case_type.width - margin - booklet_w) * p
 
 
 def _lid_streak(width: int, height: int) -> Image.Image:

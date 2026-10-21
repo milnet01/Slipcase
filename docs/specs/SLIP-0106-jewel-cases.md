@@ -358,7 +358,10 @@ photos (2026-10-21). The front overlay draws a 1 mm light rim round the
 lid. It draws two 0.6 mm ridge lines, 1.5 mm apart, down the hinge strip's
 booklet side. It adds a soft diagonal streak along x/w + y/h = 0.7. The
 hinge side gets 3 mm end caps in the plastic colour and a 1 mm rim on each
-long side. `render` lifts the top and bottom 30% toward white, so they
+long side. On a case with `matte_hinge_strip` (PS1 PAL: its black parts
+are matte, its clear parts glossy, the user, 2026-10-21) the front's shine
+and streak stop at the outer ridge line. The back's clear base keeps
+them. `render` lifts the top and bottom 30% toward white, so they
 stand apart from the front's border. The box file's colours stay
 `case_color or plastic` (INV-6).
 
@@ -495,7 +498,7 @@ shows.
 - **INV-11** — Every jewel entry gets the jewel overlays, and the jewel
   front overlay is brighter at the top-left than at the bottom-right.
   *Test:* `tests/test_jewel.py::test_jewel_overlays`: for each jewel entry,
-  `generate_front_texture` at 284 × 250 has alpha at (10, 10) above alpha
+  `generate_front_texture` at 284 × 250 has alpha at (50, 10) above alpha
   at (274, 240), and `generate_lid_shine(284, 250)` has alpha `SHINE_ALPHA`
   at (0, 0) and 0 at (283, 249). The existing
   `tests/test_renderer.py` check that every case's overlay is non-empty

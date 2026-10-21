@@ -127,7 +127,7 @@ def build_box_model(
             spine, generate_spine_texture(case_type, *spine.size))
         if back is not None:
             back = Image.alpha_composite(
-                back, ImageOps.mirror(generate_front_texture(case_type, *back.size)))
+                back, ImageOps.mirror(generate_front_texture(case_type, *back.size, back=True)))
 
     return BoxModel(
         case_type=case_type, top=top, bottom=bottom, edge=edge,
@@ -166,7 +166,7 @@ def _jewel_model(
             spine, generate_spine_texture(case_type, *spine.size))
         if back is not None:
             back = Image.alpha_composite(
-                back, ImageOps.mirror(generate_front_texture(case_type, *back.size)))
+                back, ImageOps.mirror(generate_front_texture(case_type, *back.size, back=True)))
 
     return BoxModel(
         case_type=case_type, top=plastic, bottom=plastic, edge=plastic,

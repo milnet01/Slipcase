@@ -116,11 +116,22 @@ class TestCaseData(unittest.TestCase):
         for ct in JEWEL_CASES:
             with self.subTest(case=ct.name):
                 overlay = generate_front_texture(ct, 284, 250)
-                self.assertGreater(overlay.getpixel((10, 10))[3],
+                # 25 mm in: over the booklet on every jewel case.
+                self.assertGreater(overlay.getpixel((50, 10))[3],
                                    overlay.getpixel((274, 240))[3])
         shine = generate_lid_shine(284, 250)
         self.assertEqual(shine.getpixel((0, 0))[3], SHINE_ALPHA)
         self.assertEqual(shine.getpixel((283, 249))[3], 0)
+
+    def test_matte_hinge_strip(self):
+        """The PS1 PAL hinge strip is matte: no gloss on it from the front,
+        though the back's clear base and the NTSC-U lid still shine there."""
+        pal = CASE_TYPES["PS1 Jewel Case (PAL)"]
+        at = (10, 10)  # 5 mm in: on the hinge strip, clear of the rim
+        self.assertEqual(generate_front_texture(pal, 284, 250).getpixel(at)[3], 0)
+        self.assertGreater(generate_front_texture(pal, 284, 250, back=True).getpixel(at)[3], 0)
+        ntsc = CASE_TYPES["PS1 Jewel Case (NTSC-U)"]
+        self.assertGreater(generate_front_texture(ntsc, 284, 250).getpixel(at)[3], 0)
 
 
 class TestFaces(unittest.TestCase):

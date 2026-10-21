@@ -272,7 +272,8 @@ class BoxRenderer:
 
         # Case texture overlay (applied before shading so it gets naturally lit)
         if self.show_texture:
-            front_tex = generate_front_texture(self.case_type, front_w, front_h)
+            front_tex = generate_front_texture(self.case_type, front_w, front_h,
+                                               back=from_behind)
             front = Image.alpha_composite(front, front_tex)
             del front_tex
             spine_tex = generate_spine_texture(self.case_type, spine_w, front_h)
