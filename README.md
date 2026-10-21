@@ -105,7 +105,8 @@ keep the project somewhere other than where it is now.
 ## Using it
 
 1. **Load a front cover** — or use **Search Online** to fetch one.
-2. **Pick the case type** that matches the game. For PlayStation, PS2,
+2. **Pick the platform, then the case type.** The case list shows only that
+   platform's cases. For PlayStation, PS2,
    Dreamcast, DS and GameCube covers, Slipcase reads the region from the
    file name's tag,
    such as "(Europe)" or "(Japan)", and picks that region's case. A name

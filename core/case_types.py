@@ -318,3 +318,23 @@ def case_for(platform: str, region: str) -> CaseType | None:
     if case_name:
         return CASE_TYPES[case_name]
     return get_case_for_platform(platform)
+
+
+_CARTRIDGE_PLATFORMS = ("NES", "SNES", "N64", "Genesis", "Mega Drive",
+                        "Game Boy", "Game Boy Color", "GBA")
+
+# platform -> cases picked only by hand, beyond its default and regional
+# cases (SLIP-0113).
+EXTRA_CASES: dict[str, tuple[str, ...]] = {
+    "PC": ("CD Jewel Case",),
+    **{platform: ("Universal Cart Case",) for platform in _CARTRIDGE_PLATFORMS},
+}
+
+
+def cases_for_platform(platform: str) -> list[str]:
+    """The case list's entries for `platform`: its default case, then its
+    regional cases, then its hand-picked extras (SLIP-0113)."""
+    names = [PLATFORM_CASE_MAP[platform]] if platform in PLATFORM_CASE_MAP else []
+    names += [name for (p, _region), name in REGIONAL_CASES.items() if p == platform]
+    names += EXTRA_CASES.get(platform, ())
+    return list(dict.fromkeys(names))

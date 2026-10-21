@@ -1132,7 +1132,7 @@ building.
   Kind: feature.
   Source: user-request-2026-10-21.
 
-- 📋 [SLIP-0113] **Offer each console's special-edition and multi-disc cases for the user to pick.**
+- 🚧 [SLIP-0113] **Offer each console's special-edition and multi-disc cases for the user to pick.**
   The user, 2026-10-21: "let the user choose what type of case. If they
   trying to replicate their own library then all these various options
   will be required." Examples from Wikipedia, Keep case, and the user's
@@ -1142,6 +1142,17 @@ building.
   still pick the standard case; these are picked by hand from the case
   list, so a long list needs grouping by console. Needs write-spec: the
   list's shape and which variants are sourced.
+  No spec (write-spec Q1, 2026-10-21): new rows in CASE_TYPES and a
+  filtered case list, one subsystem each, cheap to redo; box files
+  already carry each case's size, so no format change.
+  User decided (2026-10-21): keep the two lists, Platform then Case;
+  the Case list shows only the chosen platform's cases. Research all
+  the variants named above.
+  Progress (2026-10-21): the case list shows only the platform's
+  cases (core/case_types.py cases_for_platform, EXTRA_CASES; CD Jewel
+  Case also on PC, Universal Cart Case on the cartridge platforms). A
+  saved case its platform does not list restores with a platform that
+  does. Tests: tests/test_case_list.py. Next: the researched variants.
   **Layman:** Pick the exact case your copy came in, such as a silver Platinum PS2 case or a thick multi-disc case, so your rendered library matches your shelf.
   Kind: feature.
   Source: user-request-2026-10-21.

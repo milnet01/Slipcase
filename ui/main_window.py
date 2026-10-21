@@ -18,7 +18,8 @@ from PyQt6.QtWidgets import (
 
 from core.box_file import box_paths, write_box_file
 from core.box_model import BoxModel
-from core.case_types import CASE_TYPES, ALL_PLATFORMS, PLATFORM_CASE_MAP, CaseType, case_for
+from core.case_types import (CASE_TYPES, ALL_PLATFORMS, CaseType,
+                             case_for, cases_for_platform)
 from core.config import Config
 from core.image_utils import detect_spine_bounds, is_full_cover, split_full_cover
 from core.jewel import (
@@ -231,7 +232,7 @@ class MainWindow(QMainWindow):
         case_label = QLabel(self.tr("Cas&e Type:"))
         toolbar.addWidget(case_label)
         self.case_combo = QComboBox()
-        self.case_combo.addItems(CASE_TYPES.keys())
+        self.case_combo.addItems(cases_for_platform(self.platform_combo.currentText()))
         # activated is emitted for the user's choice only, never for
         # setCurrentIndex, so detection never counts as a hand choice.
         self.case_combo.activated.connect(self._on_case_activated)
@@ -719,6 +720,11 @@ class MainWindow(QMainWindow):
             self.platform_combo.setCurrentIndex(idx)
 
         case_type = self.config.get("ui", "last_case_type", default="PS2 DVD Case")
+        if self.case_combo.findText(case_type) < 0:
+            # A case the platform does not list brings a platform that does.
+            owner = next((p for p in ALL_PLATFORMS if case_type in cases_for_platform(p)), None)
+            if owner:
+                self.platform_combo.setCurrentText(owner)
         idx = self.case_combo.findText(case_type)
         if idx >= 0:
             self.case_combo.setCurrentIndex(idx)
@@ -842,13 +848,14 @@ class MainWindow(QMainWindow):
     # --- Platform / Case ---
 
     def _on_platform_changed(self, platform: str) -> None:
-        """Update case type when platform changes, then the loaded cover's
-        regional case, and drop any hand choice."""
-        case_name = PLATFORM_CASE_MAP.get(platform)
-        if case_name:
-            idx = self.case_combo.findText(case_name)
-            if idx >= 0:
-                self.case_combo.setCurrentIndex(idx)
+        """List the platform's cases and show its default, then the loaded
+        cover's regional case, and drop any hand choice."""
+        # Blocked: an emptied list has no current case to update from.
+        self.case_combo.blockSignals(True)
+        self.case_combo.clear()
+        self.case_combo.addItems(cases_for_platform(platform))
+        self.case_combo.blockSignals(False)
+        self._update_back_strips()
         if self._front_image_path:
             self._detect_case(self._front_image_path)
         self._case_by_hand = False

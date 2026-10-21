@@ -60,7 +60,7 @@
     {
       "name": "tests",
       "summary": "The test suite. review-code excludes this lane; review-tests is exactly this lane.",
-      "sourcePaths": ["tests/test_regressions.py", "tests/test_renderer.py", "tests/test_security.py", "tests/test_libretro.py", "tests/test_smoke.py", "tests/test_api_recordings.py", "tests/test_search_worker.py", "tests/test_single_instance.py", "tests/conftest.py", "tests/test_box_model.py", "tests/test_box_file.py", "tests/test_box_viewer.py", "tests/test_jewel.py", "tests/test_keep_cases.py", "tests/test_region.py"]
+      "sourcePaths": ["tests/test_regressions.py", "tests/test_renderer.py", "tests/test_security.py", "tests/test_libretro.py", "tests/test_smoke.py", "tests/test_api_recordings.py", "tests/test_search_worker.py", "tests/test_single_instance.py", "tests/conftest.py", "tests/test_box_model.py", "tests/test_box_file.py", "tests/test_box_viewer.py", "tests/test_jewel.py", "tests/test_keep_cases.py", "tests/test_region.py", "tests/test_case_list.py"]
     }
   ]
 }
