@@ -21,7 +21,9 @@ from core.box_model import BoxModel
 from core.case_types import CASE_TYPES, ALL_PLATFORMS, PLATFORM_CASE_MAP, CaseType, case_for
 from core.config import Config
 from core.image_utils import detect_spine_bounds, is_full_cover, split_full_cover
-from core.jewel import back_has_strips, detect_strip_folds, split_back_card
+from core.jewel import (
+    back_has_strips, card_case, detect_strip_folds, fold_reach, split_back_card,
+)
 from core.png_utils import save_optimized_png
 from core.region import detect_region
 from core.renderer import MAX_OUTPUT_WIDTH, BoxRenderer
@@ -870,7 +872,21 @@ class MainWindow(QMainWindow):
         idx = self.case_combo.findText(case.name)
         if idx >= 0:
             self.case_combo.setCurrentIndex(idx)
-        return self.tr("{0} cover: {1}").format(region, case.name)
+        return self._match_back_card() or self.tr("{0} cover: {1}").format(region, case.name)
+
+    def _match_back_card(self) -> str | None:
+        """Show the platform's case whose back card fits the loaded back scan,
+        unless the case was picked by hand (SLIP-0111). Returns a status note
+        when the case changed, else None."""
+        if self._case_by_hand or self._back_image is None:
+            return None
+        shown = CASE_TYPES[self.case_combo.currentText()]
+        case = card_case(self._back_image, self.platform_combo.currentText(), shown)
+        idx = self.case_combo.findText(case.name)
+        if case is shown or idx < 0:
+            return None
+        self.case_combo.setCurrentIndex(idx)
+        return self.tr("back card fits {0}").format(case.name)
 
     def _batch_cases(self, files: list[str]) -> list[CaseType]:
         """Each batch file's case: the shown one when it was picked by hand,
@@ -975,14 +991,18 @@ class MainWindow(QMainWindow):
     def _load_back(self) -> None:
         img, _ = self._load_image_dialog("Open Back Cover")
         if img:
-            self._set_back_image(img)
+            note = self._set_back_image(img)
             self.status.showMessage(self.tr("Back cover loaded"))
+            self._show_case_note(note)
 
-    def _set_back_image(self, img: Image.Image) -> None:
+    def _set_back_image(self, img: Image.Image) -> str | None:
+        """Show the back scan; returns _match_back_card's note."""
         self._back_image = img
         self._set_thumbnail(self.back_thumb, img)
+        note = self._match_back_card()
         self._update_view_choice()
         self._update_back_strips()
+        return note
 
     def _clear_back(self) -> None:
         self._back_image = None
@@ -1022,7 +1042,7 @@ class MainWindow(QMainWindow):
             self._hide_spine_adjustment()
             return
         if self.spine_adjust_group.isHidden():
-            max_offset = max(40, min(150, int(self._back_image.width * 0.03)))
+            max_offset = fold_reach(self._back_image)
             for slider in (self.spine_left_slider, self.spine_right_slider):
                 slider.setRange(-max_offset, max_offset)
                 slider.setValue(0)
@@ -1556,11 +1576,11 @@ class MainWindow(QMainWindow):
         if front:
             self._front_image_path = None
             self._set_front_image(front)
-        if back:
-            self._set_back_image(back)
+        note = self._set_back_image(back) if back else None
         if name:
             self.title_input.setText(name)
         self.status.showMessage(self.tr("Downloaded: {0}").format(name))
+        self._show_case_note(note)
 
     def _on_search_3d_boxart(self, image: Image.Image, name: str) -> None:
         """Handle pre-rendered 3D boxart from ScreenScraper — show directly in preview."""

@@ -329,7 +329,14 @@ today's `CD Jewel Case` gives 1.834 (both computed from the table,
   show left strip, middle and right strip, and the full-cover checkbox is
   hidden, so `_full_cover_choice` stays None. When the front is a wrap, the
   sliders stay with the wrap and the back's folds come from detection
-  alone.
+  alone. The fold sliders reach `fold_reach`: the widest strip of any
+  jewel card, so a fold can cross a whole strip (SLIP-0111).
+- **The back card picks the case** (SLIP-0111). Unless `_case_by_hand` is
+  set, loading a back, and detecting a front's case, shows `card_case`:
+  the platform's regional case whose card, with strips or without, is
+  nearest the scan's width/height, where it is nearer than the shown
+  case's. A PAL PS1 card on the NTSC-U case otherwise kept most of each
+  strip on the back.
 
 ### 4.6 Batch
 

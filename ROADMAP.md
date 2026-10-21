@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: SLIP=110 -->
+<!-- ants-roadmap-id-high-water: SLIP=111 -->
 
 # Slipcase — Roadmap
 
@@ -2058,3 +2058,19 @@ building.
   Kind: fix.
   Source: session-message-609-2026-10-12.
   Lanes: core/renderer.py, ui/workers.py.
+
+- ✅ [SLIP-0111] **A PAL PS1 back card on the NTSC-U case kept both end strips on the back, and the sliders could not reach them.**
+  The user, 2026-10-21, with Ridge Racer Type 4's PAL back card and the
+  NTSC-U case shown: "There is a spine now on both sides and the Spine
+  Boundary Adjustment setting doesn't seem to work for PS1 games." The
+  NTSC-U case cuts at the standard card's 6 mm strips; a PAL card's are
+  13.5 mm, so a stand-in PAL card's left fold was found 72 px short, and
+  the sliders reached 47 px. The user chose both fixes: loading a back
+  card now shows the platform's case whose card fits it (not over a hand
+  pick), and the fold sliders reach the widest strip of any jewel card.
+  Resolved (2026-10-21): core/jewel.py card_case and fold_reach; the
+  window calls card_case on every back load and front detection. Tests:
+  tests/test_jewel.py TestCardCase and test_back_card_picks_the_case.
+  **Layman:** A European PlayStation back insert now picks the European case by itself, so its printed edges go on the case's sides, and the boundary sliders can always reach far enough to fix a cut by hand.
+  Kind: fix.
+  Source: user-report-2026-10-21.

@@ -272,6 +272,35 @@ class TestCompatibility(unittest.TestCase):
             self.assertEqual(window.case_combo.currentText(), "CD Jewel Case")
 
 
+class TestCardCase(unittest.TestCase):
+    """SLIP-0111: the back card's proportions choose between regional cases."""
+
+    def test_card_case(self):
+        ntsc, pal = CASE_TYPES["PS1 Jewel Case (NTSC-U)"], CASE_TYPES["PS1 Jewel Case (PAL)"]
+        ntsc_j = CASE_TYPES["PS1 Jewel Case (NTSC-J)"]
+        # Card size in tenths of a mm: with strips, then the middle alone.
+        for size, shown, expected in [
+            ((1580, 1180), ntsc, pal), ((1310, 1180), ntsc, pal),
+            ((1500, 1180), pal, ntsc), ((1380, 1180), pal, ntsc),
+            ((1500, 1180), ntsc, ntsc), ((1500, 1180), ntsc_j, ntsc_j),
+            ((1580, 1180), pal, pal),
+        ]:
+            with self.subTest(size=size, shown=shown.name):
+                got = jewel.card_case(Image.new("RGB", size), "PS1", shown)
+                self.assertEqual(got.name, expected.name)
+        dvd = CASE_TYPES["DVD Case"]
+        self.assertIs(jewel.card_case(Image.new("RGB", (1580, 1180)), "PS2", dvd), dvd)
+
+    def test_fold_reach_crosses_any_strip(self):
+        """With the standard card's folds on a PAL scan, the sliders still
+        reach the real folds."""
+        pal_card = _bands([135, 1310, 135], [BLACK_TRAY, (240, 220, 0), BLACK_TRAY], 1180)
+        left, right = jewel.detect_strip_folds(pal_card, CASE_TYPES["PS1 Jewel Case (NTSC-U)"])
+        reach = jewel.fold_reach(pal_card)
+        self.assertLessEqual(abs(135 - left), reach)
+        self.assertLessEqual(abs(1445 - right), reach)
+
+
 class TestCaseChoice(unittest.TestCase):
 
     @classmethod
@@ -309,6 +338,24 @@ class TestCaseChoice(unittest.TestCase):
             window._detect_case("C (USA).png")
             self.assertEqual(window.case_combo.currentText(), "PS1 Jewel Case (NTSC-U)")
             self.assertFalse(window._case_by_hand)
+
+    def test_back_card_picks_the_case(self):
+        """SLIP-0111: a PAL-sized back card shows the PAL case, and the
+        sliders reach a whole strip; a hand pick holds."""
+        pal_card = _bands([135, 1310, 135], [BLACK_TRAY, (240, 220, 0), BLACK_TRAY], 1180)
+        with tempfile.TemporaryDirectory() as d:
+            window = self._window(d)
+            self.assertEqual(window.case_combo.currentText(), "PS1 Jewel Case (NTSC-U)")
+            window._set_back_image(pal_card)
+            self.assertEqual(window.case_combo.currentText(), "PS1 Jewel Case (PAL)")
+            self.assertGreaterEqual(window.spine_left_slider.maximum(), 135)
+
+            window._detect_case("A (USA).png")
+            self.assertEqual(window.case_combo.currentText(), "PS1 Jewel Case (PAL)")
+
+            self._pick_by_hand(window, "PS1 Jewel Case (NTSC-U)")
+            window._set_back_image(pal_card)
+            self.assertEqual(window.case_combo.currentText(), "PS1 Jewel Case (NTSC-U)")
 
     def test_batch_cases(self):
         """INV-13: each file gets its detected case unless one was picked by hand."""

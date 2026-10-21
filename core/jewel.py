@@ -8,12 +8,14 @@ still render and the box file cannot differ.
 """
 
 import logging
+import math
 from dataclasses import dataclass
 
 from PIL import Image
 
-from core.case_types import CaseType
+from core.case_types import CASE_TYPES, CaseType, case_for
 from core.image_utils import _fold_band_means, _nudge, is_full_cover, split_full_cover
+from core.region import NTSC_J, NTSC_U, PAL
 from core.spine_generator import generate_spine
 
 _log = logging.getLogger(__name__)
@@ -21,6 +23,10 @@ _log = logging.getLogger(__name__)
 # Most pixels per mm a face is built at. LaunchBox's 1200 px at 2x
 # supersampling needs about 15.5 px/mm on a PAL case at 30 degrees.
 JEWEL_PX_PER_MM_MAX = 16
+
+# The widest end strip, as a share of its card's width: PAL PS1's.
+_WIDEST_STRIP_SHARE = max(case.jewel.strip / case.jewel.back_card[0]
+                          for case in CASE_TYPES.values() if case.layout == "jewel")
 
 
 @dataclass
@@ -45,6 +51,39 @@ def back_has_strips(image: Image.Image, case_type: CaseType) -> bool:
     without = (card_w - 2 * case_type.jewel.strip) / card_h
     ratio = image.width / image.height
     return abs(ratio - with_strips) / with_strips < abs(ratio - without) / without
+
+
+def _card_misfit(image: Image.Image, case_type: CaseType) -> float:
+    """How far a back scan's width/height is from `case_type`'s card, with
+    strips or without, whichever is nearer, relatively."""
+    card_w, card_h = case_type.jewel.back_card
+    ratio = image.width / image.height
+    return min(abs(ratio - r) / r
+               for r in (card_w / card_h, (card_w - 2 * case_type.jewel.strip) / card_h))
+
+
+def card_case(image: Image.Image, platform: str, current: CaseType) -> CaseType:
+    """`current`, or `platform`'s regional case whose back card fits the back
+    scan `image` better than `current`'s does (SLIP-0111).
+
+    A PAL PS1 card is wider than the standard card, so a PAL scan cut with
+    the standard card's folds keeps most of each end strip on the back.
+    Cases sharing `current`'s card fit equally and never replace it.
+    """
+    if current.layout != "jewel":
+        return current
+    candidates = [case for region in (NTSC_U, PAL, NTSC_J)
+                  if (case := case_for(platform, region)) is not None
+                  and case.layout == "jewel"]
+    best = min(candidates, key=lambda case: _card_misfit(image, case), default=current)
+    return best if _card_misfit(image, best) < _card_misfit(image, current) else current
+
+
+def fold_reach(image: Image.Image) -> int:
+    """How far, in px, the sliders may move a fold of the back scan `image`:
+    the widest end strip any jewel card has, so a fold can cross a whole
+    strip whichever case is shown (SLIP-0111)."""
+    return max(40, math.ceil(image.width * _WIDEST_STRIP_SHARE))
 
 
 def detect_strip_folds(image: Image.Image, case_type: CaseType) -> tuple[int, int]:

@@ -38,6 +38,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A European PlayStation back insert no longer leaves its printed edges on
+  the back** (SLIP-0111)
+  A European insert is wider than a US one. With the US case shown, its two
+  printed edges stayed on the back, and the boundary sliders could not reach
+  far enough to fix it. Loading a back insert now picks the case it fits,
+  unless you chose the case yourself, and the sliders reach across a whole
+  edge.
+
 - **A ScreenScraper search no longer fails with "Read timed out"** (SLIP-0103)
   A search with no system chosen can take most of a minute to start
   answering, and Slipcase gave up after 30 seconds. A search now waits up to
