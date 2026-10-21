@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: SLIP=111 -->
+<!-- ants-roadmap-id-high-water: SLIP=113 -->
 
 # Slipcase — Roadmap
 
@@ -1101,6 +1101,40 @@ building.
   test_top_and_bottom_faces, test_top_picture_drawn. Waiting on the
   user's by-eye check; flip to shipped when right.
   **Layman:** When you turn the box in the 3D viewer to look at its top or bottom edge, you see the PlayStation logo moulded into the plastic, as on a real case.
+  Kind: feature.
+  Source: user-request-2026-10-21.
+
+- 📋 [SLIP-0112] **Show "Dreamcast" moulded into a PAL Dreamcast case's top and bottom in the 3D viewer.**
+  The user's Gemini answer, 2026-10-21 (unsourced): PAL Dreamcast cases
+  have "Dreamcast" pressed into the top and bottom borders. The user
+  asked for it, "but only after a session restart". Uses SLIP-0110's
+  machinery: CaseType.moulded_logo on Dreamcast Jewel Case (PAL). Gemini
+  says debossed (pressed in), where the PS1 logo is raised; check the
+  user's case or photos before choosing. The PAL Dreamcast depth is also
+  in question (the user's 10.4 mm against Gemini's 18 mm); the user is
+  sending Gemini's figures.
+  Depth, 2026-10-21: Gemini gave 18 mm in one answer and 142 x 126 x 23
+  mm in the next, so neither is usable. A web search found no published
+  figure. Sega Replay's listing
+  (https://segareplay.com/product/pal-style-dreamcast-jewel-case-new/)
+  says its NTSC-size replacement "is not as thick as the OEM PAL cases",
+  so the PAL case is thicker than the 10.4 mm Slipcase uses. Waiting on
+  the user's own measurement before changing CASE_TYPES.
+  **Layman:** Turn a European Dreamcast box in the 3D viewer and the word "Dreamcast" shows moulded into its top and bottom edges, as on the real case.
+  Kind: feature.
+  Source: user-request-2026-10-21.
+
+- 📋 [SLIP-0113] **Offer each console's special-edition and multi-disc cases for the user to pick.**
+  The user, 2026-10-21: "let the user choose what type of case. If they
+  trying to replicate their own library then all these various options
+  will be required." Examples from Wikipedia, Keep case, and the user's
+  Gemini answers: PS2 PAL launch navy, PS2 Platinum silver, PS3 and Xbox
+  Platinum or Greatest Hits colours, Sega Sports black Dreamcast cases,
+  multi-disc and fat jewel cases (SLIP-0106 § 9). The console and region
+  still pick the standard case; these are picked by hand from the case
+  list, so a long list needs grouping by console. Needs write-spec: the
+  list's shape and which variants are sourced.
+  **Layman:** Pick the exact case your copy came in, such as a silver Platinum PS2 case or a thick multi-disc case, so your rendered library matches your shelf.
   Kind: feature.
   Source: user-request-2026-10-21.
 
