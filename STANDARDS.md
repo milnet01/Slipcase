@@ -476,8 +476,10 @@ them, so a rule is changed here and nowhere else.
   outside the chosen folder (SLIP-0104 INV-10).
 - **No code execution**: User-provided text (titles, serials, filenames) is only rendered as image text via PIL, never passed to `eval`, `exec`, `subprocess`, or shell commands.
 - **File dialogs**: Filter by image extensions to prevent accidental loading of non-image files.
-- **Network**: HTTPS only. `timeout=(10, 30)` bounds the connect and each read
-  but not the total, so `_read_body()` also holds every body, image or JSON,
+- **Network**: HTTPS only. `timeout=(10, READ_TIMEOUT)` bounds the connect
+  and each read but not the total. `get()`, the JSON path, waits
+  `REPLY_READ_TIMEOUT` per read instead, because a search can take that long
+  to start answering (SLIP-0103). So `_read_body()` also holds every body, image or JSON,
   to `MAX_DOWNLOAD_SECONDS` -- a slow trickle trips neither the size cap nor
   the read timeout. It checks after each `read1()`, which returns as soon as
   any bytes arrive; a read that waits for a full chunk never reaches the check

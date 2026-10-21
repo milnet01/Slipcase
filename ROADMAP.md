@@ -1933,7 +1933,7 @@ building.
   Kind: fix.
   Source: in-session-2026-09-30.
 
-- 📋 [SLIP-0103] **A ScreenScraper search can take longer to start answering than the 30 second timeout allows.**
+- ✅ [SLIP-0103] **A ScreenScraper search can take longer to start answering than the 30 second timeout allows.**
   Measured 2026-09-30 with a working login, searching "Crash Bandicoot" with
   no system chosen: the first reply byte arrived after 10.7 s on one try and
   46.4 s on another; three tries in a row hit the 30 second read timeout in
@@ -1941,6 +1941,11 @@ building.
   half a second. Decide between a longer wait for the first byte on the JSON
   path, a narrower default query, or a clearer message than the raw timeout.
   Whether a search WITH a system chosen is as slow was not measured.
+  Fixed (2026-10-21): re-measured with the user's login. No system:
+  first byte after 48.4, 45.4, 8.4 and 49.4 s. PlayStation chosen: 12.1
+  and 1.2 s. get(), the JSON path, now waits REPLY_READ_TIMEOUT (90 s)
+  per read; downloads keep READ_TIMEOUT (30 s). Locked by
+  tests/test_security.py::TestReadTimeouts.
   **Layman:** A search on ScreenScraper sometimes fails with "Read timed out" although the service would have answered a little later.
   Kind: fix.
   Source: in-session-2026-09-30.

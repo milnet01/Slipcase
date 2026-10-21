@@ -19,6 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Covers belong to their publishers, and Slipcase is not affiliated with any
   console maker, publisher or cover-art service.
 
+### Fixed
+
+- **A ScreenScraper search no longer fails with "Read timed out"** (SLIP-0103)
+  A search with no system chosen can take most of a minute to start
+  answering, and Slipcase gave up after 30 seconds. A search now waits up to
+  90 seconds. Choosing a system still makes the search much faster.
+
 ## [1.3.1] - 2026-10-10
 
 **Theme:** Safer cover downloads and a steadier search window.

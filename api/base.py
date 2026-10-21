@@ -44,12 +44,19 @@ ALLOWED_IMAGE_DOMAINS: set[str] = {
     "thumbnails.libretro.com",
 }
 
-# Wall-clock budget for reading one reply body, in seconds. timeout=(10, 30)
+# Wall-clock budget for reading one reply body, in seconds. The read timeout
 # bounds the gap between reads, not the total: a server sending one byte
 # every 29 seconds holds a worker thread and a connection open indefinitely
 # while never reaching the size cap, so neither the cap nor the timeout ever
 # fires (SLIP-0065). _read_body() is what enforces it.
 MAX_DOWNLOAD_SECONDS = 60.0
+
+# Seconds to wait for each read, the first byte included. A search reply may
+# take far longer to start than an image: measured 2026-10-21, a ScreenScraper
+# search with no system chosen took 8 to 49 seconds, so 30 failed three tries
+# in four (SLIP-0103). get() uses the longer wait, downloads the shorter.
+READ_TIMEOUT = 30.0
+REPLY_READ_TIMEOUT = 90.0
 
 # Accepted image formats. The list exists to keep the decoder attack surface
 # small: every format here is one more Pillow decoder reachable from a
@@ -105,8 +112,8 @@ def _read_body(response: requests.Response, max_bytes: int) -> bytes:
     as the socket has anything: read1(), not iter_content() or read(), which
     do not return until a whole chunk has arrived. A trickling server kept
     those waiting for 64 KiB, so the deadline beside them was never reached
-    (SLIP-0101). A reply that stops altogether is cut by the 30 second read
-    timeout instead.
+    (SLIP-0101). A reply that stops altogether is cut by the read timeout
+    instead.
 
     Raises requests.RequestException when either limit is passed.
     """
@@ -180,7 +187,10 @@ class APIClient:
         if not _is_allowed_url(full_url):
             raise requests.RequestException("URL not permitted by allowlist")
         try:
-            response = self._get_validated(full_url, params=params, **kwargs)
+            response = self._get_validated(
+                full_url, params=params, read_timeout=REPLY_READ_TIMEOUT,
+                **kwargs,
+            )
             # Read the body here, bounded, and hand it to the Response the way
             # requests itself stores one, so .json() and .text work. Letting
             # requests read it (stream=False) applied no size cap and no
@@ -222,6 +232,7 @@ class APIClient:
         url: str,
         params: dict | list[tuple[str, str]] | None = None,
         stream: bool = True,
+        read_timeout: float = READ_TIMEOUT,
         **kwargs,
     ) -> requests.Response:
         """GET, re-validating the allowlist on every redirect hop.
@@ -240,7 +251,7 @@ class APIClient:
                 raise requests.RequestException("URL not permitted by allowlist")
             self._rate_limit()
             response = self._session.get(
-                current, params=params, timeout=(10, 30), verify=True,
+                current, params=params, timeout=(10, read_timeout), verify=True,
                 stream=stream, allow_redirects=False, **kwargs,
             )
             params = None

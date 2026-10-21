@@ -191,6 +191,36 @@ class TestJsonPathRedirectValidation(unittest.TestCase):
         self.assertIsNone(second.kwargs["params"])
 
 
+class TestReadTimeouts(unittest.TestCase):
+    """A search may wait longer for its first byte than a download (SLIP-0103).
+
+    Measured 2026-10-21: a ScreenScraper search with no system chosen took
+    8 to 49 seconds to start answering, so a 30 second read timeout failed
+    three tries in four. Images keep 30 seconds.
+    """
+
+    def _read_timeout(self, call):
+        client = APIClient(base_url="https://api.screenscraper.fr")
+        client.min_request_interval = 0
+        response = MagicMock(is_redirect=False, is_permanent_redirect=False)
+        with patch.object(client._session, "get", return_value=response) as get:
+            call(client)
+        return get.call_args.kwargs["timeout"][1]
+
+    def test_json_path_outwaits_a_slow_search(self):
+        self.assertGreaterEqual(
+            self._read_timeout(lambda c: c.get("api2/jeuRecherche.php")), 90
+        )
+
+    def test_download_path_keeps_its_timeout(self):
+        self.assertEqual(
+            self._read_timeout(
+                lambda c: c._get_validated("https://screenscraper.fr/a.png")
+            ),
+            30,
+        )
+
+
 class TestCredentialScrubbing(unittest.TestCase):
     """CLAUDE.md: API errors strip passwords/keys before display."""
 
