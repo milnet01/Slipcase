@@ -41,6 +41,20 @@ class TestCandidateUrls(unittest.TestCase):
         urls = self.client.candidate_urls("Sony - PlayStation 2", "Ratchet & Clank")
         self.assertIn("Ratchet%20_%20Clank%20%28USA%29.png", urls[1])
 
+    def test_a_lower_case_title_also_tries_it_capitalised(self):
+        # SLIP-0116: libretro's names are case-sensitive, and "crash
+        # bandicoot" missed where "Crash Bandicoot" hit (measured 2026-10-21).
+        typed = self.client.candidate_urls(SNES, "the legend of zelda")
+        capitalised = self.client.candidate_urls(SNES, "The Legend of Zelda")
+        self.assertEqual(typed[:len(capitalised)],
+                         [self.client.get_boxart_url(SNES, "the legend of zelda" + s)
+                          for s in self.client.REGION_SUFFIXES])
+        self.assertEqual(typed[len(capitalised):], capitalised)
+
+    def test_a_capitalised_title_costs_no_extra_requests(self):
+        urls = self.client.candidate_urls(SNES, "Mario no Super Picross")
+        self.assertEqual(len(urls), len(self.client.REGION_SUFFIXES))
+
 
 class TestDownloadStopsAtTheFirstHit(unittest.TestCase):
 

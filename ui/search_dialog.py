@@ -355,7 +355,10 @@ class SearchDialog(QDialog):
                 )
             )
         else:
-            self.status_label.setText(self.tr("No results found"))
+            # libretro only finds a game by its full title (SLIP-0116).
+            self.status_label.setText(self.tr(
+                "No results found — try the game's full title, "
+                "such as \"Crash Bandicoot\""))
 
     def _on_preview_error(self, msg: str) -> None:
         """Say why the preview failed rather than only that it did.

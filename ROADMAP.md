@@ -1077,6 +1077,11 @@ building.
   are smaller. Which faces carry which print is unverified for every
   system, and no cover service supplies top or bottom art. User's order
   (2026-10-21): last of the three phases.
+  Research (2026-10-21): docs/research/SLIP-0108-cartridge-boxes.md. The
+  user decided, 2026-10-21: fix the SNES and N64 boxes' shape first (US
+  and PAL landscape, Japanese portrait); Master System and Genesis cases
+  have black plastic top and bottom. Cardboard boxes' top and bottom
+  print: still open (spine colour is the stand-in).
   **Layman:** Cartridge game boxes (NES, SNES, N64, Game Boy and others) get the right size and shape for each region.
   Kind: feature.
   Source: user-request-2026-10-21.
@@ -1186,6 +1191,11 @@ building.
   tests/test_case_list.py TestEditionCases. Still open: multi-disc cases
   (the 24 mm case's back-card strip width is unsourced), and Sega Sports
   black Dreamcast cases (no source; asked the user).
+  Multi-disc PS1 (2026-10-21): the user's photos of Metal Gear Solid
+  Special Missions (PAL) and Final Fantasy VIII (NTSC-U) cases; the user
+  reads about 23 mm thick with two printed spine strips of about 9 mm,
+  and says PAL and NTSC are the same thickness. Gemini (unsourced) gives
+  24 mm. No published source found. Working figure: 24 mm, an estimate.
   **Layman:** Pick the exact case your copy came in, such as a silver Platinum PS2 case or a thick multi-disc case, so your rendered library matches your shelf.
   Kind: feature.
   Source: user-request-2026-10-21.
@@ -2230,7 +2240,7 @@ building.
   Kind: fix.
   Source: user-report-2026-10-21.
 
-- 📋 [SLIP-0116] **With no cover-art service set up, Search Online finds nothing for a name typed in lower case or in part.**
+- ✅ [SLIP-0116] **With no cover-art service set up, Search Online finds nothing for a name typed in lower case or in part.**
   The user, 2026-10-21, on the Windows PC with no credentials set:
   "game", "crash bandicoot" and "crash" found nothing (platform PS2).
   libretro is the only source then, and it is an exact file-name lookup
@@ -2240,6 +2250,15 @@ building.
   title with capitals. Options: try a capitalised candidate, say in the
   dialog that libretro needs the exact title, or match against the
   per-system listing (SLIP-0089 rejected it at about 1 MB for SNES).
+  Resolved (2026-10-21): candidate_urls also tries a title typed all in
+  lower case capitalised as No-Intro names are
+  (LibretroThumbnails.capitalise); a title with any capital costs no
+  extra requests. "No results found" now says to try the full title.
+  Verified live: "crash bandicoot" on PS1 finds the cover. Partial
+  titles such as "crash" still miss; the per-system listing stays
+  rejected (SLIP-0089). Tests: tests/test_libretro.py
+  test_a_lower_case_title_also_tries_it_capitalised,
+  test_a_capitalised_title_costs_no_extra_requests.
   **Layman:** Searching for a game's cover without an account finds nothing unless you type the title exactly, capitals included.
   Kind: fix.
   Source: user-report-2026-10-21.

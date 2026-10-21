@@ -66,11 +66,34 @@ class LibretroThumbnails(APIClient):
         The exact name is tried first, so a caller that already holds the full
         ROM name pays nothing for this. The tags after it are ordered by how
         much of the library they cover.
+
+        The names are case-sensitive, so a title typed all in lower case is
+        tried again capitalised (SLIP-0116). A title with any capital is
+        taken as the user typed it, and costs no extra requests.
         """
+        names = [game_name]
+        if game_name == game_name.lower() and game_name != self.capitalise(game_name):
+            names.append(self.capitalise(game_name))
         return [
-            self.get_boxart_url(system, game_name + suffix)
+            self.get_boxart_url(system, name + suffix)
+            for name in names
             for suffix in self.REGION_SUFFIXES
         ]
+
+    # Words No-Intro names keep in lower case inside a title.
+    _SMALL_WORDS = frozenset(
+        ("a", "an", "and", "at", "by", "for", "in", "of", "on", "or", "the", "to", "vs"))
+
+    @classmethod
+    def capitalise(cls, title: str) -> str:
+        """`title` capitalised as No-Intro names are: every word, except
+        small words that do not start the title or a part after " - "."""
+        words = title.split(" ")
+        return " ".join(
+            word[:1].upper() + word[1:]
+            if i == 0 or words[i - 1] == "-" or word not in cls._SMALL_WORDS else word
+            for i, word in enumerate(words)
+        )
 
     def download_boxart(self, system: str, game_name: str) -> Image.Image | None:
         """Download a game's boxart from libretro-thumbnails.
