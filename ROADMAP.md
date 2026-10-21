@@ -1128,6 +1128,18 @@ building.
   the user's own measurement before changing CASE_TYPES.
   The user chose, 2026-10-21: keep 10.4 mm. Raised or pressed in:
   waiting on the user's photos.
+  Research (2026-10-21), photos viewed at source: eBay UK listing
+  406966176455 (https://www.ebay.co.uk/itm/406966176455), an empty
+  PAL case. "Dreamcast" with a small TM is moulded on the tray's blue
+  front hinge strip, not the top and bottom edges: raised letters in a
+  smooth, slightly recessed rounded panel, about 40 mm long with about
+  30 mm of text, near mid-height, reading bottom to top; the rest of
+  the strip is stippled. An end-on photo shows plain top and bottom
+  edges. Close-up:
+  https://i.ebayimg.com/images/g/UlMAAeSwlpdppIwm/s-l1600.jpg; tray:
+  https://i.ebayimg.com/images/g/VLoAAeSwPfFppIwl/s-l1600.jpg. Sizes
+  estimated from one photo. Depth: no source found. The user has no PAL
+  Dreamcast cases.
   **Layman:** Turn a European Dreamcast box in the 3D viewer and the word "Dreamcast" shows moulded into its top and bottom edges, as on the real case.
   Kind: feature.
   Source: user-request-2026-10-21.
