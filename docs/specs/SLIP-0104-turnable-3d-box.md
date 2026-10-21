@@ -2,7 +2,8 @@
 # SLIP-0104 — Show a turnable 3D box, and save it as a box file RetroDB can load
 
 **Status:** accepted (2026-10-15); amended 2026-10-21 (case details,
-transparent viewer background), re-review owed.
+transparent viewer background), not re-reviewed: user ruling 2026-10-21,
+a few-line amendment is checked by its implementation.
 **Kind:** implement.
 **Source:** ROADMAP SLIP-0104 (user request 2026-10-10; details agreed with
 the RetroDB session the same day).
