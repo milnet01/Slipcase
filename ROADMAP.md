@@ -1241,6 +1241,10 @@ building.
   the inside of the left spine. So what shows through is game-specific,
   from the back scan, not a drawn "PlayStation". Waiting on the user to
   confirm how to place it.
+  The user, 2026-10-21: "nothing must be cut, the left strip must be see
+  through and show what is behind it on the inside of the back cover."
+  So the US front hinge strip is a clear window onto the back card's
+  inside, not a panel drawn on the front.
   **Layman:** The thin clear border round a CD-case cover now looks like see-through plastic catching the light, as on a real case.
   Kind: enhancement.
   Source: user-request-2026-10-21.
@@ -1273,6 +1277,9 @@ building.
   between Sega, the swirl and Dreamcast are smaller. Fixed: reads_up is
   now True, and the swirl has half a space on each side instead of a
   full one. Waiting on the user's by-eye check.
+  The user, 2026-10-21, on the turned print: it still looks printed on
+  the front cover, not on the inside of the back cover. The panel needs
+  to read as lying behind the clear plastic, at the back card's depth.
   **Layman:** On a see-through US Dreamcast case, the white "Sega Dreamcast" edge of the back insert now shows beside the cover, as on a real case.
   Kind: enhancement.
   Source: user-request-2026-10-21.
