@@ -41,6 +41,37 @@ wraps "around the left side of the case" [OD].
 | PC Engine CD JP, PC CD-ROM | standard jewel | | S [KO], [OD] |
 | Neo Geo CD | jewel, spine card round the spine | | S https://videogameforums.com/neogeocd/neo-geo-cd-frequently-asked-questions |
 
+**The user's own cases (2026-10-21).** NTSC-U PS1 cases and all
+Dreamcast cases measure as a music CD jewel case. A PAL Dreamcast case is
+as thick as an NTSC-U PS1 case. A PAL PS1 case has a music CD case's width
+and height and is only thicker; this overrides the 130 mm in the table
+above. The clear hinge strip is the same width on every jewel case.
+
+**An AI summary the user passed on (Gemini, 2026-10-21; it cites no
+sources, so it corroborates and does not prove).** Standard back inlay
+150 × 118 "including the two 6 mm folded spine flaps", which supports the
+6 mm strip. Depth 10.4, booklet 120 × 120, PAL 18 deep, multi-disc "fat"
+case 24 deep. It gives the case as 142 tall and 124 wide. That is set
+aside: its own flaps fold along the card's 118 mm edges, which puts the
+spines on the 125 mm edges, and the user's PAL back scan (1925 × 1441,
+a strip down each short side) is wider than tall. US long box
+190.5 × 140 × 25.4, against about 144 × 207 × 21 above.
+
+**Its second answer (Gemini, 2026-10-21, sources named but not
+checkable, so U).**
+
+- Hinge strip about 4.5 mm, but measured to the booklet's retaining
+  clips, not to the booklet's edge.
+- PAL PS1 back inlay 150 × 118 with about 6 mm flaps. Set aside: the
+  user's PAL back scan, taken as 118 mm tall, gives about 12.2 px/mm, a
+  card about 158 × 118 and end strips about 13.5 mm. A 6 mm flap cannot
+  cover an 18 mm side.
+- Trays: NTSC-U PS1 solid black; NTSC-J clear or grey/black by release.
+- Keep cases: the sleeve stops just inside the clear overlay, so the
+  opening edge is bare clear plastic.
+- Mega Drive: US Genesis and PAL clamshells about 135 × 180 × 24, black;
+  JP case about 140 × 173 × 22, black or dark grey, ribbed.
+
 ## Keep cases and handhelds
 
 One printed sheet wraps back + spine + front under a clear sleeve [KC].
@@ -77,6 +108,13 @@ system.
 | GB, GBC, GBA US/PAL | 126 × 126 × 23 | square | S [PS] |
 | GBA JP | 90.5 × 138 × 24 | portrait | S https://retroprotection.com/product/japanese-game-boy-advance-box-protector/ |
 | Atari 2600 | 140 × 194 × 23 | portrait | S [PS] |
+
+**An AI summary the user passed on (Gemini, 2026-10-21; its sources
+are named loosely and could not be opened, so U).** US NES box about
+127 × 178 × 25; PAL NES box about 130 × 185 × 32, deeper for
+multi-language manuals. On NES, SNES and N64 boxes the two side panels
+carry the title, publisher logo and product code, and the top and bottom
+flaps the title and code, or a colour block.
 
 ## What the cover-art services supply
 

@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **PlayStation and Dreamcast games now look like their real jewel cases**
+  (SLIP-0106)
+  The front booklet sits beside a strip of bare tray plastic under a clear
+  lid with a soft shine. A loaded back insert's two printed edges go on the
+  case's two sides. Each case has its tray's real colour, and a European
+  PlayStation case is thicker. Slipcase picks the US, European or Japanese
+  case from the cover's file name, such as "(Europe)", and you can pick
+  another in the case list. Box files gain the opening side's picture.
+
 - **Turn the box in 3D, and save it for RetroDB** (SLIP-0104)
   A new 3D View shows all six sides of the box. Turn it with the mouse or
   the arrow keys, zoom with the wheel, or let Auto-spin turn it. Exports and
@@ -18,6 +27,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The About box and the README now say who owns the cover art**
   Covers belong to their publishers, and Slipcase is not affiliated with any
   console maker, publisher or cover-art service.
+
+### Changed
+
+- **The CD Jewel Case now stands landscape, as the real case does**
+  (SLIP-0106)
+  It is 142 mm wide and 125 mm tall, and draws as a jewel case. PlayStation
+  games now default to the new PS1 jewel cases, and Dreamcast games to the
+  Dreamcast ones.
 
 ### Fixed
 

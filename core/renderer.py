@@ -23,6 +23,7 @@ from core.image_utils import (
     is_full_cover,
     split_full_cover,
 )
+from core.jewel import jewel_faces
 from core.spine_generator import generate_spine
 
 # Perspective projection parameters
@@ -113,6 +114,7 @@ class BoxRenderer:
         spine_right_offset: int = 0,
         full_cover: bool | None = None,
         view: str = "front",
+        back_strips: bool | None = None,
     ) -> Image.Image:
         """Render the 3D box.
 
@@ -135,6 +137,8 @@ class BoxRenderer:
                 "back" shows the back cover with the spine on its right, as
                 the box is seen from behind (SLIP-0033). Raises ValueError
                 for "back" when there is no back cover.
+            back_strips: For a jewel case, whether back_image is the whole
+                back card with its end strips. None detects it.
 
         Returns:
             RGBA image of the rendered 3D box.
@@ -148,17 +152,33 @@ class BoxRenderer:
         front_h = box_dims["front_h"]
         spine_w = box_dims["spine_w"]
 
-        # Detect full cover (back + spine + front) and split if needed
+        # A jewel case's faces come from its booklet and back card, built
+        # where build_box_model builds them too (SLIP-0106 § 4.4).
         extracted_spine = None
-        if full_cover is None:
-            full_cover = is_full_cover(front_image, self.case_type)
-        if full_cover:
-            _back, extracted_spine, front_image = split_full_cover(
-                front_image, self.case_type,
-                left_offset=spine_left_offset, right_offset=spine_right_offset,
+        jewel = self.case_type.layout == "jewel"
+        if jewel:
+            faces = jewel_faces(
+                front_image, back_image, self.case_type,
+                title=title, serial=serial, platform=platform,
+                spine_color=spine_color,
+                spine_left_offset=spine_left_offset,
+                spine_right_offset=spine_right_offset,
+                full_cover=full_cover, back_strips=back_strips,
             )
-            if back_image is None:
-                back_image = _back
+            front_image, back_image = faces.front, faces.back
+            extracted_spine = faces.hinge
+            del faces
+        else:
+            # Detect full cover (back + spine + front) and split if needed
+            if full_cover is None:
+                full_cover = is_full_cover(front_image, self.case_type)
+            if full_cover:
+                _back, extracted_spine, front_image = split_full_cover(
+                    front_image, self.case_type,
+                    left_offset=spine_left_offset, right_offset=spine_right_offset,
+                )
+                if back_image is None:
+                    back_image = _back
 
         # The back view is the front view mirrored: flip the back cover and
         # the spine, lay the box out as usual, then flip the finished box
@@ -308,8 +328,13 @@ class BoxRenderer:
 
         # --- Top and bottom faces (drawn on single layer to save an allocation) ---
         if proj_top_h > 3:
-            top_color = case_color or extract_dominant_edge_color(front_image, edge="top")
-            bottom_color = case_color or extract_dominant_edge_color(front_image, edge="bottom")
+            # A jewel case's top and bottom are bare tray plastic.
+            if jewel:
+                top_color = bottom_color = case_color or self.case_type.plastic
+            else:
+                top_color = case_color or extract_dominant_edge_color(front_image, edge="top")
+                bottom_color = case_color or extract_dominant_edge_color(
+                    front_image, edge="bottom")
             faces = self._render_faces(
                 front_w=front_w,
                 spine_w=spine_w,

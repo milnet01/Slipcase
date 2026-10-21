@@ -7,9 +7,14 @@ cartridge box fold lines, etc.
 
 import math
 
+import numpy as np
 from PIL import Image, ImageDraw
 
 from core.case_types import CaseType
+
+# Strongest alpha of a jewel case lid's shine, at its top-left corner. Judged
+# by eye at build (SLIP-0106 § 4.7).
+SHINE_ALPHA = 48
 
 
 def generate_front_texture(case_type: CaseType, width: int, height: int) -> Image.Image:
@@ -22,12 +27,14 @@ def generate_front_texture(case_type: CaseType, width: int, height: int) -> Imag
     draw = ImageDraw.Draw(overlay)
     name = case_type.name
 
-    if name == "DVD Case":
+    # Every jewel entry, whatever its name, is the same moulding (SLIP-0106).
+    if case_type.layout == "jewel":
+        _draw_jewel_front(draw, width, height)
+        overlay.alpha_composite(generate_lid_shine(width, height))
+    elif name == "DVD Case":
         _draw_dvd_front(draw, width, height)
     elif name == "Blu-ray Case":
         _draw_bluray_front(draw, width, height)
-    elif name in ("CD Jewel Case",):
-        _draw_jewel_front(draw, width, height)
     elif name in ("NES Cartridge Box", "SNES Cartridge Box",
                    "N64 Cartridge Box", "Genesis Clamshell",
                    "Game Boy Box", "GBA Box", "Universal Cart Case"):
@@ -48,7 +55,9 @@ def generate_spine_texture(case_type: CaseType, width: int, height: int) -> Imag
     draw = ImageDraw.Draw(overlay)
     name = case_type.name
 
-    if name == "DVD Case":
+    if case_type.layout == "jewel":
+        _draw_jewel_spine(draw, width, height)
+    elif name == "DVD Case":
         _draw_dvd_spine(draw, width, height)
     elif name == "Blu-ray Case":
         _draw_bluray_spine(draw, width, height)
@@ -56,8 +65,6 @@ def generate_spine_texture(case_type: CaseType, width: int, height: int) -> Imag
                    "N64 Cartridge Box", "Genesis Clamshell",
                    "Game Boy Box", "GBA Box", "Universal Cart Case"):
         _draw_cardboard_spine(draw, width, height)
-    elif name == "CD Jewel Case":
-        _draw_jewel_spine(draw, width, height)
     elif name in ("Switch Case", "DS Case", "3DS Case",
                   "PSP Case", "PS Vita Case"):
         _draw_keepcase_spine(draw, width, height)
@@ -149,6 +156,17 @@ def _draw_jewel_front(draw: ImageDraw.ImageDraw, w: int, h: int) -> None:
     # Inner ring
     r2 = int(r * 0.4)
     _draw_circle_indent(draw, cx, cy, r2, lw)
+
+
+def generate_lid_shine(width: int, height: int) -> Image.Image:
+    """A jewel case lid's soft shine: white, strongest at the top-left and
+    gone past the diagonal. Alpha is SHINE_ALPHA * max(0, 1 - x/w - y/h)."""
+    x = np.arange(width, dtype=np.float32)[np.newaxis, :] / width
+    y = np.arange(height, dtype=np.float32)[:, np.newaxis] / height
+    alpha = np.round(SHINE_ALPHA * np.maximum(0.0, 1.0 - x - y)).astype(np.uint8)
+    shine = np.full((height, width, 4), 255, dtype=np.uint8)
+    shine[:, :, 3] = alpha
+    return Image.fromarray(shine, "RGBA")
 
 
 def _draw_jewel_spine(draw: ImageDraw.ImageDraw, w: int, h: int) -> None:

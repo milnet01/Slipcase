@@ -10,12 +10,12 @@
     {
       "name": "image-analysis",
       "summary": "Decides what an input image is and manufactures what it lacks: full-cover detection and splitting, spine location, generated spine art.",
-      "sourcePaths": ["core/image_utils.py", "core/spine_generator.py"]
+      "sourcePaths": ["core/image_utils.py", "core/spine_generator.py", "core/jewel.py"]
     },
     {
       "name": "case-model",
       "summary": "The real-world measurements every render is built from, the platform-to-case mapping, and the persisted settings.",
-      "sourcePaths": ["core/case_types.py", "core/config.py", "core/version.py"]
+      "sourcePaths": ["core/case_types.py", "core/config.py", "core/version.py", "core/region.py"]
     },
     {
       "name": "api-clients",
@@ -60,7 +60,7 @@
     {
       "name": "tests",
       "summary": "The test suite. review-code excludes this lane; review-tests is exactly this lane.",
-      "sourcePaths": ["tests/test_regressions.py", "tests/test_renderer.py", "tests/test_security.py", "tests/test_libretro.py", "tests/test_smoke.py", "tests/test_api_recordings.py", "tests/test_search_worker.py", "tests/test_single_instance.py", "tests/conftest.py", "tests/test_box_model.py", "tests/test_box_file.py", "tests/test_box_viewer.py"]
+      "sourcePaths": ["tests/test_regressions.py", "tests/test_renderer.py", "tests/test_security.py", "tests/test_libretro.py", "tests/test_smoke.py", "tests/test_api_recordings.py", "tests/test_search_worker.py", "tests/test_single_instance.py", "tests/conftest.py", "tests/test_box_model.py", "tests/test_box_file.py", "tests/test_box_viewer.py", "tests/test_jewel.py", "tests/test_region.py"]
     }
   ]
 }

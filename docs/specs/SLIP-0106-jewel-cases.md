@@ -61,6 +61,13 @@ picture without breaking a version 1 reader.
 - **Plastic.** User, 2026-10-21: the real plastic colour per case, a
   see-through lid with a soft shine over the art, bare plastic where
   nothing is printed. Moulded logos later, as their own item.
+- **Every jewel case is a music CD case.** User, 2026-10-21: "NTSC PS1
+  cases and all Dreamcast cases are the same measurements as music CD
+  cases. The width and height of PAL cases for PS1 are the same as music
+  CD cases, it is only the thickness that is more. The width of the clear
+  hinge strip is the same as any music CD case." And: "The thickness of
+  the PAL Dreamcast cases is the same as NTSC PS1 cases." So only the PS1
+  PAL case differs in size, and only in depth.
 - **A hand choice holds for one cover.** Slipcase, 2026-10-21, open to the
   user's veto: a case picked in the case list holds until the next cover is
   loaded or the platform changes. A batch started while it holds uses it
@@ -112,25 +119,24 @@ unverified, a working value the user can correct (§ 15).
 | Name | W × H × D | Booklet | Back card, strip | Plastic | `platforms` | Sources |
 |---|---|---|---|---|---|---|
 | `CD Jewel Case` | 142 × 125 × 10 | 120 × 120 | 150 × 118, 6 | black `#101010` | `("Saturn",)` | size, booklet, card S [OD]; strip, plastic U |
-| `PS1 Jewel Case (NTSC-U)` | 142 × 125 × 10.4 | 120 × 120 | 150 × 118, 6 | black | `("PS1",)` | depth S (vgcollect); rest as above |
-| `PS1 Jewel Case (PAL)` | 142 × 130 × 18 | 120 × 122 | 163 × 122, 14 | black | `()` | size S [PAL], order W × H inferred; depth and black tray S [OD]; paper from the user's scans, U |
-| `PS1 Jewel Case (NTSC-J)` | 142 × 125 × 10 | 120 × 120 | 150 × 118, 6 | black | `()` | depth S (chiebukuro, later releases); plastic U |
-| `Dreamcast Jewel Case (NTSC-U)` | 142 × 125 × 10.2 | 120 × 120 | 150 × 118, 6 | clear `#C8CCD0` | `("Dreamcast",)` | depth, clear tray S [DJ] |
-| `Dreamcast Jewel Case (NTSC-J)` | 142 × 125 × 10 | 120 × 120 | 150 × 118, 6 | white `#F0F0F0` | `()` | white tray S [DJ]; depth "standard jewel" S [DJ] |
-| `Dreamcast Jewel Case (PAL)` | 142 × 125 × 18 | 120 × 120 | 166 × 118, 14 | blue `#2A4F9E` | `()` | blue tray S (segareplay); depth "thicker", 18 is U (§ 15) |
+| `PS1 Jewel Case (NTSC-U)` | 142 × 125 × 10.4 | 120 × 120 | 150 × 118, 6 | black | `("PS1",)` | depth S (vgcollect); black tray supported by a second account, "solid opaque black" (passed on by the coordinator, 2026-10-21); rest as above |
+| `PS1 Jewel Case (PAL)` | 142 × 125 × 18 | 120 × 120 | 158 × 118, 13.5 | black | `()` | W × H and booklet S (the user, § 3); depth and black tray S [OD]; card measured from the user's scan, U |
+| `PS1 Jewel Case (NTSC-J)` | 142 × 125 × 10 | 120 × 120 | 150 × 118, 6 | black | `()` | depth S (chiebukuro, later releases); tray colour varies by release, black kept as the default, U |
+| `Dreamcast Jewel Case (NTSC-U)` | 142 × 125 × 10.4 | 120 × 120 | 150 × 118, 6 | clear `#C8CCD0` | `("Dreamcast",)` | size S (the user, § 3); clear tray S [DJ] |
+| `Dreamcast Jewel Case (NTSC-J)` | 142 × 125 × 10.4 | 120 × 120 | 150 × 118, 6 | white `#F0F0F0` | `()` | size S (the user, § 3); white tray S [DJ] |
+| `Dreamcast Jewel Case (PAL)` | 142 × 125 × 10.4 | 120 × 120 | 150 × 118, 6 | blue `#2A4F9E` | `()` | size S (the user, § 3); blue tray S (segareplay) |
 
 How the unverified figures were reached:
 
-- **PS1 PAL paper.** The user's PAL Ridge Racer Type 4 scans, as the user
-  described them on 2026-10-21: a back of 1925 × 1441 px with a dark strip
-  of about 165 px at each end, and a front of 1453 × 1476 px. A 163 × 122
-  card with 14 mm strips has the back's ratio (1.336 against 1.336) and
-  strip share (0.086 against 0.086). A 120 mm wide booklet at the front's
-  ratio (0.984) is 122 tall.
+- **PS1 PAL card.** Measured from the user's PAL Ridge Racer Type 4 back
+  scan, 1925 × 1441 px with a dark strip of about 165 px at each end.
+  Taking its height as the standard 118 mm card height gives 12.2 px/mm.
+  So the card is about 158 mm wide, each end strip about 13.5 mm, and the
+  middle about 131 mm. An AI summary the user passed on gives 150 × 118
+  with 6 mm flaps for this card. The scan wins: a 6 mm flap cannot wrap an
+  18 mm side.
 - **Standard strip, 6 mm.** The 150 mm card spans a 142 mm case and folds
   into a 10 mm side; 6 mm is a judgement, not a measurement.
-- **Dreamcast PAL card.** The standard 138 mm middle with 14 mm strips,
-  by analogy with the PS1 PAL case.
 
 `PLATFORM_CASE_MAP` and `ALL_PLATFORMS` are built as today, from
 `platforms`. So each platform still has exactly one default case, and
@@ -186,13 +192,15 @@ def detect_region(file_name: str) -> str:
 
 ### 4.3 Where detection hooks in
 
-- **`MainWindow._load_front`.** After a file is chosen and before
-  `_set_front_image`, a new `MainWindow._detect_case(path)` runs:
+- **`MainWindow._load_front` and `MainWindow._open_recent`.** Both load a
+  cover from a file. After the file is read and before `_set_front_image`,
+  a new `MainWindow._detect_case(path)` runs:
   `case_for(self.platform_combo.currentText(), detect_region(Path(path).name))`.
-  When that returns a case, it is set in `case_combo` and the status bar
-  names the region. It runs before `_set_front_image` because that method
-  calls `is_full_cover` with the current case. It also clears
-  `self._case_by_hand`.
+  When that returns a case, it is set in `case_combo`. It runs before
+  `_set_front_image` because that method calls `is_full_cover` with the
+  current case. It also clears `self._case_by_hand`. It returns a note
+  naming the region, which the caller adds to the status line after
+  `_set_front_image`, since that method rewrites the status line.
 - **Search results.** `_on_search_images` has no file name, so the case is
   left as it is.
 - **The case list.** A new slot on `case_combo.activated` sets
@@ -238,8 +246,9 @@ panel when the front is a wrap.
 resized to the booklet area and pasted. The area's top, bottom and right
 margins are equal: `m = (H − booklet_h) / 2`. The strip left of it,
 `W − m − booklet_w` wide, is the hinge strip: tray plastic seen through the
-lid. That is 19.5 mm on the standard case and 18 mm on the PS1 PAL case,
-both U. The hinge strip is geometry, so it is drawn whatever
+lid. Every jewel case is 142 × 125 with a 120 × 120 booklet, so the strip
+is 19.5 mm on each. The user confirms it is the same on every jewel case
+(§ 3); the 19.5 mm is computed, U. The hinge strip is geometry, so it is drawn whatever
 `show_texture` says.
 
 **Back card.** `back_strips` None means detect: `back_has_strips` compares
@@ -253,12 +262,14 @@ band takes a back without strips for one with them.
 **Folds.** `detect_strip_folds` estimates each fold from the geometry, at
 `strip / back_card_w` of the width from each end. It then moves each fold
 by the same multi-band edge search `_refine_spine_bounds` uses (STANDARDS.md
-§ 5). The search's `_nudge` is lifted to module level in
-`core/image_utils.py` so both callers share it. The 85–115% width check is
+§ 5). The search's `_nudge`, and the per-band column means it reads, now
+`_fold_band_means`, are lifted to module level in `core/image_utils.py`
+so both callers share them. The 85–115% width check is
 not applied, because the folds bound the middle, not a spine.
 `split_back_card` adds the offsets, then clamps each fold to at least one
 pixel from either edge and from the other fold, as `split_full_cover`
-clamps its bounds.
+clamps its bounds. Three parts need three pixels, so `jewel_faces` treats
+a back scan under 3 px wide as a card without strips.
 
 **Which strip goes where.** A back scan is seen from behind, and from behind
 the hinge is on the right. So the scan's **right** strip is the hinge side
@@ -275,8 +286,8 @@ whose spine sits right of the back.
 | front | the wrap's front panel, when the front is a wrap | the front image | — |
 
 `generate_spine` is called as `render` calls it today, filling the whole
-D × H face. A strip from a scan is resized to `strip × back_card_h` and
-centred on a D × H canvas of `plastic`. The back's middle,
+D × H face. A strip from a scan, or a wrap's spine, is resized to
+`strip × back_card_h` and centred on a D × H canvas of `plastic`. The back's middle,
 `(back_card_w − 2·strip) × back_card_h`, is centred on a W × H canvas of
 `plastic`.
 
@@ -312,10 +323,11 @@ today's `CD Jewel Case` gives 1.834 (both computed from the table,
   unless the user was asked.
 - **The UI.** With a jewel case and a back loaded, a new checkbox,
   `back_strips_check`, reads "Back scan has end strips: put them on the
-  case's sides". It is shown ticked when `back_has_strips` says so, and the
-  user can untick it. When the front is not a wrap, the Spine Boundary
-  Adjustment sliders move the back card's folds, and its three thumbnails
-  show left strip, middle and right strip. When the front is a wrap, the
+  case's sides". It sits in the Back Cover group. It is shown ticked when
+  `back_has_strips` says so, and the user can untick it. When the front is not a wrap, the Spine Boundary
+  Adjustment sliders move the back card's folds, its three thumbnails
+  show left strip, middle and right strip, and the full-cover checkbox is
+  hidden, so `_full_cover_choice` stays None. When the front is a wrap, the
   sliders stay with the wrap and the back's folds come from detection
   alone.
 
@@ -368,10 +380,12 @@ shows.
   NTSC-U, `Tomb Raider (PSX) (USA).png` → NTSC-U,
   `Game (PSX) (Japan).png` → NTSC-J, `Game (France) (Rev 1).png` → PAL,
   `Game (En,Fr,De).png` → NTSC-U, `Europa (Demo).png` → NTSC-U,
-  `Game.png` → NTSC-U.
+  `Game (Europa Demo).png` → NTSC-U, `Game.png` → NTSC-U.
   *Breaks when:* only the first group is read (the `(PSX) (Japan)` fixture
   then gives NTSC-U, and only this rule turns it into NTSC-J), or words are
-  matched as substrings (`Europa` gives PAL).
+  matched as substrings (`EU` inside `(Europa Demo)` gives PAL). The
+  `Europa (Demo)` fixture cannot catch a substring match: its title is
+  outside the brackets, which are all that is read.
 
 - **INV-2** — `case_for` returns a platform's regional variant where
   `REGIONAL_CASES` has one, else the platform's default. Every platform
@@ -399,7 +413,7 @@ shows.
 
 - **INV-4** — `back_has_strips` picks the nearer of the two card ratios.
   *Test:* `tests/test_jewel.py::test_back_has_strips` on blank images:
-  PS1 PAL 1925 × 1441 → True and 1595 × 1441 → False; `CD Jewel Case`
+  PS1 PAL 1580 × 1180 → True and 1310 × 1180 → False; `CD Jewel Case`
   1500 × 1180 → True and 1380 × 1180 → False.
   *Breaks when:* a 15% band around the with-strips ratio is used, which
   calls the standard 1380 × 1180 middle (1.169, within 8.7% of 1.271) a
@@ -427,8 +441,9 @@ shows.
   at the booklet area's centre is red. `top`, `bottom` and `edge` are
   `#101010`, and with `case_color=(0, 0, 255)` all three are blue.
   *Breaks when:* the booklet is stretched over the whole front, or the
-  colours come from `extract_dominant_edge_color` (a red booklet then gives
-  red).
+  colours come from `extract_dominant_edge_color` of the loaded art (a red
+  booklet then gives red). Sampling the built front face is not caught:
+  its edges are plastic margin, so it gives the plastic by chance.
 
 - **INV-7** — Face sources follow § 4.4's priority table.
   *Test:* `tests/test_jewel.py::test_face_sources`, three cases on
@@ -511,8 +526,9 @@ shows.
 - **A wrap and a back card with strips, both loaded.** The card supplies
   back and both strips. The sliders stay with the wrap, so the card's folds
   cannot be nudged. The user can clear the wrap or the card.
-- **Unverified sizes are wrong.** The case looks a little off until the
-  user measures (§ 15). Each is one table row to change.
+- **Unverified sizes are wrong.** The back card and strip widths, and the
+  hinge strip, are working values (§ 4.1, § 15). A wrong one makes the
+  case look a little off. Each is one table row to change.
 - **A user's PS1 wrap stops being detected**, because the jewel wrap ratio
   moves from 1.834 to 2.237. Detection is the only way the full-cover
   checkbox appears, so such a wrap renders as a front-only cover. § 15 asks
@@ -646,8 +662,8 @@ Rows live in `../reviews/SLIP-0106-jewel-cases-loop-log.md`.
 
 - No new dependency.
 - Memory: `jewel_faces` holds at most two case-size RGBA canvases at 16
-  px/mm. On the largest case, PS1 PAL, each is 2272 × 2080 × 4 bytes,
-  about 19 MB, so about 38 MB plus two small edge faces. They are released
+  px/mm. Every jewel case is 142 × 125 mm, so each is 2272 × 2000 × 4
+  bytes, about 18 MB, so about 36 MB plus two small edge faces. They are released
   when the call returns. `RenderWorker` runs the render's call and the
   model's call one after the other, so the peak is one set.
 - `BoxModel` gains one D × H face, capped as every face is (SLIP-0104 § 13).
@@ -668,14 +684,12 @@ Rows live in `../reviews/SLIP-0106-jewel-cases-loop-log.md`.
 
 ## 15. Open questions
 
-1. **Dreamcast PAL depth, and PS1 PAL booklet and card.** No source gives
-   them. Recommendation: ship the § 4.1 values and ask the user to measure
-   one PAL Dreamcast case (depth) and the PS1 PAL Ridge Racer Type 4
-   inserts (booklet and back card, flat, with strip widths). Only the user
-   holds the cases.
-2. **The hinge strip's width** (19.5 mm standard, 18 mm PS1 PAL, U).
-   Recommendation: the user measures from the hinge edge to the booklet's
-   left edge on any jewel case; ship the computed values meanwhile.
+1. **Dreamcast PAL depth, and PS1 PAL booklet and card.** Answered by the
+   user, 2026-10-21 (§ 3): the Dreamcast PAL case is 10.4 deep, and the
+   PS1 PAL case is a music CD case but 18 deep. The PS1 PAL card is
+   measured from the user's scan (§ 4.1) and remains U.
+2. **The hinge strip's width.** Answered by the user, 2026-10-21 (§ 3): the
+   same on every jewel case. Its 19.5 mm is computed, not measured, U.
 3. **How the user's existing PS1, Saturn and Dreamcast wraps are
    proportioned.** Answered 2026-10-21 by measuring the box art in
    RetroDB's library (`static/images/boxart`, systems from its
@@ -684,8 +698,10 @@ Rows live in `../reviews/SLIP-0106-jewel-cases-loop-log.md`.
    not scans: 34 PS1 images between 1.5 and 1.85, none near 2.237. So
    § 4.4 stands, and no wrap in that library stops being detected.
 4. **Tray colour of the generic case and the PS1 NTSC-U and NTSC-J cases**
-   (black, U). Taken as black (Slipcase, 2026-10-21, the user's veto
-   open), as the PS1 PAL source gives for PAL.
+   (black). Taken as black (Slipcase, 2026-10-21, the user's veto open),
+   as the PS1 PAL source gives for PAL. A second account supports black
+   for NTSC-U (§ 4.1). NTSC-J varies by release, so its black stays U, as
+   does the generic case's.
 5. **Does a hand-picked case hold for one cover or for the session?**
    Taken as one cover (§ 3). A mislabelled file is a one-game problem,
    and a session-long hold would silently give every later cover the

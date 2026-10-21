@@ -32,6 +32,16 @@ def _model(back: bool = True) -> BoxModel:
     )
 
 
+def _jewel_model() -> BoxModel:
+    """A CD Jewel Case model from a red booklet, so art-sampled colours show."""
+    return build_box_model(
+        Image.new("RGB", (240, 240), (220, 20, 20)), None, CASE_TYPES["CD Jewel Case"],
+        title="Game", serial="", platform="Saturn", spine_color=None,
+        case_color=None, spine_left_offset=0, spine_right_offset=0,
+        full_cover=None, show_texture=True,
+    )
+
+
 class TestWriting(unittest.TestCase):
 
     def test_written_file_matches_schema(self):
@@ -51,7 +61,8 @@ class TestWriting(unittest.TestCase):
                     "colours": {"top": "#1C2BAA", "bottom": "#010203",
                                 "edge": "#FFEE0D"},
                     "faces": {"front": "Game.front.png", "spine": "Game.spine.png",
-                              "back": "Game.back.png" if with_back else None},
+                              "back": "Game.back.png" if with_back else None,
+                              "edge": None},
                 })
                 expected = {"Game.box.json", "Game.front.png", "Game.spine.png"}
                 if with_back:
@@ -62,7 +73,26 @@ class TestWriting(unittest.TestCase):
         self.assertEqual(box_paths("/out", "G"), [
             os.path.join("/out", "G.box.json"), os.path.join("/out", "G.front.png"),
             os.path.join("/out", "G.spine.png"), os.path.join("/out", "G.back.png"),
+            os.path.join("/out", "G.edge.png"),
         ])
+
+    def test_edge_face_written(self):
+        """SLIP-0104 INV-13: a jewel box writes its edge face; a wrap box clears it."""
+        with tempfile.TemporaryDirectory() as d:
+            jewel = _jewel_model()
+            path = write_box_file(jewel, d, "Game")
+            with open(path, encoding="utf-8") as f:
+                self.assertEqual(json.load(f)["faces"]["edge"], "Game.edge.png")
+            got = read_box_file(path).edge_face
+            self.assertTrue(np.array_equal(np.array(got),
+                                           np.array(jewel.edge_face) & 0xFE))
+
+            path = write_box_file(_model(), d, "Game")
+            with open(path, encoding="utf-8") as f:
+                faces = json.load(f)["faces"]
+            self.assertIn("edge", faces)
+            self.assertIsNone(faces["edge"])
+            self.assertFalse(os.path.exists(os.path.join(d, "Game.edge.png")))
 
     def test_failed_face_leaves_no_json(self):
         """INV-3: a failed face leaves neither the old box file nor new faces."""
@@ -164,6 +194,7 @@ class TestReading(unittest.TestCase):
             "missing spine file": lambda data: os.remove(
                 os.path.join(self._dir, "Game.spine.png")),
             "back names a missing file": faces(back="missing.png"),
+            "edge names a missing file": faces(edge="missing.png"),
             "depth_mm 0": case(depth_mm=0),
             "width_mm 5000": case(width_mm=5000),
             "colour red": lambda data: data["colours"].update(top="red"),
@@ -189,6 +220,20 @@ class TestReading(unittest.TestCase):
                     json.dump(data, f)
                 with self.assertRaises(BoxFileError):
                     read_box_file(path)
+
+
+    def test_v1_reader_without_edge(self):
+        """SLIP-0104 INV-14: a jewel box file reads whole without faces.edge."""
+        with tempfile.TemporaryDirectory() as d:
+            path = write_box_file(_jewel_model(), d, "Game")
+            with open(path, encoding="utf-8") as f:
+                data = json.load(f)
+            del data["faces"]["edge"]
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(data, f)
+            model = read_box_file(path)
+            self.assertIsNone(model.edge_face)
+            self.assertEqual(model.edge, CASE_TYPES["CD Jewel Case"].plastic)
 
 
 class TestExportPng(unittest.TestCase):

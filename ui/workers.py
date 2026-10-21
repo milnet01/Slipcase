@@ -99,9 +99,11 @@ class RenderWorker(QThread):
                  platform: str, spine_color: tuple[int, int, int] | None,
                  case_color: tuple[int, int, int] | None = None,
                  spine_left_offset: int = 0, spine_right_offset: int = 0,
-                 full_cover: bool | None = None, view: str = "front") -> None:
+                 full_cover: bool | None = None, view: str = "front",
+                 back_strips: bool | None = None) -> None:
         super().__init__()
         self.view = view
+        self.back_strips = back_strips
         self.renderer = renderer
         self.front = front
         self.back = back
@@ -129,6 +131,7 @@ class RenderWorker(QThread):
                 spine_right_offset=self.spine_right_offset,
                 full_cover=self.full_cover,
                 view=self.view,
+                back_strips=self.back_strips,
             )
             self.rendered.emit(result)
             self.model_ready.emit(build_box_model(
@@ -142,6 +145,7 @@ class RenderWorker(QThread):
                 spine_right_offset=self.spine_right_offset,
                 full_cover=self.full_cover,
                 show_texture=self.renderer.show_texture,
+                back_strips=self.back_strips,
             ))
         except Exception as e:
             self.error.emit(str(e))
@@ -158,7 +162,10 @@ class BatchWorker(QThread):
     error = pyqtSignal(str)
 
     def __init__(self, file_paths: list[str], output_dir: str, renderer: BoxRenderer,
-                 compress_level: int = 6, box_file: bool = False):
+                 compress_level: int = 6, box_file: bool = False,
+                 case_types: list[CaseType] | None = None):
+        """`case_types`, one per file, gives each file its own case; without
+        it every file takes the renderer's (SLIP-0106 § 4.6)."""
         super().__init__()
         self.file_paths = file_paths
         self.output_dir = output_dir
@@ -169,6 +176,8 @@ class BatchWorker(QThread):
         self.compress_level = compress_level
         # Extract config for pickling to worker processes
         self._case_type = renderer.case_type
+        self._case_by_file = (dict(zip(file_paths, case_types, strict=True))
+                              if case_types is not None else {})
         self._renderer_kwargs = {
             "angle": renderer.angle,
             "output_width": renderer.output_width,
@@ -204,8 +213,8 @@ class BatchWorker(QThread):
 
     def _args_for(self, fp: str, stem: str) -> tuple:
         """The picklable arguments _render_single_image takes for one file."""
-        return (fp, self.output_dir, stem, self._case_type, self._renderer_kwargs,
-                self.compress_level, self.box_file)
+        return (fp, self.output_dir, stem, self._case_by_file.get(fp, self._case_type),
+                self._renderer_kwargs, self.compress_level, self.box_file)
 
     def _run_parallel(self, args_list: list, total: int, workers: int) -> int:
         count = 0
@@ -292,6 +301,7 @@ class AnimationWorker(QThread):
         show_texture: bool = True,
         supersample: int = 2,
         full_cover: bool | None = None,
+        back_strips: bool | None = None,
     ):
         super().__init__()
         self.case_type = case_type
@@ -318,6 +328,7 @@ class AnimationWorker(QThread):
         self.show_texture = show_texture
         self.supersample = supersample
         self.full_cover = full_cover
+        self.back_strips = back_strips
 
     def run(self) -> None:
         """Render each angle of the sweep and write the animated file."""
@@ -369,6 +380,7 @@ class AnimationWorker(QThread):
                     spine_left_offset=self.spine_left_offset,
                     spine_right_offset=self.spine_right_offset,
                     full_cover=self.full_cover,
+                    back_strips=self.back_strips,
                 )
                 if i == 0:
                     frame_w = max(frame.size[0], self.output_width)

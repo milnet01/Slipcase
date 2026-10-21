@@ -144,9 +144,10 @@ class BoxViewer(QWidget):
             self.set_auto_spin(False)
             self.update()
             return
-        self._images = {face: _to_qimage(getattr(model, face))
-                        for face in ("front", "spine", "back")
-                        if getattr(model, face) is not None}
+        pictures = {"front": model.front, "spine": model.spine,
+                    "back": model.back, "edge": model.edge_face}
+        self._images = {face: _to_qimage(picture)
+                        for face, picture in pictures.items() if picture is not None}
         self._corners = _face_corners(model)
         self._normals = {face: _outward_normal(c) for face, c in self._corners.items()}
         ct = model.case_type

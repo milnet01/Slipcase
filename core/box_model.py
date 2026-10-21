@@ -12,6 +12,7 @@ from PIL import Image, ImageOps
 from core.case_texture import generate_front_texture, generate_spine_texture
 from core.case_types import CaseType
 from core.image_utils import extract_dominant_edge_color, is_full_cover, split_full_cover
+from core.jewel import jewel_faces
 from core.spine_generator import generate_spine
 
 # Longest edge of any face picture. A 1600 x 1600 noise picture saves to
@@ -24,7 +25,9 @@ class BoxModel:
     """A box's real size, its plain-face colours and its pictured faces.
 
     Each picture shows its face from outside the box, standing upright, as
-    RGB. The spine is on the front's left as seen from the front.
+    RGB. The spine is on the front's left as seen from the front, and the
+    edge on its right. `edge_face` is the edge's picture, which only a jewel
+    case has; without it a viewer fills the edge with `edge`.
     """
     case_type: CaseType
     top: tuple[int, int, int]
@@ -33,6 +36,7 @@ class BoxModel:
     front: Image.Image
     spine: Image.Image
     back: Image.Image | None
+    edge_face: Image.Image | None = None
 
 
 def _scaled(image: Image.Image, aspect: float) -> Image.Image:
@@ -64,6 +68,7 @@ def build_box_model(
     spine_right_offset: int,
     full_cover: bool | None,
     show_texture: bool,
+    back_strips: bool | None = None,
 ) -> BoxModel:
     """Build the faces from BoxRenderer.render's face inputs.
 
@@ -72,7 +77,18 @@ def build_box_model(
     generated at the front height's scale. With `show_texture` set, each face
     carries the case overlay at its own size; the back carries the front
     overlay mirrored, as render's back view lays it.
+
+    A jewel case takes its faces from jewel_faces, as render does, and its
+    plain faces are its bare plastic, never sampled from the art.
     """
+    if case_type.layout == "jewel":
+        return _jewel_model(
+            front_image, back_image, case_type, title=title, serial=serial,
+            platform=platform, spine_color=spine_color, case_color=case_color,
+            spine_left_offset=spine_left_offset,
+            spine_right_offset=spine_right_offset, full_cover=full_cover,
+            show_texture=show_texture, back_strips=back_strips,
+        )
     split_spine = None
     if full_cover is None:
         full_cover = is_full_cover(front_image, case_type)
@@ -118,4 +134,44 @@ def build_box_model(
         front=_flatten(front, edge),
         spine=_flatten(spine, edge),
         back=_flatten(back, edge) if back is not None else None,
+    )
+
+
+def _jewel_model(
+    front_image: Image.Image,
+    back_image: Image.Image | None,
+    case_type: CaseType,
+    *,
+    case_color: tuple[int, int, int] | None,
+    show_texture: bool,
+    **face_args,
+) -> BoxModel:
+    """build_box_model for a jewel case (SLIP-0106 § 4.5)."""
+    faces = jewel_faces(front_image, back_image, case_type, **face_args)
+    plastic = case_color or case_type.plastic
+
+    face_aspect = case_type.width / case_type.height
+    side_aspect = case_type.depth / case_type.height
+    front = _scaled(faces.front, face_aspect)
+    back = _scaled(faces.back, face_aspect) if faces.back is not None else None
+    spine = _scaled(faces.hinge, side_aspect)
+    edge_face = _scaled(faces.opening, side_aspect)
+    del faces
+
+    # The opening side gets no overlay.
+    if show_texture:
+        front = Image.alpha_composite(
+            front, generate_front_texture(case_type, *front.size))
+        spine = Image.alpha_composite(
+            spine, generate_spine_texture(case_type, *spine.size))
+        if back is not None:
+            back = Image.alpha_composite(
+                back, ImageOps.mirror(generate_front_texture(case_type, *back.size)))
+
+    return BoxModel(
+        case_type=case_type, top=plastic, bottom=plastic, edge=plastic,
+        front=_flatten(front, plastic),
+        spine=_flatten(spine, plastic),
+        back=_flatten(back, plastic) if back is not None else None,
+        edge_face=_flatten(edge_face, plastic),
     )

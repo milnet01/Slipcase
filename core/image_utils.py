@@ -211,11 +211,25 @@ def extract_dominant_edge_color(
     return (int(r), int(g), int(b))
 
 
+def wrap_panels_mm(case_type: CaseType) -> tuple[float, float, float, float]:
+    """A full cover's panels in mm: (back, spine, front, height).
+
+    The wrap layout's panels are the case's own faces. A jewel case's wrap is
+    its paper: the back card's middle, one end strip at the hinge, and the
+    booklet, at the back card's height (SLIP-0106 § 4.4).
+    """
+    jewel = case_type.jewel
+    if jewel is None:
+        return case_type.width, case_type.depth, case_type.width, case_type.height
+    card_w, card_h = jewel.back_card
+    return card_w - 2 * jewel.strip, jewel.strip, jewel.booklet[0], card_h
+
+
 def is_full_cover(image: Image.Image, case_type: CaseType, tolerance: float = 0.15) -> bool:
     """Detect whether an image is a full cover (back + spine + front) based on aspect ratio.
 
-    A full cover has aspect ratio ~= (2*width + depth) / height.
-    A front-only cover has aspect ratio ~= width / height (portrait).
+    A full cover has aspect ratio ~= (back + spine + front) / height, from
+    wrap_panels_mm. A front-only cover has aspect ratio ~= width / height.
 
     Args:
         image: Input image to test.
@@ -226,7 +240,8 @@ def is_full_cover(image: Image.Image, case_type: CaseType, tolerance: float = 0.
         True if image appears to be a full cover.
     """
     img_ar = image.size[0] / image.size[1]
-    full_ar = (2 * case_type.width + case_type.depth) / case_type.height
+    back, spine, front, height = wrap_panels_mm(case_type)
+    full_ar = (back + spine + front) / height
     return abs(img_ar - full_ar) / full_ar <= tolerance
 
 
@@ -266,10 +281,11 @@ def _geometric_spine_bounds(
     Returns:
         (left_x, right_x, spine_width_px)
     """
-    px_per_mm = h / case_type.height
-    back_px = round(case_type.width * px_per_mm)
-    spine_px = round(case_type.depth * px_per_mm)
-    front_px = back_px
+    back_mm, spine_mm, front_mm, height_mm = wrap_panels_mm(case_type)
+    px_per_mm = h / height_mm
+    back_px = round(back_mm * px_per_mm)
+    spine_px = round(spine_mm * px_per_mm)
+    front_px = round(front_mm * px_per_mm)
 
     total_panels = back_px + spine_px + front_px
     offset = max(0, w - total_panels) // 2
@@ -281,6 +297,71 @@ def _geometric_spine_bounds(
     spine_right = max(spine_left + 1, min(spine_right, w))
 
     return spine_left, spine_right, spine_px
+
+
+def _fold_band_means(image: Image.Image, expected_sw: int) -> np.ndarray:
+    """Per-band running-mean colour of each column, shape (bands, width, 3).
+
+    The edge search's input for one image; _nudge reads it once per fold.
+    """
+    arr = np.array(image.convert("RGB"), dtype=np.float32)
+    h = arr.shape[0]
+
+    n_bands = 16
+    strip_w = _fold_strip_width(expected_sw)
+    y_margin = int(h * 0.03)
+    band_h = max(1, (h - 2 * y_margin) // n_bands)
+
+    band_means = []
+    for i in range(n_bands):
+        y0 = y_margin + i * band_h
+        y1 = y0 + band_h
+        col_mean = arr[y0:y1, :, :].mean(axis=0)  # (w, 3)
+        rm = uniform_filter1d(col_mean, size=strip_w, axis=0)  # (w, 3)
+        band_means.append(rm)
+    return np.array(band_means)  # (n_bands, w, 3)
+
+
+def _fold_strip_width(expected_sw: int) -> int:
+    """Width of the strip compared either side of a candidate fold."""
+    return max(4, min(8, expected_sw // 10))
+
+
+def _nudge(band_means: np.ndarray, geo_x: int, expected_sw: int) -> int:
+    """Move one fold from its geometric estimate `geo_x` to the strongest
+    consistent edge within reach, or leave it.
+
+    It moves up to 15% of `expected_sw`, clamped to 8-30 px, and only when
+    that edge beats the estimate by more than 20% and is at least
+    _MIN_FOLD_STEP strong. Both spine bounds and a back card's folds use it
+    (SLIP-0106 § 4.4).
+    """
+    w = band_means.shape[1]
+    half = _fold_strip_width(expected_sw) // 2
+    nudge_max = max(8, min(30, int(expected_sw * 0.15)))
+
+    # Boundary score for each x in [geo_x - nudge_max, geo_x + nudge_max]:
+    # the 30th percentile, across bands, of the colour step there. Empty
+    # when the image is too narrow to hold a strip either side.
+    lo = max(half + 1, geo_x - nudge_max)
+    hi = min(w - half - 1, geo_x + nudge_max + 1)
+    if hi <= lo:
+        return geo_x
+    left_m = band_means[:, lo - half:hi - half, :]
+    right_m = band_means[:, lo + half:hi + half, :]
+    diffs = np.sqrt(np.sum((right_m - left_m) ** 2, axis=2))
+    scores = np.percentile(diffs, 30, axis=0)
+
+    geo_idx = geo_x - lo
+    if geo_idx < 0 or geo_idx >= len(scores):
+        return geo_x
+    geo_score = scores[geo_idx]
+    best_idx = int(np.argmax(scores))
+    best_score = scores[best_idx]
+    # Only nudge to a real edge that is meaningfully better
+    if best_score > geo_score * 1.2 and best_score >= _MIN_FOLD_STEP:
+        return lo + best_idx
+    return geo_x
 
 
 def _refine_spine_bounds(
@@ -301,65 +382,12 @@ def _refine_spine_bounds(
     multiple horizontal bands.  The 30th percentile across bands gives a
     robust "consistency" measure.
 
-    Each boundary is independently nudged up to ``nudge_max`` pixels from
-    the geometric estimate to the STRONGEST consistent edge in that window.
-    It moves only when that edge beats the estimate by more than 20% and is
-    at least _MIN_FOLD_STEP strong; otherwise the geometric position is
-    kept.
+    Each boundary is independently nudged (_nudge) to the STRONGEST
+    consistent edge near its geometric estimate, or kept there.
     """
-    arr = np.array(image.convert("RGB"), dtype=np.float32)
-    h, w, _ = arr.shape
-
-    n_bands = 16
-    strip_w = max(4, min(8, expected_sw // 10))
-    y_margin = int(h * 0.03)
-    band_h = max(1, (h - 2 * y_margin) // n_bands)
-
-    # Pre-compute per-band running-mean colour for each column.
-    band_means = []
-    for i in range(n_bands):
-        y0 = y_margin + i * band_h
-        y1 = y0 + band_h
-        col_mean = arr[y0:y1, :, :].mean(axis=0)  # (w, 3)
-        rm = uniform_filter1d(col_mean, size=strip_w, axis=0)  # (w, 3)
-        band_means.append(rm)
-    band_means = np.array(band_means)  # (n_bands, w, 3)
-
-    half = strip_w // 2
-
-    def _boundary_scores(center: int, radius: int) -> tuple[int, np.ndarray]:
-        """Return boundary score for each x in [center-radius, center+radius].
-
-        Empty when the image is too narrow to hold a strip either side.
-        """
-        lo = max(half + 1, center - radius)
-        hi = min(w - half - 1, center + radius + 1)
-        if hi <= lo:
-            return lo, np.empty(0)
-        left_m = band_means[:, lo - half:hi - half, :]
-        right_m = band_means[:, lo + half:hi + half, :]
-        diffs = np.sqrt(np.sum((right_m - left_m) ** 2, axis=2))
-        return lo, np.percentile(diffs, 30, axis=0)
-
-    # Nudge each boundary independently within a small radius.
-    # Only accept the nudge if the new score is significantly better (>20%).
-    nudge_max = max(8, min(30, int(expected_sw * 0.15)))
-
-    def _nudge(geo_x: int) -> int:
-        lo, scores = _boundary_scores(geo_x, nudge_max)
-        geo_idx = geo_x - lo
-        if geo_idx < 0 or geo_idx >= len(scores):
-            return geo_x
-        geo_score = scores[geo_idx]
-        best_idx = int(np.argmax(scores))
-        best_score = scores[best_idx]
-        # Only nudge to a real edge that is meaningfully better
-        if best_score > geo_score * 1.2 and best_score >= _MIN_FOLD_STEP:
-            return lo + best_idx
-        return geo_x
-
-    ref_left = _nudge(geo_left)
-    ref_right = _nudge(geo_right)
+    band_means = _fold_band_means(image, expected_sw)
+    ref_left = _nudge(band_means, geo_left, expected_sw)
+    ref_right = _nudge(band_means, geo_right, expected_sw)
 
     # Ensure spine width stays within 85-115% of expected
     ref_sw = ref_right - ref_left

@@ -48,8 +48,10 @@ main.py
        -> ui/settings_dialog.py
        -> ui/search_dialog.py
        -> ui/animation_dialog.py
+       -> core/region.py     (region from a cover's file name)
        -> core/renderer.py   (rendering engine)
             -> core/case_types.py
+            -> core/jewel.py      (a jewel case's faces)
             -> core/image_utils.py
             -> core/spine_generator.py
             -> core/case_texture.py
@@ -128,7 +130,20 @@ class CaseType:
     height: float   # front face height (mm)
     depth: float    # spine thickness (mm)
     platforms: tuple[str, ...]
+    jewel: JewelGeometry | None = None          # None: the wrap layout
+    plastic: tuple[int, int, int] | None = None  # bare plastic colour
+
+    @property
+    def layout(self) -> str: ...                 # "wrap" or "jewel"
 ```
+
+A jewel case (`layout == "jewel"`) has no wrap. `JewelGeometry` gives its
+booklet, its back card and the card's end-strip width in mm, and
+`core/jewel.py`'s `jewel_faces` builds its faces for both the render and
+the box model (SLIP-0106). Its top, bottom and edge are `plastic`, never
+sampled from the art. Regional variants list no platform, so each platform
+keeps one default case; `case_for` picks the variant for the region
+`core/region.py` reads from the cover's file name.
 
 ### Output Specifications
 
@@ -153,7 +168,9 @@ configurable within that bound, not unbounded.
 ### Rendering Pipeline
 
 1. **Input validation** - Check front image exists
-2. **Full cover detection** - Compare aspect ratio to `(2*width + depth) / height`
+2. **Full cover detection** - Compare aspect ratio to `(back + spine + front) / height`
+   from `wrap_panels_mm`: `(2*width + depth) / height` for the wrap layout,
+   the paper's widths for a jewel case
 3. **Cover splitting** - If full cover: geometric + image-analysis spine detection
 4. **Spine generation** - Platform-branded text with title, serial, colour
 5. **Texture overlay** - Procedural case-type-specific emboss/deboss details
@@ -194,7 +211,8 @@ configurable within that bound, not unbounded.
 Full cover images (back + spine + front in one scan) use a two-stage detection:
 
 ### Stage 1: Geometric Estimation
-Calculate expected spine position from case dimensions and image width.
+Calculate expected spine position from the panel widths `wrap_panels_mm`
+gives and the image's width.
 
 ### Stage 2: Image Analysis Refinement
 - Sample **16 horizontal bands** across the image height
@@ -214,9 +232,19 @@ Calculate expected spine position from case dimensions and image width.
   `ValueError`/`IndexError` numpy raises on unexpected data fall back, and
   any other exception propagates
 
+### Back card folds
+A jewel case's back card scan, with its end strips, is split at two folds
+by `detect_strip_folds`. Each fold starts at the card's geometry and moves
+by the same Stage 2 nudge (`_nudge`). The 85-115% width check does not
+apply: the folds bound the middle, not a spine. Whether a scan has strips
+at all is decided by `back_has_strips`, the nearer of the two card ratios.
+
 ### Manual Override
 Users can fine-tune spine boundaries with +/- pixel offset sliders.
 Three-panel split preview (back | spine | front) provides visual feedback.
+With a jewel case, a back card with strips and a front that is not a wrap,
+the same sliders move the card's folds, and the preview shows left strip |
+middle | right strip.
 
 ---
 
@@ -409,6 +437,8 @@ Results are aggregated and displayed with source attribution.
 | `test_box_model.py` | Turnable-box faces: face selection, case details, colours (SLIP-0104) |
 | `test_box_file.py` | Box file: format, reading rules, failure cleanup, face limits, stems, Export PNG and batch writing |
 | `test_box_viewer.py` | 3D viewer: visible faces, limits and reset, model from the render worker, transparent background |
+| `test_region.py` | Region from a cover's file name; the case a platform and region pick (SLIP-0106) |
+| `test_jewel.py` | Jewel cases: back-card strips and folds, face sources and layout, plastic colours, overlays, the window's case choice, per-file batch cases (SLIP-0106) |
 
 ### Test Utilities
 

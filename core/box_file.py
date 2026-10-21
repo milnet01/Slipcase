@@ -2,7 +2,7 @@
 
 Format version 1 is the contract both apps bind to (SLIP-0104 § 4.1). For a
 stem S, one folder holds S.box.json, S.front.png, S.spine.png and, when the
-box has a back cover, S.back.png. read_box_file is Slipcase's reference for
+box has them, S.back.png and S.edge.png, the opening side. read_box_file is Slipcase's reference for
 RetroDB's reader.
 """
 
@@ -22,7 +22,9 @@ from core.version import __version__
 FORMAT = "slipcase-box"
 VERSION = 1
 
-_FACES = ("front", "spine", "back")
+# Face key in the file -> the BoxModel attribute holding its picture. The
+# edge's picture is edge_face: BoxModel.edge is that side's colour.
+_FACES = {"front": "front", "spine": "spine", "back": "back", "edge": "edge_face"}
 _COLOURS = ("top", "bottom", "edge")
 _SIZES = ("width_mm", "height_mm", "depth_mm")
 _MAX_SIZE_MM = 1000
@@ -49,7 +51,8 @@ def _check_name(name: object) -> str:
 
 
 def box_paths(folder: str, stem: str) -> list[str]:
-    """The four paths a box file of `stem` uses: description, front, spine, back."""
+    """The five paths a box file of `stem` uses: description, front, spine,
+    back, edge."""
     return [os.path.join(folder, name) for name in _names(stem).values()]
 
 
@@ -86,14 +89,14 @@ def write_box_file(model: BoxModel, folder: str, stem: str,
                  "height_mm": ct.height, "depth_mm": ct.depth},
         "colours": {key: "#{:02X}{:02X}{:02X}".format(*getattr(model, key))
                     for key in _COLOURS},
-        "faces": {face: names[face] if getattr(model, face) is not None else None
-                  for face in _FACES},
+        "faces": {face: names[face] if getattr(model, attr) is not None else None
+                  for face, attr in _FACES.items()},
     }
 
     written: list[str] = []
     try:
-        for face in _FACES:
-            image = getattr(model, face)
+        for face, attr in _FACES.items():
+            image = getattr(model, attr)
             if image is None:
                 continue
             save_optimized_png(image, paths[face], compress_level=compress_level)
@@ -175,6 +178,8 @@ def read_box_file(path: str) -> BoxModel:
     if faces.get("front") is None or faces.get("spine") is None:
         raise BoxFileError("front and spine must name a picture")
     back_name = faces.get("back")
+    # Optional, so a file written before SLIP-0106 still reads.
+    edge_name = faces.get("edge")
     return BoxModel(
         case_type=CaseType(name=name, width=width, height=height, depth=depth,
                            platforms=()),
@@ -182,4 +187,5 @@ def read_box_file(path: str) -> BoxModel:
         front=_face(folder, faces["front"]),
         spine=_face(folder, faces["spine"]),
         back=_face(folder, back_name) if back_name is not None else None,
+        edge_face=_face(folder, edge_name) if edge_name is not None else None,
     )

@@ -18,10 +18,12 @@ from PyQt6.QtWidgets import (
 
 from core.box_file import box_paths, write_box_file
 from core.box_model import BoxModel
-from core.case_types import CASE_TYPES, ALL_PLATFORMS, PLATFORM_CASE_MAP
+from core.case_types import CASE_TYPES, ALL_PLATFORMS, PLATFORM_CASE_MAP, CaseType, case_for
 from core.config import Config
 from core.image_utils import detect_spine_bounds, is_full_cover, split_full_cover
+from core.jewel import back_has_strips, detect_strip_folds, split_back_card
 from core.png_utils import save_optimized_png
+from core.region import detect_region
 from core.renderer import MAX_OUTPUT_WIDTH, BoxRenderer
 from core.spine_generator import CASE_COLORS_ERROR
 from core.version import __version__
@@ -98,6 +100,13 @@ class MainWindow(QMainWindow):
         # as downloaded 3D boxart (SLIP-0104).
         self._box_model: BoxModel | None = None
         self._render_angle = 30.0
+        # A case picked in the case list holds until the next cover is loaded
+        # or the platform changes; detection never sets it (SLIP-0106 § 4.3).
+        self._case_by_hand = False
+        # Whether the loaded front is a wrap, so the spine sliders are its.
+        self._front_is_wrap = False
+        # (back image, case name, detected folds), cached as _spine_bounds is.
+        self._fold_bounds: tuple | None = None
 
         self._build_menu()
         self._build_ui()
@@ -221,6 +230,10 @@ class MainWindow(QMainWindow):
         toolbar.addWidget(case_label)
         self.case_combo = QComboBox()
         self.case_combo.addItems(CASE_TYPES.keys())
+        # activated is emitted for the user's choice only, never for
+        # setCurrentIndex, so detection never counts as a hand choice.
+        self.case_combo.activated.connect(self._on_case_activated)
+        self.case_combo.currentIndexChanged.connect(lambda: self._update_back_strips())
         toolbar.addWidget(self.case_combo)
         _link_label(case_label, self.case_combo)
 
@@ -284,6 +297,14 @@ class MainWindow(QMainWindow):
         self.back_thumb.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.back_thumb.setStyleSheet(themed_thumbnail_style())
         back_layout.addWidget(self.back_thumb)
+        # A jewel case's back card may come with its end strips; they go on
+        # the case's two sides (SLIP-0106 § 4.5).
+        self.back_strips_check = QCheckBox(
+            self.tr("Back scan has end strips: put them on the case's sides")
+        )
+        self.back_strips_check.hide()
+        self.back_strips_check.toggled.connect(lambda: self._update_fold_sliders())
+        back_layout.addWidget(self.back_strips_check)
         back_group.setLayout(back_layout)
         left_layout.addWidget(back_group)
 
@@ -808,6 +829,7 @@ class MainWindow(QMainWindow):
         self._front_image = None
         self._front_image_path = None
         self._back_image = None
+        self._fold_bounds = None
         self.preview.clear_image()
         self.compare_original.clear_image()
         self.compare_render.clear_image()
@@ -818,12 +840,46 @@ class MainWindow(QMainWindow):
     # --- Platform / Case ---
 
     def _on_platform_changed(self, platform: str) -> None:
-        """Update case type when platform changes."""
+        """Update case type when platform changes, then the loaded cover's
+        regional case, and drop any hand choice."""
         case_name = PLATFORM_CASE_MAP.get(platform)
         if case_name:
             idx = self.case_combo.findText(case_name)
             if idx >= 0:
                 self.case_combo.setCurrentIndex(idx)
+        if self._front_image_path:
+            self._detect_case(self._front_image_path)
+        self._case_by_hand = False
+
+    def _on_case_activated(self, _index: int) -> None:
+        self._case_by_hand = True
+
+    def _detect_case(self, path: str) -> str | None:
+        """Show the case for the platform and the region `path`'s file name
+        declares, and clear any hand choice. Returns a status note naming
+        the region, or None when the platform has no case.
+
+        Runs before _set_front_image, whose full-cover test depends on the
+        case shown.
+        """
+        self._case_by_hand = False
+        region = detect_region(Path(path).name)
+        case = case_for(self.platform_combo.currentText(), region)
+        if case is None:
+            return None
+        idx = self.case_combo.findText(case.name)
+        if idx >= 0:
+            self.case_combo.setCurrentIndex(idx)
+        return self.tr("{0} cover: {1}").format(region, case.name)
+
+    def _batch_cases(self, files: list[str]) -> list[CaseType]:
+        """Each batch file's case: the shown one when it was picked by hand,
+        else the one its file name's region gives (SLIP-0106 § 4.6)."""
+        shown = CASE_TYPES[self.case_combo.currentText()]
+        if self._case_by_hand:
+            return [shown] * len(files)
+        platform = self.platform_combo.currentText()
+        return [case_for(platform, detect_region(Path(f).name)) or shown for f in files]
 
     # --- Image loading ---
 
@@ -862,7 +918,9 @@ class MainWindow(QMainWindow):
         img, path = self._load_image_dialog("Open Cover Image")
         if img:
             self._front_image_path = path
+            note = self._detect_case(path) if path else None
             self._set_front_image(img)
+            self._show_case_note(note)
             if path:
                 self._add_to_recent(path)
                 # Auto-populate title from parent folder name (preferred) or filename
@@ -871,6 +929,12 @@ class MainWindow(QMainWindow):
                     file_stem = Path(path).stem
                     self.title_input.setText(folder_name if folder_name else file_stem)
 
+    def _show_case_note(self, note: str | None) -> None:
+        """Add _detect_case's note to the status line _set_front_image left."""
+        if note:
+            self.status.showMessage(
+                self.tr("{0} — {1}").format(self.status.currentMessage(), note))
+
     def _set_front_image(self, img: Image.Image) -> None:
         """Set the front cover image and update UI state."""
         self._front_image = img
@@ -878,7 +942,8 @@ class MainWindow(QMainWindow):
         self.compare_original.set_image(img)
         case_name = self.case_combo.currentText()
         case_type = CASE_TYPES[case_name]
-        if is_full_cover(img, case_type):
+        self._front_is_wrap = is_full_cover(img, case_type)
+        if self._front_is_wrap:
             self.status.showMessage(
                 self.tr("Full cover detected (back + spine + front) — spine will be extracted")
             )
@@ -894,15 +959,18 @@ class MainWindow(QMainWindow):
             self._hide_spine_adjustment()
             self.export_split_btn.setEnabled(False)
         self._update_view_choice()
+        self._update_fold_sliders()
 
     def _clear_front(self) -> None:
         self._front_image = None
         self._front_image_path = None
+        self._front_is_wrap = False
         self.front_thumb.setPixmap(QPixmap())
         self.front_thumb.setText(self.tr("No image loaded"))
         self._hide_spine_adjustment()
         self.export_split_btn.setEnabled(False)
         self._update_view_choice()
+        self._update_fold_sliders()
 
     def _load_back(self) -> None:
         img, _ = self._load_image_dialog("Open Back Cover")
@@ -914,12 +982,68 @@ class MainWindow(QMainWindow):
         self._back_image = img
         self._set_thumbnail(self.back_thumb, img)
         self._update_view_choice()
+        self._update_back_strips()
 
     def _clear_back(self) -> None:
         self._back_image = None
         self.back_thumb.setPixmap(QPixmap())
         self.back_thumb.setText(self.tr("No image"))
         self._update_view_choice()
+        self._update_back_strips()
+
+    def _update_back_strips(self) -> None:
+        """Offer the end-strips choice for a jewel case with a back loaded,
+        ticked when the scan's proportions say it has them."""
+        case_type = CASE_TYPES[self.case_combo.currentText()]
+        offered = case_type.layout == "jewel" and self._back_image is not None
+        self.back_strips_check.setVisible(offered)
+        if offered:
+            # Its toggled signal updates the sliders; this covers no change.
+            self.back_strips_check.setChecked(back_has_strips(self._back_image, case_type))
+        self._update_fold_sliders()
+
+    def _back_strips_choice(self) -> bool | None:
+        """The user's answer where the end-strips question was asked,
+        otherwise None (detect), as _full_cover_choice works."""
+        if self.back_strips_check.isHidden():
+            return None
+        return self.back_strips_check.isChecked()
+
+    def _folds_on_sliders(self) -> bool:
+        """Whether the spine sliders move the back card's folds: a back card
+        with strips, and a front that is not a wrap, which keeps them."""
+        return (not self._front_is_wrap and self._back_strips_choice() is True)
+
+    def _update_fold_sliders(self) -> None:
+        """Show or hide the sliders as the back card's fold controls."""
+        if self._front_is_wrap:
+            return
+        if not self._folds_on_sliders():
+            self._hide_spine_adjustment()
+            return
+        if self.spine_adjust_group.isHidden():
+            max_offset = max(40, min(150, int(self._back_image.width * 0.03)))
+            for slider in (self.spine_left_slider, self.spine_right_slider):
+                slider.setRange(-max_offset, max_offset)
+                slider.setValue(0)
+                slider.setEnabled(True)
+            self.full_cover_check.hide()
+            self._set_split_thumbs(folds=True)
+            self.spine_adjust_group.show()
+        self._update_split_preview()
+
+    def _set_split_thumbs(self, folds: bool) -> None:
+        """Lay the split preview out as left strip | middle | right strip for
+        a back card's folds, or back | spine | front for a wrap."""
+        if folds:
+            layout = ((self.tr("Left"), 20), (self.tr("Middle"), 70), (self.tr("Right"), 20))
+        else:
+            layout = ((self.tr("Back"), 70), (self.tr("Spine"), 20), (self.tr("Front"), 70))
+        thumbs = (self.split_back_thumb, self.split_spine_thumb, self.split_front_thumb)
+        for thumb, (text, width) in zip(thumbs, layout, strict=True):
+            thumb.setFixedSize(width, 90)
+            thumb.setPixmap(QPixmap())
+            thumb.setText(text)
 
     def _has_back_cover(self) -> bool:
         """A loaded back cover, or a full-cover scan the user lets us split."""
@@ -967,6 +1091,9 @@ class MainWindow(QMainWindow):
 
     def _update_split_preview(self) -> None:
         """Update the three-panel split preview thumbnails."""
+        if self._folds_on_sliders():
+            self._update_fold_preview()
+            return
         if self._front_image is None:
             return
         case_name = self.case_combo.currentText()
@@ -994,6 +1121,29 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.status.showMessage(self.tr("Spine split preview failed: {0}").format(e))
 
+    def _update_fold_preview(self) -> None:
+        """The back card's left strip, middle and right strip at the sliders'
+        offsets."""
+        case_name = self.case_combo.currentText()
+        case_type = CASE_TYPES[case_name]
+        try:
+            cached = self._fold_bounds
+            if cached and cached[0] is self._back_image and cached[1] == case_name:
+                folds = cached[2]
+            else:
+                folds = detect_strip_folds(self._back_image, case_type)
+                self._fold_bounds = (self._back_image, case_name, folds)
+            parts = split_back_card(
+                self._back_image, case_type,
+                left_offset=self.spine_left_slider.value(),
+                right_offset=self.spine_right_slider.value(), folds=folds,
+            )
+            for thumb, part in zip((self.split_back_thumb, self.split_spine_thumb,
+                                    self.split_front_thumb), parts, strict=True):
+                self._set_thumbnail(thumb, part)
+        except Exception as e:
+            self.status.showMessage(self.tr("Back card split preview failed: {0}").format(e))
+
     def _on_spine_left_changed(self, value: int) -> None:
         self.spine_left_label.setText(self.tr("{0:+d} px").format(value))
         self._split_preview_timer.start()
@@ -1009,7 +1159,7 @@ class MainWindow(QMainWindow):
     def _full_cover_choice(self) -> bool | None:
         """What the renderer should assume: the user's answer where the
         full-cover question was asked, otherwise None (detect)."""
-        if self.spine_adjust_group.isHidden():
+        if self.spine_adjust_group.isHidden() or self.full_cover_check.isHidden():
             return None
         return self.full_cover_check.isChecked()
 
@@ -1023,6 +1173,8 @@ class MainWindow(QMainWindow):
 
     def _show_spine_adjustment(self) -> None:
         """Show the spine adjustment panel and populate the preview."""
+        self.full_cover_check.show()
+        self._set_split_thumbs(folds=False)
         self.full_cover_check.setChecked(True)
         self.spine_adjust_group.show()
         self._update_split_preview()
@@ -1105,6 +1257,7 @@ class MainWindow(QMainWindow):
             spine_right_offset=self.spine_right_slider.value(),
             full_cover=self._full_cover_choice(),
             view=self._view(),
+            back_strips=self._back_strips_choice(),
         )
         self._render_worker.rendered.connect(self._on_rendered)
         self._render_worker.model_ready.connect(self._on_model_ready)
@@ -1347,7 +1500,7 @@ class MainWindow(QMainWindow):
 
         self._batch_worker = BatchWorker(
             files, output_dir, renderer, compress_level=self._compress_level(),
-            box_file=self._box_file_enabled(),
+            box_file=self._box_file_enabled(), case_types=self._batch_cases(files),
         )
         self._batch_worker.progress.connect(self._on_batch_progress)
         self._batch_worker.finished_signal.connect(self._on_batch_done)
@@ -1503,6 +1656,7 @@ class MainWindow(QMainWindow):
             spine_left_offset=self.spine_left_slider.value(),
             spine_right_offset=self.spine_right_slider.value(),
             full_cover=self._full_cover_choice(),
+            back_strips=self._back_strips_choice(),
             output_path=path,
             output_width=params["output_width"],
             start_angle=params["start_angle"],
@@ -1599,7 +1753,9 @@ class MainWindow(QMainWindow):
             img = Image.open(path)
             img.load()  # Read into memory, release file handle
             self._front_image_path = path
+            note = self._detect_case(path)
             self._set_front_image(img)
+            self._show_case_note(note)
             self._add_to_recent(path)
             self.config.set("ui", "last_image_directory", str(p.parent))
             self._save_config()
