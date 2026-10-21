@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: SLIP=108 -->
+<!-- ants-roadmap-id-high-water: SLIP=110 -->
 
 # Slipcase — Roadmap
 
@@ -1064,6 +1064,28 @@ building.
   system, and no cover service supplies top or bottom art. User's order
   (2026-10-21): last of the three phases.
   **Layman:** Cartridge game boxes (NES, SNES, N64, Game Boy and others) get the right size and shape for each region.
+  Kind: feature.
+  Source: user-request-2026-10-21.
+
+- 📋 [SLIP-0109] **Open a jewel case in the 3D viewer and look inside.**
+  The user, 2026-10-21: "I want to be able to open the case as well and
+  look inside." The lid swings open on its hinge, showing the tray, the
+  disc hub and the inside of the booklet. Reference photo: the user's
+  "Ridge Racer Type 4 Inside of case.jpg" (black tray, clear lid, inlay
+  visible through the base). Builds on SLIP-0104's viewer and SLIP-0106's
+  jewel faces; the box file would need the lid as its own part.
+  **Layman:** In the 3D viewer you can open the case like a real one and look at the tray and the inside of the booklet.
+  Kind: feature.
+  Source: user-request-2026-10-21.
+
+- 📋 [SLIP-0110] **Show the PlayStation logo pressed into a PS1 case's top and bottom edges in the 3D viewer.**
+  The user's PAL Ridge Racer Type 4 case has "PlayStation" moulded into
+  its black top and bottom edges (photos "Top of case" and "Bottom of
+  case", 2026-10-21). Deferred from SLIP-0106 § out of scope. The user
+  chose, 2026-10-21: 3D viewer only, since the still render shows those
+  edges as thin slivers. The box file's top and bottom are plain colours
+  today, so they need an optional picture each.
+  **Layman:** When you turn the box in the 3D viewer to look at its top or bottom edge, you see the PlayStation logo moulded into the plastic, as on a real case.
   Kind: feature.
   Source: user-request-2026-10-21.
 

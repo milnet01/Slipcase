@@ -29,8 +29,9 @@ def generate_front_texture(case_type: CaseType, width: int, height: int) -> Imag
 
     # Every jewel entry, whatever its name, is the same moulding (SLIP-0106).
     if case_type.layout == "jewel":
-        _draw_jewel_front(draw, width, height)
+        _draw_jewel_front(draw, case_type, width, height)
         overlay.alpha_composite(generate_lid_shine(width, height))
+        overlay.alpha_composite(_lid_streak(width, height))
     elif name == "DVD Case":
         _draw_dvd_front(draw, width, height)
     elif name == "Blu-ray Case":
@@ -56,7 +57,7 @@ def generate_spine_texture(case_type: CaseType, width: int, height: int) -> Imag
     name = case_type.name
 
     if case_type.layout == "jewel":
-        _draw_jewel_spine(draw, width, height)
+        _draw_jewel_spine(draw, case_type, width, height)
     elif name == "DVD Case":
         _draw_dvd_spine(draw, width, height)
     elif name == "Blu-ray Case":
@@ -143,19 +144,46 @@ def _draw_bluray_spine(draw: ImageDraw.ImageDraw, w: int, h: int) -> None:
 
 # --- CD Jewel Case ---
 
-def _draw_jewel_front(draw: ImageDraw.ImageDraw, w: int, h: int) -> None:
-    """Jewel case: clear plastic edge and center hub."""
-    lw = max(1, w // 200)
-    margin = int(w * 0.02)
-    _draw_indent_rect(draw, margin, margin, w - margin, h - margin, lw)
+# Jewel case mouldings in mm, measured from the user's PAL Ridge Racer Type 4
+# photos (2026-10-21) against its 120 mm booklet. Alphas judged by eye.
+JEWEL_RIM_MM = 1.0          # the clear lid's edge, catching light all round
+JEWEL_RIDGE_MM = 0.6        # each of the two lines where the lid meets the booklet
+JEWEL_RIDGE_GAP_MM = 1.5    # between those two lines
+JEWEL_CAP_MM = 3.0          # the tray's end caps over the hinge, top and bottom
+_RIM_ALPHA = 70
+_RIDGE_ALPHA = 55
+_CAP_ALPHA = 235
+STREAK_ALPHA = 34           # the lid's diagonal reflection, at its centre line
 
-    # Center CD hub
-    cx, cy = w // 2, int(h * 0.55)
-    r = int(min(w, h) * 0.12)
-    _draw_circle_indent(draw, cx, cy, r, lw)
-    # Inner ring
-    r2 = int(r * 0.4)
-    _draw_circle_indent(draw, cx, cy, r2, lw)
+
+def _draw_jewel_front(draw: ImageDraw.ImageDraw, case_type: CaseType,
+                      w: int, h: int) -> None:
+    """Jewel case lid: a light rim round the outside, and two ridge lines
+    down the hinge strip's booklet side, where the lid's hinge edge sits."""
+    p = w / case_type.width
+    rim = max(1, round(JEWEL_RIM_MM * p))
+    draw.rectangle([(0, 0), (w - 1, h - 1)], outline=(255, 255, 255, _RIM_ALPHA),
+                   width=rim)
+    # The booklet's left edge, as jewel_faces places it.
+    booklet_w, booklet_h = case_type.jewel.booklet
+    margin = (case_type.height - booklet_h) / 2
+    booklet_x = (case_type.width - margin - booklet_w) * p
+    ridge = max(1, round(JEWEL_RIDGE_MM * p))
+    for x in (booklet_x - ridge, booklet_x - ridge - JEWEL_RIDGE_GAP_MM * p):
+        draw.rectangle([(round(x), rim), (round(x) + ridge - 1, h - 1 - rim)],
+                       fill=(255, 255, 255, _RIDGE_ALPHA))
+
+
+def _lid_streak(width: int, height: int) -> Image.Image:
+    """A glossy lid's diagonal reflection: a soft white band along
+    x/w + y/h = 0.7, STREAK_ALPHA at its centre line and gone 0.12 either
+    side, so it misses both corners INV-11 reads."""
+    x = np.arange(width, dtype=np.float32)[np.newaxis, :] / width
+    y = np.arange(height, dtype=np.float32)[:, np.newaxis] / height
+    falloff = np.maximum(0.0, 1.0 - np.abs(x + y - 0.7) / 0.12)
+    streak = np.full((height, width, 4), 255, dtype=np.uint8)
+    streak[:, :, 3] = np.round(STREAK_ALPHA * falloff).astype(np.uint8)
+    return Image.fromarray(streak, "RGBA")
 
 
 def generate_lid_shine(width: int, height: int) -> Image.Image:
@@ -169,14 +197,19 @@ def generate_lid_shine(width: int, height: int) -> Image.Image:
     return Image.fromarray(shine, "RGBA")
 
 
-def _draw_jewel_spine(draw: ImageDraw.ImageDraw, w: int, h: int) -> None:
-    """Jewel case spine: the hinge knuckles at top and bottom."""
-    lw = max(1, w // 10)
-    knuckle_h = max(2, int(h * 0.04))
-    for y in (0, h - knuckle_h):
-        draw.rectangle([(0, y), (w, y + knuckle_h)], fill=(255, 255, 255, 10))
-        draw.line([(0, y + knuckle_h), (w, y + knuckle_h)],
-                  fill=(0, 0, 0, 15), width=lw)
+def _draw_jewel_spine(draw: ImageDraw.ImageDraw, case_type: CaseType,
+                      w: int, h: int) -> None:
+    """Jewel case hinge side: the paper strip under clear plastic, with the
+    tray's end caps over its top and bottom and a light lid edge on each
+    long side."""
+    p = h / case_type.height
+    cap_h = max(2, round(JEWEL_CAP_MM * p))
+    rim = max(1, round(JEWEL_RIM_MM * p))
+    cap = (*(case_type.plastic or (0, 0, 0)), _CAP_ALPHA)
+    for y in (0, h - cap_h):
+        draw.rectangle([(0, y), (w - 1, y + cap_h - 1)], fill=cap)
+    for x in (0, w - rim):
+        draw.rectangle([(x, 0), (x + rim - 1, h - 1)], fill=(255, 255, 255, _RIM_ALPHA))
 
 
 # --- Small plastic keep cases (Switch, DS, 3DS, PSP, Vita) ---

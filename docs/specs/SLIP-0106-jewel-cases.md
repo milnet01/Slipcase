@@ -353,6 +353,15 @@ the diagonal. The value is Slipcase's, judged by eye at build. The shine is a ca
 (SLIP-0104 § 4.2), so the clear base shines too. The opening side gets no
 overlay. No logos (§ 9).
 
+The plastic detail is measured from the user's PAL Ridge Racer Type 4
+photos (2026-10-21). The front overlay draws a 1 mm light rim round the
+lid. It draws two 0.6 mm ridge lines, 1.5 mm apart, down the hinge strip's
+booklet side. It adds a soft diagonal streak along x/w + y/h = 0.7. The
+hinge side gets 3 mm end caps in the plastic colour and a 1 mm rim on each
+long side. `render` lifts the top and bottom 30% toward white, so they
+stand apart from the front's border. The box file's colours stay
+`case_color or plastic` (INV-6).
+
 ### 4.8 The box file
 
 The box file gains one optional face, `edge`: the opening side's picture,

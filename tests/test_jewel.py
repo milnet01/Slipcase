@@ -162,6 +162,17 @@ class TestFaces(unittest.TestCase):
         self.assertEqual((m.top, m.bottom, m.edge), (BLACK_TRAY,) * 3)
         self.assertEqual((model(BLUE).top, model(BLUE).bottom, model(BLUE).edge), (BLUE,) * 3)
 
+    def test_rendered_top_stands_apart_from_the_border(self):
+        """A render's top face is lit lighter than the front's plastic border,
+        so the two do not merge into one thick band (the user, 2026-10-21)."""
+        r = BoxRenderer(CASE_TYPES["PS1 Jewel Case (PAL)"], output_width=1000, angle=40,
+                        show_reflection=False, show_shadow=False, show_texture=False)
+        img = np.array(r.render(Image.new("RGB", (1200, 1200), RED), platform="PS1"))
+        col = img[:, img.shape[1] // 2]
+        top = np.argmax(col[:, 3] > 0)
+        booklet = np.argmax((col[:, 0] > 150) & (col[:, 1] < 80))
+        self.assertGreater(col[top:booklet, :3].max(), BLACK_TRAY[0] + 30)
+
     def test_face_sources(self):
         """INV-7: § 4.4's priority table."""
         case = "CD Jewel Case"

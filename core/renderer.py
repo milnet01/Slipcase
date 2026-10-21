@@ -66,6 +66,11 @@ _FRONT_DIRECTIONAL_SHADE = 0.08
 _HIGHLIGHT_ALPHA = 0.3
 _DARK_EDGE_ALPHA = 0.15
 
+# How far a jewel case's top and bottom are lifted toward white. Bare plastic
+# drawn in the front border's own colour merged with it into one thick band
+# (the user, 2026-10-21); lit edges read as separate surfaces.
+_JEWEL_EDGE_LIFT = 0.3
+
 
 def visible_width_mm(case_type: CaseType, angle: float) -> float:
     """Front plus spine as seen from `angle` degrees, in millimetres."""
@@ -330,7 +335,9 @@ class BoxRenderer:
         if proj_top_h > 3:
             # A jewel case's top and bottom are bare tray plastic.
             if jewel:
-                top_color = bottom_color = case_color or self.case_type.plastic
+                plastic = case_color or self.case_type.plastic
+                top_color = bottom_color = tuple(
+                    round(c + (255 - c) * _JEWEL_EDGE_LIFT) for c in plastic)
             else:
                 top_color = case_color or extract_dominant_edge_color(front_image, edge="top")
                 bottom_color = case_color or extract_dominant_edge_color(
