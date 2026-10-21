@@ -1,6 +1,6 @@
 """Case type definitions with real-world dimensions for game box rendering."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 
 @dataclass(frozen=True)
@@ -281,6 +281,34 @@ CASE_TYPES: dict[str, CaseType] = {
     ),
 }
 
+# Edition and special-colour cases, picked by hand (SLIP-0113): the
+# standard case in another plastic. Colours from Wikipedia, Keep case,
+# per docs/research/SLIP-0113-edition-cases.md; every RGB is judged by eye.
+_SILVER = (0xB4, 0xB8, 0xBE)
+_RED_KEEP = (0xB0, 0x1C, 0x1C)
+_EDITION_PLASTIC: dict[str, tuple[str, dict]] = {
+    "PS2 Platinum Case (PAL)": ("PS2 DVD Case", {"plastic": _SILVER}),
+    "PS2 DVD Case (navy)": ("PS2 DVD Case", {"plastic": (0x1A, 0x24, 0x4C)}),
+    "PS2 DVD Case (red)": ("PS2 DVD Case", {"plastic": _RED_KEEP}),
+    "PS2 DVD Case (white)": ("PS2 DVD Case", {"plastic": _WHITE_KEEP}),
+    "PS2 DVD Case (clear)": ("PS2 DVD Case", {"plastic": None, "clear": True}),
+    "PS3 Greatest Hits Case": ("PS3 Blu-ray Case", {"plastic": _RED_KEEP, "clear": False}),
+    "PS3 Platinum Case (PAL)": ("PS3 Blu-ray Case", {"plastic": _SILVER, "clear": False}),
+    "Xbox Platinum Hits Case": ("Xbox Case", {"plastic": _SILVER}),
+    "Xbox 360 Platinum Hits Case": ("Xbox 360 Case", {"plastic": (0x90, 0x94, 0x9A)}),
+    "Xbox 360 Kinect Case": ("Xbox 360 Case", {"plastic": (0x8A, 0x3C, 0xC8)}),
+    "GameCube Player's Choice Case (PAL)": ("GameCube DVD Case", {"plastic": _SILVER}),
+    "GameCube DVD Case (blue)": ("GameCube DVD Case", {"plastic": (0x1F, 0x4E, 0xA8)}),
+    "GameCube DVD Case (red)": ("GameCube DVD Case", {"plastic": _RED_KEEP}),
+    "Wii DVD Case (red)": ("Wii DVD Case", {"plastic": _RED_KEEP}),
+    "Wii DVD Case (yellow)": ("Wii DVD Case", {"plastic": (0xF2, 0xC8, 0x14)}),
+    "Wii DVD Case (black)": ("Wii DVD Case", {"plastic": _BLACK_KEEP}),
+}
+# edition -> the standard case it recolours
+EDITIONS: dict[str, str] = {name: base for name, (base, _) in _EDITION_PLASTIC.items()}
+for _name, (_base, _changes) in _EDITION_PLASTIC.items():
+    CASE_TYPES[_name] = replace(CASE_TYPES[_base], name=_name, platforms=(), **_changes)
+
 # Map platform names to their default case type
 PLATFORM_CASE_MAP: dict[str, str] = {}
 for case_name, case in CASE_TYPES.items():
@@ -324,11 +352,14 @@ _CARTRIDGE_PLATFORMS = ("NES", "SNES", "N64", "Genesis", "Mega Drive",
                         "Game Boy", "Game Boy Color", "GBA")
 
 # platform -> cases picked only by hand, beyond its default and regional
-# cases (SLIP-0113).
+# cases (SLIP-0113), editions included.
 EXTRA_CASES: dict[str, tuple[str, ...]] = {
     "PC": ("CD Jewel Case",),
     **{platform: ("Universal Cart Case",) for platform in _CARTRIDGE_PLATFORMS},
 }
+for _name, _base in EDITIONS.items():
+    _platform = CASE_TYPES[_base].platforms[0]
+    EXTRA_CASES[_platform] = (*EXTRA_CASES.get(_platform, ()), _name)
 
 
 def cases_for_platform(platform: str) -> list[str]:

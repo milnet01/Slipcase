@@ -1153,6 +1153,15 @@ building.
   Case also on PC, Universal Cart Case on the cartridge platforms). A
   saved case its platform does not list restores with a platform that
   does. Tests: tests/test_case_list.py. Next: the researched variants.
+  Progress (2026-10-21): research in
+  docs/research/SLIP-0113-edition-cases.md, the Keep case claims re-read
+  at source. Sixteen colour editions added (core/case_types.py
+  _EDITION_PLASTIC, EDITIONS), each its console's standard case in
+  another plastic, RGB judged by eye. PS1 Platinum and Greatest Hits
+  change only the insert, so need no case. Tests:
+  tests/test_case_list.py TestEditionCases. Still open: multi-disc cases
+  (the 24 mm case's back-card strip width is unsourced), and Sega Sports
+  black Dreamcast cases (no source; asked the user).
   **Layman:** Pick the exact case your copy came in, such as a silver Platinum PS2 case or a thick multi-disc case, so your rendered library matches your shelf.
   Kind: feature.
   Source: user-request-2026-10-21.

@@ -51,6 +51,11 @@ SNES Cartridge Box · N64 Cartridge Box · Genesis Clamshell · Game Boy Box ·
 GBA Box · DS Case (US and PAL) · 3DS Case · PSP Case · PS Vita Case · Switch Case ·
 Universal Cart Case
 
+Edition and special-colour cases, picked by hand: PS2 Platinum (PAL), and
+PS2 navy, red, white and clear · PS3 Greatest Hits and Platinum (PAL) ·
+Xbox Platinum Hits · Xbox 360 Platinum Hits and Kinect · GameCube
+Player's Choice (PAL), blue and red · Wii red, yellow and black
+
 A jewel case shows the front booklet under a clear lid, the back insert's
 two printed edges on its two sides, and its tray's real plastic colour.
 

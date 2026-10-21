@@ -28,6 +28,28 @@ class TestCasesForPlatform(unittest.TestCase):
         self.assertNotIn("PS1 Jewel Case (PAL)", cases_for_platform("Dreamcast"))
 
 
+class TestEditionCases(unittest.TestCase):
+    """Edition cases: the standard case's size in another plastic."""
+
+    def test_edition_matches_its_standard_case(self):
+        from core.case_types import EDITIONS
+        self.assertTrue(EDITIONS)
+        for name, base in EDITIONS.items():
+            with self.subTest(case=name):
+                case, standard = CASE_TYPES[name], CASE_TYPES[base]
+                self.assertEqual(case.name, name)
+                self.assertEqual((case.width, case.height, case.depth),
+                                 (standard.width, standard.height, standard.depth))
+                self.assertEqual(case.texture, standard.texture)
+                self.assertEqual(case.platforms, ())
+                self.assertIn(name, cases_for_platform(standard.platforms[0]))
+
+    def test_named_editions(self):
+        self.assertIn("PS2 Platinum Case (PAL)", cases_for_platform("PS2"))
+        self.assertFalse(CASE_TYPES["PS3 Greatest Hits Case"].clear)
+        self.assertTrue(CASE_TYPES["Xbox 360 Kinect Case"].clear)
+
+
 class TestCaseCombo(unittest.TestCase):
 
     @classmethod
