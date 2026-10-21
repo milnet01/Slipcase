@@ -173,8 +173,14 @@ class TestReading(unittest.TestCase):
                 self._dir = d
                 path = write_box_file(_model(), d, "Game")
                 # Valid pictures under every name a careless reader could
-                # reach, so only the name rule can refuse.
-                for name in ("x.png", "b.png", "a\\b.png", ".hidden.png"):
+                # reach, so only the name rule can refuse. On Windows a
+                # backslash is a separator, so a\b.png lands in folder a.
+                os.mkdir(os.path.join(d, "a"))
+                decoys = ["x.png", "b.png", os.path.join("a", "b.png"),
+                          ".hidden.png"]
+                if os.sep == "/":
+                    decoys.append("a\\b.png")
+                for name in decoys:
                     _noise(4, 4, 7).save(os.path.join(d, name))
                 with open(path, encoding="utf-8") as f:
                     data = json.load(f)
