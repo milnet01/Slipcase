@@ -959,7 +959,7 @@ building.
   Kind: feature.
   Source: in-session-2026-08-27.
 
-- 🚧 [SLIP-0104] **A 3D box viewer the user can rotate and zoom, shared with RetroDB.**
+- ✅ [SLIP-0104] **A 3D box viewer the user can rotate and zoom, shared with RetroDB.**
   The user asked (2026-10-10) for a model of the box, all six sides,
   that the viewer can rotate and zoom, with the usual controls that go
   with that. The same feature goes into RetroDB once it is built here,
@@ -1006,6 +1006,8 @@ building.
   Windows check (2026-10-21): the viewer opens, but the user had no
   cover files to load, and the online search returned nothing (no
   services configured).
+  Verified (2026-10-21): the user says turning and zooming the box
+  worked on the Windows PC with the samples in C:\slipcase-test\samples.
   **Layman:** See the whole game box, every side, and turn it around or zoom in with the mouse.
   Kind: feature.
   Source: user-request-2026-10-10.
@@ -1232,6 +1234,13 @@ building.
   through the hinge strip. PS1 Jewel Case (NTSC-U) now carries that
   tray_print (SLIP-0115's machinery); its ribs still cover the whole
   strip. Waiting on the user's by-eye check of the US case.
+  By-eye check (2026-10-21): the US case is wrong. The user pointed to
+  the Crash Bandicoot back-cover scan (ps1_crashbandicoot_inlay.jpg):
+  the card sits behind the disc, and when the case is closed its ribbed
+  section on the left is what shows; the black strip at the far left is
+  the inside of the left spine. So what shows through is game-specific,
+  from the back scan, not a drawn "PlayStation". Waiting on the user to
+  confirm how to place it.
   **Layman:** The thin clear border round a CD-case cover now looks like see-through plastic catching the light, as on a real case.
   Kind: enhancement.
   Source: user-request-2026-10-21.
@@ -1259,6 +1268,11 @@ building.
   the logo. Test renamed:
   tests/test_jewel.py::test_clear_tray_shows_the_tray_print. Waiting on
   the user's by-eye check.
+  By-eye check (2026-10-21): the user says the US Dreamcast text reads
+  bottom to top, so you lean your head left to read it, and the gaps
+  between Sega, the swirl and Dreamcast are smaller. Fixed: reads_up is
+  now True, and the swirl has half a space on each side instead of a
+  full one. Waiting on the user's by-eye check.
   **Layman:** On a see-through US Dreamcast case, the white "Sega Dreamcast" edge of the back insert now shows beside the cover, as on a real case.
   Kind: enhancement.
   Source: user-request-2026-10-21.
@@ -2266,6 +2280,10 @@ building.
   rejected (SLIP-0089). Tests: tests/test_libretro.py
   test_a_lower_case_title_also_tries_it_capitalised,
   test_a_capitalised_title_costs_no_extra_requests.
+  Recheck (2026-10-21) on the Windows PC with its venv: PS1 "Crash
+  Bandicoot" and "crash bandicoot" are found; PS2 "Crash Bandicoot"
+  finds nothing, because no PS2 game has that name. The user's
+  screenshot had PS2 selected.
   **Layman:** Searching for a game's cover without an account finds nothing unless you type the title exactly, capitals included.
   Kind: fix.
   Source: user-report-2026-10-21.

@@ -84,7 +84,7 @@ _GREEN_TINT = (0x2E, 0x9E, 0x3A)
 _PS1_US_TRAY_PRINT = TrayPrint(text="PlayStation", paper=(0x10, 0x10, 0x10),
                                ink=(0xF0, 0xF0, 0xF0), length=63, reads_up=True)
 _DREAMCAST_US_TRAY_PRINT = TrayPrint(text="Sega Dreamcast", paper=(0xF4, 0xF4, 0xF2),
-                                     ink=(0x50, 0x50, 0x50), length=67, reads_up=False,
+                                     ink=(0x50, 0x50, 0x50), length=67, reads_up=True,
                                      swirl=True)
 
 CASE_TYPES: dict[str, CaseType] = {

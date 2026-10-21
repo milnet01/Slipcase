@@ -152,7 +152,7 @@ def tray_print_panel(tray: TrayPrint, size_mm: tuple[float, float], p: float) ->
 
     def widths(font):
         space = font.getlength(" ")
-        swirl = font.size * _SWIRL_SHARE + 2 * space if tray.swirl else 0
+        swirl = font.size * _SWIRL_SHARE + space if tray.swirl else 0
         return [font.getlength(word) for word in words], swirl
 
     # Size the font at 100 px, then scale it to the length.
