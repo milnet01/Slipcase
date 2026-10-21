@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   PlayStation case is thicker. Slipcase picks the US, European or Japanese
   case from the cover's file name, such as "(Europe)", and you can pick
   another in the case list. Box files gain the opening side's picture.
+  A US PlayStation or Dreamcast case's clear tray shows its printed
+  "PlayStation" or "Sega Dreamcast" panel beside the booklet (SLIP-0115).
 
 - **Turn the box in 3D, and save it for RetroDB** (SLIP-0104)
   A new 3D View shows all six sides of the box. Turn it with the mouse or
