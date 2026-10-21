@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: SLIP=105 -->
+<!-- ants-roadmap-id-high-water: SLIP=106 -->
 
 # Slipcase — Roadmap
 
@@ -1006,6 +1006,25 @@ building.
   **Layman:** See the whole game box, every side, and turn it around or zoom in with the mouse.
   Kind: feature.
   Source: user-request-2026-10-10.
+
+- 🚧 [SLIP-0106] **Model each system's real case, per region: its art layout, thickness and plastic.**
+  The user (2026-10-21), on PS1: a single-disc jewel case has a front
+  booklet showing only the front, and a back insert carrying the back plus
+  a spine at BOTH ends; PAL single-disc cases are thicker than NTSC-U, and
+  NTSC-J may be thick too. The user wants the real plastic shown, and asked
+  for the same work for every system's case, after online research.
+  Today every case is one wrap (back + spine + front) with plain plastic
+  on the opening side, and PS1, Saturn and Dreamcast share one CD Jewel
+  Case 10.4 mm deep.
+  Likely touches core/case_types.py, core/image_utils.py (the full-cover
+  split), core/renderer.py, core/box_model.py, and the SLIP-0104 box file
+  format, which RetroDB is building an importer for (PASS-59-142); a second
+  spine face or per-region depth may need format version 2. Needs a spec.
+  Progress (2026-10-21): three research lanes dispatched (disc jewel
+  cases; keep and handheld cases; cartridge boxes).
+  **Layman:** Each game box looks like the real one for its console and region, with the art in the right places and the real plastic showing.
+  Kind: feature.
+  Source: user-request-2026-10-21.
 
 ## Project record
 
