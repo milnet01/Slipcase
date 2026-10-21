@@ -1022,6 +1022,16 @@ building.
   spine face or per-region depth may need format version 2. Needs a spec.
   Progress (2026-10-21): three research lanes dispatched (disc jewel
   cases; keep and handheld cases; cartridge boxes).
+  Progress (2026-10-21): research done, sourced in
+  docs/research/SLIP-0106-real-cases.md; PS1 rows re-read at source.
+  User decided (2026-10-21): (1) region read from the file name's tag,
+  e.g. "(Europe)", overridable in the case list, untagged = US; (2) disc
+  jewel cases first (PS1, Dreamcast, Saturn, Sega CD, PC CD), then sizes
+  and colours for the rest, then cartridge boxes; (3) real plastic
+  colour, a see-through lid with a soft shine, bare plastic where
+  nothing is printed; moulded logos later as their own item. RetroDB
+  told the box format may change (it holds PASS-59-142 at v1). Next:
+  write-spec for phase 1.
   **Layman:** Each game box looks like the real one for its console and region, with the art in the right places and the real plastic showing.
   Kind: feature.
   Source: user-request-2026-10-21.
