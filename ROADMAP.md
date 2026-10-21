@@ -1078,7 +1078,7 @@ building.
   Kind: feature.
   Source: user-request-2026-10-21.
 
-- 📋 [SLIP-0110] **Show the PlayStation logo pressed into a PS1 case's top and bottom edges in the 3D viewer.**
+- 🚧 [SLIP-0110] **Show the PlayStation logo pressed into a PS1 case's top and bottom edges in the 3D viewer.**
   The user's PAL Ridge Racer Type 4 case has "PlayStation" moulded into
   its black top and bottom edges (photos "Top of case" and "Bottom of
   case", 2026-10-21). Deferred from SLIP-0106 § out of scope. The user
@@ -1087,6 +1087,13 @@ building.
   today, so they need an optional picture each.
   The user, 2026-10-21: "Don't delay the pressed in logo too much,
   perhaps the next session should include it." Next up, ahead of SLIP-0107.
+  Built (2026-10-21): CaseType.moulded_logo ("PlayStation" on PS1 PAL),
+  core/case_texture.py generate_moulded_edge (37 mm, centred, raised,
+  upright on both edges as in the photos), BoxModel
+  top_face/bottom_face, box file faces top/bottom (optional, version 1),
+  drawn by BoxViewer. Follows show_texture. Tests: TestMouldedLogo,
+  test_top_and_bottom_faces, test_top_picture_drawn. Waiting on the
+  user's by-eye check; flip to shipped when right.
   **Layman:** When you turn the box in the 3D viewer to look at its top or bottom edge, you see the PlayStation logo moulded into the plastic, as on a real case.
   Kind: feature.
   Source: user-request-2026-10-21.

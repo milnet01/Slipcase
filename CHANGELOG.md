@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **A European PlayStation case shows "PlayStation" moulded into its top
+  and bottom in the 3D view** (SLIP-0110)
+  Turn the box to look at its top or bottom edge and the raised logo is
+  there, as on the real case. It follows the Case Texture setting. Box
+  files gain top and bottom pictures for cases that have them.
+
 - **PlayStation and Dreamcast games now look like their real jewel cases**
   (SLIP-0106)
   The front booklet sits beside a strip of bare tray plastic under a clear

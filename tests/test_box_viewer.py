@@ -7,7 +7,7 @@ from unittest.mock import patch
 from PIL import Image
 
 from core.box_model import BoxModel
-from core.case_types import CASE_TYPES
+from core.case_types import CASE_TYPES, CaseType
 from core.renderer import BoxRenderer
 
 
@@ -131,6 +131,29 @@ class TestBackgroundTransparent(_ViewerTest):
         for x, y in ((0, 0), (299, 0), (0, 299), (299, 299)):
             self.assertEqual(image.pixelColor(x, y).alpha(), 0, (x, y))
         self.assertGreater(image.pixelColor(150, 150).alpha(), 0)
+
+    def test_top_picture_drawn(self):
+        """SLIP-0110: a model's top picture replaces the top's plain colour."""
+        from dataclasses import replace
+
+        from PyQt6.QtCore import QPoint
+        from PyQt6.QtGui import QColor, QImage, QRegion
+        from PyQt6.QtWidgets import QWidget
+
+        def centre(model):
+            viewer = self._viewer(model)
+            viewer.set_view(0, 85)
+            image = QImage(300, 300, QImage.Format.Format_ARGB32_Premultiplied)
+            image.fill(QColor(0, 0, 0, 0))
+            viewer.render(image, QPoint(), QRegion(), QWidget.RenderFlag(0))
+            return image.pixelColor(150, 150).red()
+
+        # A flat box, so its top fills the middle of the view from above.
+        flat = CaseType(name="Flat", width=100, height=20, depth=100, platforms=())
+        plain = replace(_model(), case_type=flat)
+        pictured = replace(plain, top_face=Image.new("RGB", (100, 100), (250, 250, 250)))
+        self.assertLess(centre(plain), 60)
+        self.assertGreater(centre(pictured), 120)
 
 
 if __name__ == "__main__":

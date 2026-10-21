@@ -145,7 +145,8 @@ class BoxViewer(QWidget):
             self.update()
             return
         pictures = {"front": model.front, "spine": model.spine,
-                    "back": model.back, "edge": model.edge_face}
+                    "back": model.back, "edge": model.edge_face,
+                    "top": model.top_face, "bottom": model.bottom_face}
         self._images = {face: _to_qimage(picture)
                         for face, picture in pictures.items() if picture is not None}
         self._corners = _face_corners(model)

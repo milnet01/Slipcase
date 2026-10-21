@@ -9,7 +9,9 @@ from dataclasses import dataclass
 
 from PIL import Image, ImageOps
 
-from core.case_texture import generate_front_texture, generate_spine_texture
+from core.case_texture import (
+    generate_front_texture, generate_moulded_edge, generate_spine_texture,
+)
 from core.case_types import CaseType
 from core.image_utils import extract_dominant_edge_color, is_full_cover, split_full_cover
 from core.jewel import jewel_faces
@@ -27,7 +29,11 @@ class BoxModel:
     Each picture shows its face from outside the box, standing upright, as
     RGB. The spine is on the front's left as seen from the front, and the
     edge on its right. `edge_face` is the edge's picture, which only a jewel
-    case has; without it a viewer fills the edge with `edge`.
+    case has; without it a viewer fills the edge with `edge`. `top_face`
+    and `bottom_face` are the top and bottom's pictures, which only a case
+    with moulded text has; without them a viewer fills those with `top` and
+    `bottom`. The top's picture has the back at its top edge, the bottom's
+    the front.
     """
     case_type: CaseType
     top: tuple[int, int, int]
@@ -37,6 +43,8 @@ class BoxModel:
     spine: Image.Image
     back: Image.Image | None
     edge_face: Image.Image | None = None
+    top_face: Image.Image | None = None
+    bottom_face: Image.Image | None = None
 
 
 def _scaled(image: Image.Image, aspect: float) -> Image.Image:
@@ -158,7 +166,12 @@ def _jewel_model(
     edge_face = _scaled(faces.opening, side_aspect)
     del faces
 
-    # The opening side gets no overlay.
+    # The opening side gets no overlay. Moulded text is a case detail too.
+    moulded = None
+    if show_texture and case_type.moulded_logo:
+        p = front.width / case_type.width
+        moulded = generate_moulded_edge(
+            case_type, plastic, front.width, max(1, round(case_type.depth * p)))
     if show_texture:
         front = Image.alpha_composite(
             front, generate_front_texture(case_type, *front.size))
@@ -174,4 +187,5 @@ def _jewel_model(
         spine=_flatten(spine, plastic),
         back=_flatten(back, plastic) if back is not None else None,
         edge_face=_flatten(edge_face, plastic),
+        top_face=moulded, bottom_face=moulded,
     )

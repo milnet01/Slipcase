@@ -272,6 +272,32 @@ class TestCompatibility(unittest.TestCase):
             self.assertEqual(window.case_combo.currentText(), "CD Jewel Case")
 
 
+class TestMouldedLogo(unittest.TestCase):
+    """SLIP-0110: the PS1 PAL case's top and bottom carry moulded text."""
+
+    def _model(self, name, show_texture=True):
+        return build_box_model(
+            _noise(240, 240, 1), None, CASE_TYPES[name], title="Game", serial="",
+            platform="PS1", spine_color=None, case_color=None,
+            spine_left_offset=0, spine_right_offset=0, full_cover=None,
+            show_texture=show_texture,
+        )
+
+    def test_only_the_pal_case_with_details(self):
+        model = self._model("PS1 Jewel Case (PAL)")
+        ct = model.case_type
+        top = np.array(model.top_face).astype(int)
+        self.assertEqual(model.top_face.size,
+                         (model.front.width, round(ct.depth * model.front.width / ct.width)))
+        self.assertIs(model.bottom_face, model.top_face)
+        # Bare plastic at the ends, raised letters in the middle.
+        self.assertTrue((top[:, :10] == BLACK_TRAY).all())
+        middle = top[:, top.shape[1] // 3: 2 * top.shape[1] // 3]
+        self.assertGreater(middle.max(), BLACK_TRAY[0] + 20)
+        self.assertIsNone(self._model("PS1 Jewel Case (PAL)", show_texture=False).top_face)
+        self.assertIsNone(self._model("PS1 Jewel Case (NTSC-U)").top_face)
+
+
 class TestCardCase(unittest.TestCase):
     """SLIP-0111: the back card's proportions choose between regional cases."""
 

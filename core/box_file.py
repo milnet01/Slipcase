@@ -2,8 +2,8 @@
 
 Format version 1 is the contract both apps bind to (SLIP-0104 § 4.1). For a
 stem S, one folder holds S.box.json, S.front.png, S.spine.png and, when the
-box has them, S.back.png and S.edge.png, the opening side. read_box_file is Slipcase's reference for
-RetroDB's reader.
+box has them, S.back.png, S.edge.png (the opening side), S.top.png and
+S.bottom.png. read_box_file is Slipcase's reference for RetroDB's reader.
 """
 
 import json
@@ -23,8 +23,10 @@ FORMAT = "slipcase-box"
 VERSION = 1
 
 # Face key in the file -> the BoxModel attribute holding its picture. The
-# edge's picture is edge_face: BoxModel.edge is that side's colour.
-_FACES = {"front": "front", "spine": "spine", "back": "back", "edge": "edge_face"}
+# edge's picture is edge_face: BoxModel.edge is that side's colour, and so
+# for the top and bottom.
+_FACES = {"front": "front", "spine": "spine", "back": "back", "edge": "edge_face",
+          "top": "top_face", "bottom": "bottom_face"}
 _COLOURS = ("top", "bottom", "edge")
 _SIZES = ("width_mm", "height_mm", "depth_mm")
 _MAX_SIZE_MM = 1000
@@ -51,8 +53,8 @@ def _check_name(name: object) -> str:
 
 
 def box_paths(folder: str, stem: str) -> list[str]:
-    """The five paths a box file of `stem` uses: description, front, spine,
-    back, edge."""
+    """The paths a box file of `stem` uses: description, front, spine,
+    back, edge, top, bottom."""
     return [os.path.join(folder, name) for name in _names(stem).values()]
 
 
@@ -177,15 +179,16 @@ def read_box_file(path: str) -> BoxModel:
     folder = os.path.dirname(path)
     if faces.get("front") is None or faces.get("spine") is None:
         raise BoxFileError("front and spine must name a picture")
-    back_name = faces.get("back")
-    # Optional, so a file written before SLIP-0106 still reads.
-    edge_name = faces.get("edge")
+    # Optional, so a file written before SLIP-0106 or SLIP-0110 still reads.
+    optional = {key: faces.get(key) for key in ("back", "edge", "top", "bottom")}
+    pictures = {key: _face(folder, name) if name is not None else None
+                for key, name in optional.items()}
     return BoxModel(
         case_type=CaseType(name=name, width=width, height=height, depth=depth,
                            platforms=()),
         top=top, bottom=bottom, edge=edge,
         front=_face(folder, faces["front"]),
         spine=_face(folder, faces["spine"]),
-        back=_face(folder, back_name) if back_name is not None else None,
-        edge_face=_face(folder, edge_name) if edge_name is not None else None,
+        back=pictures["back"], edge_face=pictures["edge"],
+        top_face=pictures["top"], bottom_face=pictures["bottom"],
     )

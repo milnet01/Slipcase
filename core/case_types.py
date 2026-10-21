@@ -26,6 +26,8 @@ class CaseType:
     # A jewel lid clear only over the booklet: the hinge strip is the tray's
     # matte plastic, so the lid's gloss stops at the booklet's side.
     matte_hinge_strip: bool = False
+    # Text moulded into the plastic of the top and bottom edges (SLIP-0110).
+    moulded_logo: str | None = None
 
     @property
     def layout(self) -> str:
@@ -90,6 +92,7 @@ CASE_TYPES: dict[str, CaseType] = {
         platforms=(),
         jewel=JewelGeometry(booklet=(120, 120), back_card=(158, 118), strip=13.5),
         plastic=_BLACK_TRAY, matte_hinge_strip=True,
+        moulded_logo="PlayStation",
     ),
     "PS1 Jewel Case (NTSC-J)": CaseType(
         name="PS1 Jewel Case (NTSC-J)",

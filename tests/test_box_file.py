@@ -62,7 +62,7 @@ class TestWriting(unittest.TestCase):
                                 "edge": "#FFEE0D"},
                     "faces": {"front": "Game.front.png", "spine": "Game.spine.png",
                               "back": "Game.back.png" if with_back else None,
-                              "edge": None},
+                              "edge": None, "top": None, "bottom": None},
                 })
                 expected = {"Game.box.json", "Game.front.png", "Game.spine.png"}
                 if with_back:
@@ -73,8 +73,44 @@ class TestWriting(unittest.TestCase):
         self.assertEqual(box_paths("/out", "G"), [
             os.path.join("/out", "G.box.json"), os.path.join("/out", "G.front.png"),
             os.path.join("/out", "G.spine.png"), os.path.join("/out", "G.back.png"),
-            os.path.join("/out", "G.edge.png"),
+            os.path.join("/out", "G.edge.png"), os.path.join("/out", "G.top.png"),
+            os.path.join("/out", "G.bottom.png"),
         ])
+
+    def test_top_and_bottom_faces(self):
+        """SLIP-0110: a PAL PS1 box writes its moulded top and bottom; a box
+        without them writes null, and a file without the keys still reads."""
+        pal = build_box_model(
+            Image.new("RGB", (240, 240), (220, 20, 20)), None,
+            CASE_TYPES["PS1 Jewel Case (PAL)"], title="Game", serial="",
+            platform="PS1", spine_color=None, case_color=None,
+            spine_left_offset=0, spine_right_offset=0, full_cover=None,
+            show_texture=True,
+        )
+        with tempfile.TemporaryDirectory() as d:
+            path = write_box_file(pal, d, "Game")
+            with open(path, encoding="utf-8") as f:
+                data = json.load(f)
+            self.assertEqual((data["faces"]["top"], data["faces"]["bottom"]),
+                             ("Game.top.png", "Game.bottom.png"))
+            got = read_box_file(path)
+            for face in ("top_face", "bottom_face"):
+                self.assertTrue(np.array_equal(np.array(getattr(got, face)),
+                                               np.array(getattr(pal, face)) & 0xFE))
+
+            del data["faces"]["top"], data["faces"]["bottom"]
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(data, f)
+            got = read_box_file(path)
+            self.assertIsNone(got.top_face)
+            self.assertIsNone(got.bottom_face)
+
+            path = write_box_file(_jewel_model(), d, "Game")
+            with open(path, encoding="utf-8") as f:
+                faces = json.load(f)["faces"]
+            self.assertIsNone(faces["top"])
+            self.assertIsNone(faces["bottom"])
+            self.assertFalse(os.path.exists(os.path.join(d, "Game.top.png")))
 
     def test_edge_face_written(self):
         """SLIP-0104 INV-13: a jewel box writes its edge face; a wrap box clears it."""

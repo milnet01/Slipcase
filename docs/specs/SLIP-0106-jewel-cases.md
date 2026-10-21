@@ -358,7 +358,7 @@ over it: white, with alpha `round(SHINE_ALPHA · max(0, 1 − x/w − y/h))`,
 the diagonal. The value is Slipcase's, judged by eye at build. The shine is a case detail, so it follows
 `show_texture`. The back already carries the front overlay mirrored
 (SLIP-0104 § 4.2), so the clear base shines too. The opening side gets no
-overlay. No logos (§ 9).
+overlay. The PS1 PAL case's moulded top and bottom text is SLIP-0110's.
 
 The plastic detail is measured from the user's PAL Ridge Racer Type 4
 photos (2026-10-21). The front overlay draws a 1 mm light rim round the
@@ -628,8 +628,8 @@ Dreamcast front only, and check the clear tray reads as clear.
 - Early 18 mm NTSC-J PS1 cases — deferred; not yet queued. The user can
   pick `PS1 Jewel Case (PAL)` for the depth meanwhile, but its tray and
   paper are PAL's.
-- Moulded logos (the PS1 PAL embossed logo) — deferred; not yet queued, by
-  the user's decision.
+- Moulded logos (the PS1 PAL embossed logo) — SLIP-0110, in the 3D viewer
+  only, by the user's decision.
 - Multi-disc "multiway" and fat cases — deferred; not yet queued; no depth
   is sourced.
 - A Sega CD / Mega-CD platform — deferred; not yet queued (§ 8).

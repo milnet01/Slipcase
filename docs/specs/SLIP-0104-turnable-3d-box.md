@@ -71,7 +71,7 @@ half of the work.
 
 ### 4.1 The box file (the shared contract)
 
-For a stem `S`, up to five files sit in one folder:
+For a stem `S`, these files sit in one folder:
 
 ```
 S.box.json        the description, written last
@@ -79,6 +79,8 @@ S.front.png       front cover
 S.spine.png       spine
 S.back.png        back cover (absent when there is none)
 S.edge.png        opening side (absent when there is none)
+S.top.png         top (absent when there is none)
+S.bottom.png      bottom (absent when there is none)
 ```
 
 `S.box.json`, format version 1:
@@ -91,7 +93,7 @@ S.edge.png        opening side (absent when there is none)
   "case": {"name": "DVD Case", "width_mm": 135, "height_mm": 190, "depth_mm": 14},
   "colours": {"top": "#1C1C1C", "bottom": "#1C1C1C", "edge": "#1C1C1C"},
   "faces": {"front": "S.front.png", "spine": "S.spine.png", "back": "S.back.png",
-            "edge": "S.edge.png"}
+            "edge": "S.edge.png", "top": "S.top.png", "bottom": "S.bottom.png"}
 }
 ```
 
@@ -106,11 +108,15 @@ S.edge.png        opening side (absent when there is none)
   when the box has no back cover; a viewer then fills it with `edge`.
   `edge` is the opening side's picture, or `null` when there is none; a
   viewer then fills that side with `colours.edge`. Readers that do not
-  know `edge` ignore it, as any unknown key (SLIP-0106 § 4.8).
+  know `edge` ignore it, as any unknown key (SLIP-0106 § 4.8). `top` and
+  `bottom` work the same way for those faces and `colours.top` and
+  `colours.bottom` (SLIP-0110): a case with moulded text there has them.
 - **Orientation.** Each picture shows its face from outside the box, standing
   upright. The spine is on the front's left as seen from the front, as on
   every case in `CASE_TYPES`. The edge is on the front's right as seen from
-  the front.
+  the front. The top's picture has the spine on its left and the back at
+  its top edge; the bottom's has the spine on its left and the front at its
+  top edge.
 - **Pictures** are PNG, RGB with no alpha, longest edge at most 1600 px, never
   enlarged. Measured worst case (2026-10-10): 1600 × 1600 random noise through
   `save_optimized_png` is 6,743,128 bytes, under RetroDB's 10 MB limit.
@@ -124,7 +130,7 @@ S.edge.png        opening side (absent when there is none)
 `slipcase-box` or a `version` other than 1; refuse a face name that is not a
 single plain file name (contains `/` or `\`, is `.` or `..`, starts with
 `.`); refuse a `front` or `spine` that is null or whose file is missing, and
-a `back` or `edge` that names a missing file; refuse a size that is not a
+a `back`, `edge`, `top` or `bottom` that names a missing file; refuse a size that is not a
 positive number at most 1000; refuse a colour that is not `#RRGGBB`. RetroDB
 adds its own image checks (§ 11).
 
@@ -143,6 +149,8 @@ class BoxModel:
     spine: Image.Image          # RGB, same cap
     back: Image.Image | None    # RGB, same cap
     edge_face: Image.Image | None = None  # RGB, same cap; the opening side
+    top_face: Image.Image | None = None   # RGB, same cap (SLIP-0110)
+    bottom_face: Image.Image | None = None
 
 FACE_MAX_EDGE = 1600
 
@@ -154,7 +162,11 @@ def build_box_model(front_image, back_image, case_type, *, title, serial,
 
 A jewel case (`case_type.layout == "jewel"`) builds its faces with
 SLIP-0106 § 4.4's `jewel_faces`; the rest of this section describes the
-wrap layout.
+wrap layout. A jewel case with `moulded_logo` and `show_texture` set gets
+`top_face` and `bottom_face`: one picture, the front's width by the depth
+at the front's px/mm, from `generate_moulded_edge`. That draws the text
+37 mm long, centred and raised, reading left to right on both (SLIP-0110).
+The still render does not use them; there those edges are slivers.
 
 It takes `BoxRenderer.render`'s face inputs and decides the faces the way
 render does: `is_full_cover` when `full_cover` is None; `split_full_cover`
@@ -180,12 +192,12 @@ New `core/box_file.py`:
 def write_box_file(model: BoxModel, folder: str, stem: str,
                    compress_level: int = 6) -> str: ...   # returns the .json path
 def read_box_file(path: str) -> BoxModel: ...              # raises BoxFileError
-def box_paths(folder: str, stem: str) -> list[str]: ...    # the five paths, edge last
+def box_paths(folder: str, stem: str) -> list[str]: ...    # the description, then each face
 ```
 
 `write_box_file` first refuses, writing nothing, a stem whose face names
 would fail § 4.1's name rule. It then deletes every existing file among the
-five `box_paths`, saves each face with `save_optimized_png`, and writes the JSON last through a
+`box_paths`, saves each face with `save_optimized_png`, and writes the JSON last through a
 temporary file and `os.replace`, so a `.box.json` never names a face that was
 not written. If a face fails, it deletes the faces it wrote and raises.
 `read_box_file` applies § 4.1's reading rules and builds `case_type` from the
@@ -199,13 +211,13 @@ reference for RetroDB's reader.
 - **Export PNG.** With the setting on, `MainWindow._export_png` also writes
   the `BoxModel` paired with the shown render (§ 4.5) beside the PNG. Stem:
   the chosen PNG's stem with a trailing ` 3D Boxart` removed. When any of
-  that stem's five `box_paths` exists, Slipcase asks before replacing the box
+  that stem's `box_paths` exists, Slipcase asks before replacing the box
   file; on No, the PNG is saved and the box file is not.
 - **Batch.** With the setting on, `_render_single_image` and
   `BatchWorker._run_sequential` write the box file after the PNG, with the
   PNG's stem. New `pick_output_stems(file_paths, output_dir) -> list[str]` in
   `ui/workers.py`, called by `BatchWorker` before any render starts, picks
-  each stem: one for which neither the PNG nor any of the five `box_paths`
+  each stem: one for which neither the PNG nor any of its `box_paths`
   exists, and that no earlier file in the list was given. Each render
   receives its stem.
 - A box-file failure is reported like a PNG failure (a message for a single
@@ -236,14 +248,15 @@ and the shortcut Ctrl+3 (unused today; added to `STANDARDS.md` § 6).
   as a new `model_ready(object)` signal. `MainWindow` keeps it with the
   render it belongs to, for the viewer and for Export PNG. The viewer converts the faces to
   `QImage` once per model, never in `paintEvent`. It draws `edge_face` on
-  the edge side when present, converted once per model like the others.
+  the edge side when present, and `top_face` and `bottom_face` on the top
+  and bottom (SLIP-0110), converted once per model like the others.
 
 ## 5. Invariants
 
 - **INV-1** — A written `S.box.json` holds exactly § 4.1's keys for version 1:
   `format` `slipcase-box`, `version` 1, `case` equal to the `CaseType` used,
   `#RRGGBB` colours, and face names `S.front.png`, `S.spine.png`, and each
-  of `S.back.png` and `S.edge.png` or `null`.
+  of `S.back.png`, `S.edge.png`, `S.top.png` and `S.bottom.png` or `null`.
   *Test:* `tests/test_box_file.py::test_written_file_matches_schema`.
   *Breaks when:* `case` is filled from pixel sizes, a key is renamed, or a
   colour is written as a list.

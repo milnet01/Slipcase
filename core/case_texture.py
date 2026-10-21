@@ -11,6 +11,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 from core.case_types import CaseType
+from core.spine_generator import _get_font
 
 # Strongest alpha of a jewel case lid's shine, at its top-left corner. Judged
 # by eye at build (SLIP-0106 § 4.7).
@@ -221,6 +222,47 @@ def _draw_jewel_spine(draw: ImageDraw.ImageDraw, case_type: CaseType,
         draw.rectangle([(0, y), (w - 1, y + cap_h - 1)], fill=cap)
     for x in (0, w - rim):
         draw.rectangle([(x, 0), (x + rim - 1, h - 1)], fill=(255, 255, 255, _RIM_ALPHA))
+
+
+# A case's moulded text, measured from the user's PAL Ridge Racer Type 4
+# photos (SLIP-0110): about 37 mm long, centred on the edge. Shades judged
+# by eye at build.
+MOULDED_TEXT_MM = 37
+_MOULD_LIFT = 8         # letter face over the bare plastic
+_MOULD_HIGHLIGHT = 40   # the letters' upper edges, catching the light
+_MOULD_SHADOW = 12      # their lower edges
+
+
+def generate_moulded_edge(case_type: CaseType, plastic: tuple[int, int, int],
+                          width: int, height: int) -> Image.Image:
+    """A top or bottom edge's picture: bare `plastic` with
+    `case_type.moulded_logo` raised out of it, centred, as RGB.
+
+    The text reads left to right, upright in the picture, on both edges, as
+    on the real case: each edge seen from outside with the spine on the
+    left. So one picture serves both.
+    """
+    p = width / case_type.width
+    font = _get_font(max(4, round(height)), bold=False)
+    left, top, right, bottom = font.getbbox(case_type.moulded_logo)
+    size = max(4, round(font.size * MOULDED_TEXT_MM * p / max(1, right - left)))
+    font = _get_font(size, bold=False)
+    left, top, right, bottom = font.getbbox(case_type.moulded_logo)
+
+    mask = Image.new("L", (width, height), 0)
+    ImageDraw.Draw(mask).text(
+        ((width - (right - left)) / 2 - left, (height - (bottom - top)) / 2 - top),
+        case_type.moulded_logo, font=font, fill=255)
+    m = np.asarray(mask, dtype=np.float32) / 255
+    step = max(1, round(0.15 * p))
+    above = np.zeros_like(m)
+    above[step:] = m[:-step]
+    below = np.zeros_like(m)
+    below[:-step] = m[step:]
+    shade = (_MOULD_LIFT * m + _MOULD_HIGHLIGHT * np.clip(m - above, 0, 1)
+             - _MOULD_SHADOW * np.clip(m - below, 0, 1))
+    pixels = np.asarray(plastic, dtype=np.float32) + shade[:, :, np.newaxis]
+    return Image.fromarray(np.clip(np.round(pixels), 0, 255).astype(np.uint8), "RGB")
 
 
 # --- Small plastic keep cases (Switch, DS, 3DS, PSP, Vita) ---
