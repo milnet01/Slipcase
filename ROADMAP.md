@@ -1003,6 +1003,9 @@ building.
   writing. Every INV-1 to INV-12 test passes, and each was seen to fail
   with its rule broken. Left: § 10's by-eye check of the viewer on the
   Linux desktop and the Windows test machine.
+  Windows check (2026-10-21): the viewer opens, but the user had no
+  cover files to load, and the online search returned nothing (no
+  services configured).
   **Layman:** See the whole game box, every side, and turn it around or zoom in with the mouse.
   Kind: feature.
   Source: user-request-2026-10-10.
@@ -1110,7 +1113,7 @@ building.
   Kind: feature.
   Source: user-request-2026-10-21.
 
-- 🚧 [SLIP-0112] **Show "Dreamcast" moulded into a PAL Dreamcast case's front hinge strip.**
+- ✅ [SLIP-0112] **Show "Dreamcast" moulded into a PAL Dreamcast case's front hinge strip.**
   The user's Gemini answer, 2026-10-21 (unsourced): PAL Dreamcast cases
   have "Dreamcast" pressed into the top and bottom borders. The user
   asked for it, "but only after a session restart". Uses SLIP-0110's
@@ -1148,6 +1151,7 @@ building.
   overlay only, so it follows show_texture. Test:
   tests/test_jewel.py::test_dreamcast_pal_strip_logo. Waiting on the
   user's by-eye check; flip to shipped when right.
+  Resolved (2026-10-21): the user checked it by eye and it looks good.
   **Layman:** A European Dreamcast box shows the word "Dreamcast" moulded into the blue strip beside the cover, as on the real case.
   Kind: feature.
   Source: user-request-2026-10-21.
@@ -1203,6 +1207,9 @@ building.
   the PS1 NTSC-U, PAL and NTSC-J cases; _draw_jewel_front draws 0.4 mm
   ribs at a 1 mm pitch, alpha 40 (judged by eye), front only. Test:
   tests/test_jewel.py::test_ps1_hinge_strip_is_ridged.
+  By-eye check (2026-10-21): the PAL PS1 case looks good. The NTSC PS1
+  case needs work: the user says it is see-through and shows the back
+  cover through it. Waiting on the user's photos.
   **Layman:** The thin clear border round a CD-case cover now looks like see-through plastic catching the light, as on a real case.
   Kind: enhancement.
   Source: user-request-2026-10-21.
@@ -1218,6 +1225,8 @@ building.
   the strip stays plastic. Amends SLIP-0106 INV-6. Test:
   tests/test_jewel.py::test_clear_tray_shows_the_hinge_strip_paper.
   Waiting on the user's by-eye check; flip to shipped when right.
+  By-eye check (2026-10-21): needs work. The user says the clear case
+  shows what is on the back cover. Waiting on the user's photos.
   **Layman:** On a see-through US Dreamcast case, the white "Sega Dreamcast" edge of the back insert now shows beside the cover, as on a real case.
   Kind: enhancement.
   Source: user-request-2026-10-21.
