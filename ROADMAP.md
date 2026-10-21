@@ -1007,7 +1007,7 @@ building.
   Kind: feature.
   Source: user-request-2026-10-10.
 
-- 🚧 [SLIP-0106] **Model each system's real case, per region: its art layout, thickness and plastic.**
+- ✅ [SLIP-0106] **Model each system's real case, per region: its art layout, thickness and plastic.**
   The user (2026-10-21), on PS1: a single-disc jewel case has a front
   booklet showing only the front, and a back insert carrying the back plus
   a spine at BOTH ends; PAL single-disc cases are thicker than NTSC-U, and
@@ -1040,6 +1040,9 @@ building.
   it and fix anything the code shows to be incorrect." Phases 2 and 3
   queued as SLIP-0107 and SLIP-0108. Next: build phase 1 with
   write-code, tests first.
+  Resolved (2026-10-21): phase 1 built (commits ad62ecc, ec0f841,
+  ee46f0d, c56f1b5). The user checked it by eye, 2026-10-21: "Ridge
+  Racer Type 4 looks fantastic now."
   **Layman:** Each game box looks like the real one for its console and region, with the art in the right places and the real plastic showing.
   Kind: feature.
   Source: user-request-2026-10-21.
@@ -1058,6 +1061,8 @@ building.
   blue, NTSC black (Wikipedia and the user's Gemini answer). Tests:
   tests/test_keep_cases.py. Waiting on the user's by-eye check; flip to
   shipped when right.
+  The user, 2026-10-21: still checking every region's case while
+  updating RetroDB's games list; will report issues as found.
   **Layman:** DVD-style and handheld game cases get the right size and plastic colour for each console and region.
   Kind: feature.
   Source: user-request-2026-10-21.
@@ -1084,7 +1089,7 @@ building.
   Kind: feature.
   Source: user-request-2026-10-21.
 
-- 🚧 [SLIP-0110] **Show the PlayStation logo pressed into a PS1 case's top and bottom edges in the 3D viewer.**
+- ✅ [SLIP-0110] **Show the PlayStation logo pressed into a PS1 case's top and bottom edges in the 3D viewer.**
   The user's PAL Ridge Racer Type 4 case has "PlayStation" moulded into
   its black top and bottom edges (photos "Top of case" and "Bottom of
   case", 2026-10-21). Deferred from SLIP-0106 § out of scope. The user
@@ -1100,6 +1105,7 @@ building.
   drawn by BoxViewer. Follows show_texture. Tests: TestMouldedLogo,
   test_top_and_bottom_faces, test_top_picture_drawn. Waiting on the
   user's by-eye check; flip to shipped when right.
+  Resolved (2026-10-21): the user checked it by eye and it is right.
   **Layman:** When you turn the box in the 3D viewer to look at its top or bottom edge, you see the PlayStation logo moulded into the plastic, as on a real case.
   Kind: feature.
   Source: user-request-2026-10-21.
@@ -1120,6 +1126,8 @@ building.
   says its NTSC-size replacement "is not as thick as the OEM PAL cases",
   so the PAL case is thicker than the 10.4 mm Slipcase uses. Waiting on
   the user's own measurement before changing CASE_TYPES.
+  The user chose, 2026-10-21: keep 10.4 mm. Raised or pressed in:
+  waiting on the user's photos.
   **Layman:** Turn a European Dreamcast box in the 3D viewer and the word "Dreamcast" shows moulded into its top and bottom edges, as on the real case.
   Kind: feature.
   Source: user-request-2026-10-21.
