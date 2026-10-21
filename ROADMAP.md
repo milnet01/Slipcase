@@ -988,6 +988,13 @@ building.
   the spec cap, calm. Status accepted (2026-10-15), commit 510936e. Spec
   path sent to RetroDB for its review of § 4.1. Next: wait for RetroDB's
   reply on § 4.1, then build with write-code.
+  Progress (2026-10-15): RetroDB replied (message 656) approving § 4.1;
+  it has no importer or viewer roadmapped yet.
+  Progress (2026-10-21): spec amended (case details baked into faces,
+  INV-11; transparent viewer background, INV-12), not re-reviewed by
+  user ruling; box-file format v1 unchanged. Told RetroDB and asked it
+  to roadmap the importer and CSS 3D viewer with its user. Next: build
+  Slipcase's half with write-code, tests first.
   **Layman:** See the whole game box, every side, and turn it around or zoom in with the mouse.
   Kind: feature.
   Source: user-request-2026-10-10.
