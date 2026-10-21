@@ -1,7 +1,8 @@
 <!-- ants-spec-format: 1 -->
 # SLIP-0104 — Show a turnable 3D box, and save it as a box file RetroDB can load
 
-**Status:** accepted (2026-10-15).
+**Status:** accepted (2026-10-15); amended 2026-10-21 (case details,
+transparent viewer background), re-review owed.
 **Kind:** implement.
 **Source:** ROADMAP SLIP-0104 (user request 2026-10-10; details agreed with
 the RetroDB session the same day).
@@ -57,6 +58,12 @@ half of the work.
   output, which keeps each cover's file name as its stem, matches RetroDB's
   ROM base names with no renaming step when the output folder holds no
   earlier files of those names (§ 4.4 never overwrites them).
+- **The turnable box shows the case details.** User, 2026-10-21: the box
+  must look like the real thing, so its faces carry the same per-case
+  details (embossing, ridges, grooves) as the still render (§ 4.2).
+- **The viewer's background is transparent.** User, 2026-10-21: a viewer
+  draws only the box, and whatever is behind it shows through (§ 4.1,
+  § 4.5).
 
 ## 4. Design
 
@@ -99,6 +106,9 @@ S.back.png        back cover (absent when there is none)
 - **Pictures** are PNG, RGB with no alpha, longest edge at most 1600 px, never
   enlarged. Measured worst case (2026-10-10): 1600 × 1600 random noise through
   `save_optimized_png` is 6,743,128 bytes, under RetroDB's 10 MB limit.
+- **Case details** are already in the face pictures (§ 4.2). A viewer adds
+  only its own lighting.
+- **Background.** A viewer draws the box and nothing behind it.
 - **`generator`** is informational. Readers ignore it and any key they do not
   know, so version 1 can gain optional keys.
 
@@ -129,16 +139,25 @@ FACE_MAX_EDGE = 1600
 
 def build_box_model(front_image, back_image, case_type, *, title, serial,
                     platform, spine_color, case_color, spine_left_offset,
-                    spine_right_offset, full_cover) -> BoxModel: ...
+                    spine_right_offset, full_cover,
+                    show_texture) -> BoxModel: ...
 ```
 
 It takes `BoxRenderer.render`'s face inputs and decides the faces the way
 render does: `is_full_cover` when `full_cover` is None; `split_full_cover`
 with the same offsets; a loaded back cover wins over the split one; with no
 full cover, the spine is `generate_spine(title or "Game", ...)` at the front
-height's scale. No shading and no case texture: lighting depends on the
-viewing angle, so the viewer applies it. Pictures with alpha are flattened
-onto `edge`.
+height's scale.
+
+**Case details.** With `show_texture` set, each face is scaled to its final
+size and then composited, as render does, with the overlay at that size:
+`generate_front_texture(case_type, w, h)` on the front,
+`generate_spine_texture` on the spine, and the front overlay mirrored left
+to right on the back, as render's back view lays it. With it clear, no
+overlay. `RenderWorker` passes the render's own `show_texture`.
+
+No shading: lighting depends on the viewing angle, so the viewer applies it.
+Pictures with alpha are flattened onto `edge` after the overlay.
 
 ### 4.3 Writing and reading the box file
 
@@ -191,6 +210,9 @@ and the shortcut Ctrl+3 (unused today; added to `STANDARDS.md` § 6).
   turned towards the camera are drawn; on a box those never overlap, so no
   sorting is needed. Each face is darkened by a fixed light: brightness =
   0.45 + 0.55 × max(0, normal · light).
+- **Background.** `paintEvent` draws the box and nothing else, and the
+  widget keeps `autoFillBackground` off, so the preview area behind it shows
+  through.
 - **Controls.** Left-drag turns the box (yaw unlimited, pitch clamped to
   −89…89 degrees). Right-drag or middle-drag moves it. The wheel zooms
   (camera distance clamped). Arrow keys turn, `+`/`-` zoom, `Home` and a
@@ -292,6 +314,23 @@ and the shortcut Ctrl+3 (unused today; added to `STANDARDS.md` § 6).
   *Breaks when:* the check runs after a face is saved, or tests the stem
   rather than the face names built from it.
 
+- **INV-11** — With `show_texture` set, every face carries § 4.2's overlay
+  at the face's own size, the back's mirrored; with it clear, none does.
+  *Test:* `tests/test_box_model.py::test_case_details_baked_in` builds a
+  Blu-ray Case model from uniform grey (128) front and back covers, so the
+  overlay's faint lines change pixels, and compares each face with the
+  overlay composited by hand. A Blu-ray front is not mirror-symmetric (its
+  spine-edge groove), so only the mirroring rule passes the back.
+  *Breaks when:* the overlay is left out, made at a size other than the
+  face's, laid on the back unmirrored, or applied with `show_texture` clear.
+
+- **INV-12** — The viewer paints nothing outside the box.
+  *Test:* `tests/test_box_viewer.py::test_background_transparent` renders the
+  widget into a `QImage` cleared to transparent, with no render flags so only
+  `paintEvent` draws, and checks that the four corner pixels keep alpha 0
+  while the centre pixel does not.
+  *Breaks when:* `paintEvent` fills its rectangle before drawing the faces.
+
 ## 6. Failure modes
 
 - **Disk full or folder not writable** — the PNG may save and the box file
@@ -321,6 +360,8 @@ and the shortcut Ctrl+3 (unused today; added to `STANDARDS.md` § 6).
 | `tests/test_box_viewer.py::test_limits_and_reset` | INV-8 |
 | `tests/test_box_viewer.py::test_model_from_worker` | INV-9 |
 | `tests/test_box_file.py::test_stem_cannot_escape` | INV-10 |
+| `tests/test_box_model.py::test_case_details_baked_in` | INV-11 |
+| `tests/test_box_viewer.py::test_background_transparent` | INV-12 |
 
 Each test is run and seen to fail before the code it locks exists. Widget
 tests keep the `QApplication` on the class and clean up with
@@ -344,12 +385,16 @@ tests keep the `QApplication` on the class and clean up with
   frame; it cannot show the top or bottom.
 - **Baking shading into the face pictures.** Light that looks right at one
   angle looks wrong once the box turns.
+- **Case details as separate overlay pictures in the box file.** A viewer
+  could switch them off, but every reader would have to composite them, and
+  RetroDB would need new code and version 2. Baked in, version 1 is
+  unchanged. The overlay's faint highlight lines do not move with the light;
+  at their strength that is not visible at viewer sizes (unmeasured, judged
+  by eye at build).
 
 ## 9. Out of scope
 
 - RetroDB's importer, viewer and back-art download — RetroDB's roadmap.
-- Case texture (plastic sheen, emboss) on the turnable box — deferred; not
-  yet queued.
 - Saving the current viewer angle as a picture or animation — deferred; not
   yet queued. The existing Export Animation covers turning videos.
 - Reading box files back into Slipcase's editor — deferred; not yet queued.
@@ -368,6 +413,8 @@ tests keep the `QApplication` on the class and clean up with
 | INV-8 | `tests/test_box_viewer.py::test_limits_and_reset` |
 | INV-9 | `tests/test_box_viewer.py::test_model_from_worker` |
 | INV-10 | `tests/test_box_file.py::test_stem_cannot_escape` |
+| INV-11 | `tests/test_box_model.py::test_case_details_baked_in` |
+| INV-12 | `tests/test_box_viewer.py::test_background_transparent` |
 | RetroDB reads version 1 as § 4.1 says | **nothing** in this repository — RetroDB's import tests own it |
 | The viewer looks right and feels smooth | **nothing** — checked by eye on Linux and the Windows test machine |
 
