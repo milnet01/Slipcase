@@ -2,8 +2,9 @@
 # SLIP-0104 — Show a turnable 3D box, and save it as a box file RetroDB can load
 
 **Status:** accepted (2026-10-15); amended 2026-10-21 (case details,
-transparent viewer background), not re-reviewed: user ruling 2026-10-21,
-a few-line amendment is checked by its implementation.
+transparent viewer background; the optional edge face, SLIP-0106), not
+re-reviewed: user rulings 2026-10-21.
+**Amended by:** SLIP-0106 (`SLIP-0106-jewel-cases.md` § 16).
 **Kind:** implement.
 **Source:** ROADMAP SLIP-0104 (user request 2026-10-10; details agreed with
 the RetroDB session the same day).
@@ -70,13 +71,14 @@ half of the work.
 
 ### 4.1 The box file (the shared contract)
 
-For a stem `S`, four files sit in one folder:
+For a stem `S`, up to five files sit in one folder:
 
 ```
 S.box.json        the description, written last
 S.front.png       front cover
 S.spine.png       spine
 S.back.png        back cover (absent when there is none)
+S.edge.png        opening side (absent when there is none)
 ```
 
 `S.box.json`, format version 1:
@@ -88,7 +90,8 @@ S.back.png        back cover (absent when there is none)
   "generator": "Slipcase 1.4.0",
   "case": {"name": "DVD Case", "width_mm": 135, "height_mm": 190, "depth_mm": 14},
   "colours": {"top": "#1C1C1C", "bottom": "#1C1C1C", "edge": "#1C1C1C"},
-  "faces": {"front": "S.front.png", "spine": "S.spine.png", "back": "S.back.png"}
+  "faces": {"front": "S.front.png", "spine": "S.spine.png", "back": "S.back.png",
+            "edge": "S.edge.png"}
 }
 ```
 
@@ -101,9 +104,13 @@ S.back.png        back cover (absent when there is none)
   the opening side opposite the spine: `case_color` when set, else `top`.
 - **`faces`** values are file names in the same folder. `back` is `null`
   when the box has no back cover; a viewer then fills it with `edge`.
+  `edge` is the opening side's picture, or `null` when there is none; a
+  viewer then fills that side with `colours.edge`. Readers that do not
+  know `edge` ignore it, as any unknown key (SLIP-0106 § 4.8).
 - **Orientation.** Each picture shows its face from outside the box, standing
   upright. The spine is on the front's left as seen from the front, as on
-  every case in `CASE_TYPES`.
+  every case in `CASE_TYPES`. The edge is on the front's right as seen from
+  the front.
 - **Pictures** are PNG, RGB with no alpha, longest edge at most 1600 px, never
   enlarged. Measured worst case (2026-10-10): 1600 × 1600 random noise through
   `save_optimized_png` is 6,743,128 bytes, under RetroDB's 10 MB limit.
@@ -117,7 +124,7 @@ S.back.png        back cover (absent when there is none)
 `slipcase-box` or a `version` other than 1; refuse a face name that is not a
 single plain file name (contains `/` or `\`, is `.` or `..`, starts with
 `.`); refuse a `front` or `spine` that is null or whose file is missing, and
-a `back` that names a missing file; refuse a size that is not a
+a `back` or `edge` that names a missing file; refuse a size that is not a
 positive number at most 1000; refuse a colour that is not `#RRGGBB`. RetroDB
 adds its own image checks (§ 11).
 
@@ -135,14 +142,19 @@ class BoxModel:
     front: Image.Image          # RGB, longest edge <= FACE_MAX_EDGE
     spine: Image.Image          # RGB, same cap
     back: Image.Image | None    # RGB, same cap
+    edge_face: Image.Image | None = None  # RGB, same cap; the opening side
 
 FACE_MAX_EDGE = 1600
 
 def build_box_model(front_image, back_image, case_type, *, title, serial,
                     platform, spine_color, case_color, spine_left_offset,
                     spine_right_offset, full_cover,
-                    show_texture) -> BoxModel: ...
+                    show_texture, back_strips=None) -> BoxModel: ...
 ```
+
+A jewel case (`case_type.layout == "jewel"`) builds its faces with
+SLIP-0106 § 4.4's `jewel_faces`; the rest of this section describes the
+wrap layout.
 
 It takes `BoxRenderer.render`'s face inputs and decides the faces the way
 render does: `is_full_cover` when `full_cover` is None; `split_full_cover`
@@ -168,12 +180,12 @@ New `core/box_file.py`:
 def write_box_file(model: BoxModel, folder: str, stem: str,
                    compress_level: int = 6) -> str: ...   # returns the .json path
 def read_box_file(path: str) -> BoxModel: ...              # raises BoxFileError
-def box_paths(folder: str, stem: str) -> list[str]: ...    # the four paths
+def box_paths(folder: str, stem: str) -> list[str]: ...    # the five paths, edge last
 ```
 
 `write_box_file` first refuses, writing nothing, a stem whose face names
 would fail § 4.1's name rule. It then deletes every existing file among the
-four `box_paths`, saves each face with `save_optimized_png`, and writes the JSON last through a
+five `box_paths`, saves each face with `save_optimized_png`, and writes the JSON last through a
 temporary file and `os.replace`, so a `.box.json` never names a face that was
 not written. If a face fails, it deletes the faces it wrote and raises.
 `read_box_file` applies § 4.1's reading rules and builds `case_type` from the
@@ -187,13 +199,13 @@ reference for RetroDB's reader.
 - **Export PNG.** With the setting on, `MainWindow._export_png` also writes
   the `BoxModel` paired with the shown render (§ 4.5) beside the PNG. Stem:
   the chosen PNG's stem with a trailing ` 3D Boxart` removed. When any of
-  that stem's `box_paths` exists, Slipcase asks before replacing the box
+  that stem's five `box_paths` exists, Slipcase asks before replacing the box
   file; on No, the PNG is saved and the box file is not.
 - **Batch.** With the setting on, `_render_single_image` and
   `BatchWorker._run_sequential` write the box file after the PNG, with the
   PNG's stem. New `pick_output_stems(file_paths, output_dir) -> list[str]` in
   `ui/workers.py`, called by `BatchWorker` before any render starts, picks
-  each stem: one for which neither the PNG nor any of the four `box_paths`
+  each stem: one for which neither the PNG nor any of the five `box_paths`
   exists, and that no earlier file in the list was given. Each render
   receives its stem.
 - A box-file failure is reported like a PNG failure (a message for a single
@@ -223,14 +235,15 @@ and the shortcut Ctrl+3 (unused today; added to `STANDARDS.md` § 6).
 - **Data.** `RenderWorker` builds the `BoxModel` after the render and emits it
   as a new `model_ready(object)` signal. `MainWindow` keeps it with the
   render it belongs to, for the viewer and for Export PNG. The viewer converts the faces to
-  `QImage` once per model, never in `paintEvent`.
+  `QImage` once per model, never in `paintEvent`. It draws `edge_face` on
+  the edge side when present, converted once per model like the others.
 
 ## 5. Invariants
 
 - **INV-1** — A written `S.box.json` holds exactly § 4.1's keys for version 1:
   `format` `slipcase-box`, `version` 1, `case` equal to the `CaseType` used,
-  `#RRGGBB` colours, and face names `S.front.png`, `S.spine.png` and either
-  `S.back.png` or `null`.
+  `#RRGGBB` colours, and face names `S.front.png`, `S.spine.png`, and each
+  of `S.back.png` and `S.edge.png` or `null`.
   *Test:* `tests/test_box_file.py::test_written_file_matches_schema`.
   *Breaks when:* `case` is filled from pixel sizes, a key is renamed, or a
   colour is written as a list.
@@ -243,7 +256,7 @@ and the shortcut Ctrl+3 (unused today; added to `STANDARDS.md` § 6).
   *Test:* `tests/test_box_file.py::test_reader_refuses` (one fixture per rule:
   `format` `foo`, version 2, `../x.png`, `a/b.png`, `a\b.png`, `..`,
   `.hidden.png`, a null `front`, a missing spine file, a `back` naming a
-  missing file, `depth_mm` 0, `width_mm` 5000, colour `red`), and
+  missing file, an `edge` naming a missing file, `depth_mm` 0, `width_mm` 5000, colour `red`), and
   `::test_round_trip`.
   *Breaks when:* the name check strips folders instead of refusing, so
   `../x.png` is read as `x.png` — the fixture places a valid `x.png` beside
@@ -263,7 +276,8 @@ and the shortcut Ctrl+3 (unused today; added to `STANDARDS.md` § 6).
   *Breaks when:* alpha is kept, the cap is missing, or a small picture is
   enlarged.
 
-- **INV-5** — `build_box_model` gives the faces render would use: for a full
+- **INV-5** — For the wrap layout, `build_box_model` gives the faces render
+  would use (amended by SLIP-0106): for a full
   cover, back, spine and front are `split_full_cover`'s output for the same
   offsets, scaled; for a front-only cover, the spine is `generate_spine`'s
   output and `back` is None unless a back cover was loaded.
@@ -332,6 +346,22 @@ and the shortcut Ctrl+3 (unused today; added to `STANDARDS.md` § 6).
   while the centre pixel does not.
   *Breaks when:* `paintEvent` fills its rectangle before drawing the faces.
 
+- **INV-13** — A jewel box file names `S.edge.png` and that file holds
+  `edge_face`; a wrap box file writes `"edge": null` and no `S.edge.png`
+  (added by SLIP-0106).
+  *Test:* `tests/test_box_file.py::test_edge_face_written`.
+  *Breaks when:* the writer drops the edge face, or leaves an old
+  `S.edge.png` behind when the stem is rewritten as a wrap box.
+
+- **INV-14** — A reader that ignores `faces.edge` still reads a jewel box
+  file whole, with the opening side's colour equal to the case's plastic
+  (added by SLIP-0106).
+  *Test:* `tests/test_box_file.py::test_v1_reader_without_edge` deletes the
+  key from a written jewel file's JSON, reads it, and checks `edge_face` is
+  None and `edge` is the case's `plastic`.
+  *Breaks when:* `colours.edge` is sampled from the art for a jewel case, or
+  `edge` is made required.
+
 ## 6. Failure modes
 
 - **Disk full or folder not writable** — the PNG may save and the box file
@@ -363,6 +393,8 @@ and the shortcut Ctrl+3 (unused today; added to `STANDARDS.md` § 6).
 | `tests/test_box_file.py::test_stem_cannot_escape` | INV-10 |
 | `tests/test_box_model.py::test_case_details_baked_in` | INV-11 |
 | `tests/test_box_viewer.py::test_background_transparent` | INV-12 |
+| `tests/test_box_file.py::test_edge_face_written` | INV-13 |
+| `tests/test_box_file.py::test_v1_reader_without_edge` | INV-14 |
 
 Each test is run and seen to fail before the code it locks exists. Widget
 tests keep the `QApplication` on the class and clean up with
@@ -416,6 +448,8 @@ tests keep the `QApplication` on the class and clean up with
 | INV-10 | `tests/test_box_file.py::test_stem_cannot_escape` |
 | INV-11 | `tests/test_box_model.py::test_case_details_baked_in` |
 | INV-12 | `tests/test_box_viewer.py::test_background_transparent` |
+| INV-13 | `tests/test_box_file.py::test_edge_face_written` |
+| INV-14 | `tests/test_box_file.py::test_v1_reader_without_edge` |
 | RetroDB reads version 1 as § 4.1 says | **nothing** in this repository — RetroDB's import tests own it |
 | The viewer looks right and feels smooth | **nothing** — checked by eye on Linux and the Windows test machine |
 

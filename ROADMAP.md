@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: SLIP=106 -->
+<!-- ants-roadmap-id-high-water: SLIP=108 -->
 
 # Slipcase — Roadmap
 
@@ -1032,7 +1032,38 @@ building.
   nothing is printed; moulded logos later as their own item. RetroDB
   told the box format may change (it holds PASS-59-142 at v1). Next:
   write-spec for phase 1.
+  Progress (2026-10-21): phase 1 specced at
+  docs/specs/SLIP-0106-jewel-cases.md, which amends
+  docs/specs/SLIP-0104-turnable-3d-box.md (optional faces.edge, box
+  format stays version 1). Not reviewed, by user ruling: "Write the spec
+  as accurately and carefully as possible but don't review it. Just code
+  it and fix anything the code shows to be incorrect." Phases 2 and 3
+  queued as SLIP-0107 and SLIP-0108. Next: build phase 1 with
+  write-code, tests first.
   **Layman:** Each game box looks like the real one for its console and region, with the art in the right places and the real plastic showing.
+  Kind: feature.
+  Source: user-request-2026-10-21.
+
+- 📋 [SLIP-0107] **Give keep cases and handheld cases their real size and plastic, per region.**
+  Phase 2 of SLIP-0106, split out because each phase gets its own spec
+  (SLIP-0106 spec § 15). Sourced sizes and colours are in
+  docs/research/SLIP-0106-real-cases.md: e.g. Switch 1 cases are clear,
+  PS3 clear, 3DS white, DS EU clear and 20 mm deep against 15 mm and black
+  for NTSC, GameCube JP 107 x 149 x 17 and clear. Uses SLIP-0106's region
+  detection and plastic field. User's order (2026-10-21): after the jewel
+  cases.
+  **Layman:** DVD-style and handheld game cases get the right size and plastic colour for each console and region.
+  Kind: feature.
+  Source: user-request-2026-10-21.
+
+- 📋 [SLIP-0108] **Give cartridge boxes their real size and shape, per region.**
+  Phase 3 of SLIP-0106, split out for its own spec. Sourced in
+  docs/research/SLIP-0106-real-cases.md: US SNES and N64 boxes are
+  landscape, Super Famicom and N64 JP portrait; JP Game Boy and GBA boxes
+  are smaller. Which faces carry which print is unverified for every
+  system, and no cover service supplies top or bottom art. User's order
+  (2026-10-21): last of the three phases.
+  **Layman:** Cartridge game boxes (NES, SNES, N64, Game Boy and others) get the right size and shape for each region.
   Kind: feature.
   Source: user-request-2026-10-21.
 
