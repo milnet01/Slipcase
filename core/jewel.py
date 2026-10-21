@@ -11,6 +11,7 @@ import logging
 import math
 from dataclasses import dataclass
 
+import numpy as np
 from PIL import Image, ImageDraw
 
 from core.case_types import CASE_TYPES, CaseType, TrayPrint, case_for
@@ -146,8 +147,14 @@ _SWIRL_SHARE = 0.75
 def tray_print_panel(tray: TrayPrint, size_mm: tuple[float, float], p: float) -> Image.Image:
     """A clear tray's printed panel, `size_mm` across and down at `p` px/mm:
     `tray.paper` with `tray.text` in `tray.ink`, `tray.length` mm long and
-    centred, running along the strip. A swirl goes after the first word."""
+    centred, running along the strip. A swirl goes after the first word.
+    `tray.ribs` adds a band of printed ribs."""
     w, h = max(1, round(size_mm[0] * p)), max(1, round(size_mm[1] * p))
+    panel = Image.new("RGBA", (w, h), (*tray.paper, 255))
+    if tray.ribs is not None:
+        panel = _printed_ribs(panel, tray, p)
+    if not tray.text:
+        return panel
     words = tray.text.split(" ", 1) if tray.swirl else [tray.text]
 
     def widths(font):
@@ -180,9 +187,61 @@ def tray_print_panel(tray: TrayPrint, size_mm: tuple[float, float], p: float) ->
         draw.text((x + word_w[0] + swirl_w, y), words[1], font=font,
                   fill=(*tray.ink, 255), anchor="lm")
 
-    panel = Image.new("RGBA", (w, h), (*tray.paper, 255))
     panel.alpha_composite(lying.rotate(90 if tray.reads_up else -90, expand=True))
     return panel
+
+
+# The ribs printed on a US PS1 back card's inside (Crash Bandicoot's scan):
+# dark oval lobes down a grey band that fades to black. Lobe pitch measured
+# from the scan; lobe size and strength judged by eye.
+_RIB_PITCH = 6.8      # mm
+_RIB_LOBE_HEIGHT = 0.27  # share of the pitch, each side of the lobe's centre
+
+
+def _printed_ribs(panel: Image.Image, tray: TrayPrint, p: float) -> Image.Image:
+    """`panel` with `tray.ribs`' band printed across it."""
+    a, b = tray.ribs
+    x = (np.arange(panel.width) + 0.5)[None, :] / p
+    y = (np.arange(panel.height) + 0.5)[:, None] / p
+    t = (x - a) / (b - a)
+    shade = np.where((t >= 0) & (t <= 1), np.clip(1 - t, 0, 1) ** 1.3, 0.0)
+    across = (x - (a + 0.55 * (b - a))) / (0.5 * (b - a) + 0.5)
+    down = ((y % _RIB_PITCH) - _RIB_PITCH / 2) / (_RIB_LOBE_HEIGHT * _RIB_PITCH)
+    lobe = np.clip((1.2 - across ** 2 - down ** 2) / 0.4, 0, 1)
+    shade = shade * (1 - 0.9 * lobe)
+    paper, ink = np.array(tray.paper, float), np.array(tray.ink, float)
+    rgb = paper + (ink - paper) * shade[..., None]
+    out = Image.fromarray(np.round(rgb).astype(np.uint8), "RGB").convert("RGBA")
+    out.putalpha(panel.getchannel("A"))
+    return out
+
+
+# How a panel behind the clear front reads: dimmed, shadowed by the spine
+# wall and by the lid's top and bottom rims, with a soft band of shine.
+# All judged by eye against the user's photos (2026-10-21).
+_BEHIND_DIM = 0.85
+_WALL_SHADOW = (3.0, 0.45)   # mm wide, darkest multiplier at the wall
+_RIM_SHADOW = (1.5, 0.7)
+_SHEEN = (0.7, 0.15, 0.14)   # centre and width as shares of the strip; alpha
+
+
+def _behind_plastic(panel: Image.Image, p: float) -> Image.Image:
+    """`panel` as seen through a clear lid, a case's depth behind it."""
+    w, h = panel.size
+    x = (np.arange(w) + 0.5)[None, :] / p
+    y = (np.arange(h) + 0.5)[:, None] / p
+    wall_w, wall_dark = _WALL_SHADOW
+    rim_w, rim_dark = _RIM_SHADOW
+    light = (_BEHIND_DIM
+             * (wall_dark + (1 - wall_dark) * np.clip(x / wall_w, 0, 1))
+             * (rim_dark + (1 - rim_dark) * np.clip(np.minimum(y, h / p - y) / rim_w, 0, 1)))
+    centre, width, alpha = _SHEEN
+    sheen = alpha * np.exp(-(((x / (w / p)) - centre) / width) ** 2)
+    rgba = np.asarray(panel, dtype=float)
+    rgb = rgba[..., :3] * light[..., None]
+    rgb = rgb + (255 - rgb) * sheen[..., None]
+    out = np.dstack([rgb, rgba[..., 3]])
+    return Image.fromarray(np.round(out).astype(np.uint8), "RGBA")
 
 
 def jewel_faces(
@@ -270,7 +329,8 @@ def jewel_faces(
         # A clear tray shows the back card's printed panel through the
         # front's hinge strip. Scans do not carry it, so it is drawn.
         front.alpha_composite(
-            tray_print_panel(case_type.tray_print, (W - margin - booklet_w, card_h), p),
+            _behind_plastic(
+                tray_print_panel(case_type.tray_print, (W - margin - booklet_w, card_h), p), p),
             (0, round((H - card_h) / 2 * p)),
         )
     return JewelFaces(

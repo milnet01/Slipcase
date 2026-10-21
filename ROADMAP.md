@@ -1091,6 +1091,10 @@ building.
   (NTSC-J) 138 x 190 x 30, one owner's measurement each, re-read at
   source. Test: tests/test_case_list.py TestCartridgeBoxShape. Next:
   plastic Sega cases, then missing consoles.
+  The user, 2026-10-21, sent a reference render of 3 Ninjas Kick Back
+  (SNES) for how a landscape box should be shown: seen slightly from
+  below, so the long bottom edge, printed with the title and publisher,
+  shows under the front, not the short left end.
   **Layman:** Cartridge game boxes (NES, SNES, N64, Game Boy and others) get the right size and shape for each region.
   Kind: feature.
   Source: user-request-2026-10-21.
@@ -1245,6 +1249,17 @@ building.
   through and show what is behind it on the inside of the back cover."
   So the US front hinge strip is a clear window onto the back card's
   inside, not a panel drawn on the front.
+  The user, 2026-10-21: a per-game inside picture is only needed once
+  the case can be opened; for now every NTSC PS1 case shows the same
+  inlay. Built: _PS1_NTSC_TRAY_PRINT on the NTSC-U and NTSC-J cases,
+  black then a printed ribbed band 6.1 to 18.5 mm from the outer edge,
+  lobe pitch 6.8 mm, measured from the inside of Crash Bandicoot's back
+  card (ps1_crashbandicoot_inlay.jpg). The drawn "PlayStation" is gone.
+  core/jewel.py _behind_plastic shades every tray print as seen through
+  the lid: dimmed, shadowed at the spine wall and rims, a band of shine
+  (judged by eye). Test:
+  tests/test_jewel.py::test_clear_tray_shows_the_tray_print, seen red
+  with the ribs removed. Waiting on the user's by-eye check.
   **Layman:** The thin clear border round a CD-case cover now looks like see-through plastic catching the light, as on a real case.
   Kind: enhancement.
   Source: user-request-2026-10-21.
@@ -1280,6 +1295,9 @@ building.
   The user, 2026-10-21, on the turned print: it still looks printed on
   the front cover, not on the inside of the back cover. The panel needs
   to read as lying behind the clear plastic, at the back card's depth.
+  Built (2026-10-21): the panel is now shaded as seen behind the clear
+  lid (_behind_plastic, see SLIP-0114). Waiting on the user's by-eye
+  check.
   **Layman:** On a see-through US Dreamcast case, the white "Sega Dreamcast" edge of the back insert now shows beside the cover, as on a real case.
   Kind: enhancement.
   Source: user-request-2026-10-21.

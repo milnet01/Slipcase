@@ -247,31 +247,49 @@ class TestFaces(unittest.TestCase):
     def test_clear_tray_shows_the_tray_print(self):
         """INV-6: a clear tray shows its back card's printed panel through
         the front's hinge strip, the same on every game, as on the user's US
-        Dreamcast and US PS1 cases (2026-10-21): paper, with ink in a line of
-        text running along the strip. The back card's own strips never show
-        there, and an opaque tray shows plastic."""
+        Dreamcast cases and US PS1 Crash Bandicoot (2026-10-21). Dreamcast:
+        light paper with a line of dark text running along the strip. NTSC
+        PS1: black, then a band of printed ribs whose brightness repeats down
+        the strip. The back card's own strips never show there, and an
+        opaque tray shows plastic."""
         booklet = Image.new("RGB", (1200, 1200), (128, 128, 128))
 
-        def strip(case, back):
+        def strip(case, back, x0=2, x1=15):
             front = _faces(booklet, back, case).front
             px = front.width / CASE_TYPES[case].width
-            # Inside the card's height, short of the ridge lines.
+            # Inside the card's height, clear of its rims.
             return np.asarray(front.convert("RGB"))[
-                round(5 * px):round(120 * px), round(2 * px):round(15 * px)]
+                round(5 * px):round(120 * px), round(x0 * px):round(x1 * px)], px
 
-        for case in ("Dreamcast Jewel Case (NTSC-U)", "PS1 Jewel Case (NTSC-U)"):
+        cases = ("Dreamcast Jewel Case (NTSC-U)", "PS1 Jewel Case (NTSC-U)",
+                 "PS1 Jewel Case (NTSC-J)")
+        for case in cases:
             with self.subTest(case=case):
                 ct = CASE_TYPES[case]
-                s = strip(case, _card(ct, [RED, GREEN, BLUE]))
-                self.assertTrue(np.array_equal(s, strip(case, None)))
-                paper = np.all(s == ct.tray_print.paper, axis=2)
-                ink = np.all(np.abs(s.astype(int) - ct.tray_print.ink) < 40, axis=2)
-                self.assertGreater(paper.mean(), 0.5)
-                rows, cols = np.flatnonzero(ink.any(axis=1)), np.flatnonzero(ink.any(axis=0))
-                self.assertGreater(len(rows), 0)
-                self.assertGreater(rows[-1] - rows[0], 3 * (cols[-1] - cols[0]))
+                s, _ = strip(case, _card(ct, [RED, GREEN, BLUE]))
+                self.assertTrue(np.array_equal(s, strip(case, None)[0]))
+
+        s, _ = strip(cases[0], None)
+        grey = s.mean(axis=2)
+        self.assertGreater((grey > 150).mean(), 0.5)
+        ink = grey < 120
+        rows, cols = np.flatnonzero(ink.any(axis=1)), np.flatnonzero(ink.any(axis=0))
+        self.assertGreater(len(rows), 0)
+        self.assertGreater(rows[-1] - rows[0], 3 * (cols[-1] - cols[0]))
+
+        for case in cases[1:]:
+            with self.subTest(case=case):
+                spine, _ = strip(case, None, 1, 5)
+                self.assertLess(spine.mean(), 20)
+                band, px = strip(case, None, 8, 9)
+                down = band.mean(axis=(1, 2))
+                self.assertGreater(down.max() - down.min(), 15)
+                # The ribs repeat at their pitch.
+                pitch = round(6.8 * px)
+                self.assertLess(np.abs(down[pitch:] - down[:-pitch]).mean(), 3)
+
         pal = "PS1 Jewel Case (PAL)"
-        s = strip(pal, _card(CASE_TYPES[pal], [RED, GREEN, BLUE]))
+        s, _ = strip(pal, _card(CASE_TYPES[pal], [RED, GREEN, BLUE]))
         self.assertTrue(np.all(s == CASE_TYPES[pal].plastic))
 
     def test_rendered_top_stands_apart_from_the_border(self):

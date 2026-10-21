@@ -14,13 +14,17 @@ class JewelGeometry:
 @dataclass(frozen=True)
 class TrayPrint:
     """The panel printed on the inside of a clear tray's back card, seen
-    through the front's hinge strip. It is the same on every game."""
+    through the front's hinge strip. It is the same on every game. An empty
+    `text` prints none."""
     text: str
     paper: tuple[int, int, int]
     ink: tuple[int, int, int]
     length: float           # mm the text runs along the strip
     reads_up: bool          # bottom to top on an upright case
     swirl: bool = False     # Dreamcast's orange swirl after the first word
+    # mm across the strip, from its outer edge, of a band of printed ribs in
+    # `ink` fading into `paper`; None for no ribs.
+    ribs: tuple[float, float] | None = None
 
 
 @dataclass(frozen=True)
@@ -79,10 +83,13 @@ _WHITE_KEEP = (0xEE, 0xEE, 0xEE)
 _BLUE_TINT = (0x2A, 0x6C, 0xD0)
 _GREEN_TINT = (0x2E, 0x9E, 0x3A)
 # What the user's US cases show through the clear tray (photos, 2026-10-21):
-# Final Fantasy VIII's white "PlayStation" on black, and six Dreamcast games'
-# grey "Sega Dreamcast" on white. Lengths estimated from those photos.
-_PS1_US_TRAY_PRINT = TrayPrint(text="PlayStation", paper=(0x10, 0x10, 0x10),
-                               ink=(0xF0, 0xF0, 0xF0), length=63, reads_up=True)
+# six Dreamcast games' grey "Sega Dreamcast" on white, length estimated from
+# those photos; and on PS1, black with a printed ribbed band, measured from
+# the inside of Crash Bandicoot's back card. The user asked for that band on
+# every NTSC PS1 case until a case can be opened (2026-10-21).
+_PS1_NTSC_TRAY_PRINT = TrayPrint(text="", paper=(0x00, 0x00, 0x00),
+                                 ink=(0x3C, 0x3C, 0x40), length=0, reads_up=True,
+                                 ribs=(6.1, 18.5))
 _DREAMCAST_US_TRAY_PRINT = TrayPrint(text="Sega Dreamcast", paper=(0xF4, 0xF4, 0xF2),
                                      ink=(0x50, 0x50, 0x50), length=67, reads_up=True,
                                      swirl=True)
@@ -191,7 +198,7 @@ CASE_TYPES: dict[str, CaseType] = {
         width=142, height=125, depth=10.4,
         platforms=("PS1",),
         jewel=_STANDARD_PAPER, plastic=_BLACK_TRAY, ridged_hinge_strip=True,
-        tray_print=_PS1_US_TRAY_PRINT,
+        tray_print=_PS1_NTSC_TRAY_PRINT,
     ),
     # Only thicker than the standard case. Its back card is measured from a
     # PAL scan: wider, with end strips that wrap the 18 mm sides. Its black
@@ -209,6 +216,7 @@ CASE_TYPES: dict[str, CaseType] = {
         width=142, height=125, depth=10,
         platforms=(),
         jewel=_STANDARD_PAPER, plastic=_BLACK_TRAY, ridged_hinge_strip=True,
+        tray_print=_PS1_NTSC_TRAY_PRINT,
     ),
     "Dreamcast Jewel Case (NTSC-U)": CaseType(
         name="Dreamcast Jewel Case (NTSC-U)",
