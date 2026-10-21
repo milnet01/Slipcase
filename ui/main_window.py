@@ -1558,6 +1558,10 @@ class MainWindow(QMainWindow):
             self.tr(
                 "Slipcase v{0}\n\n"
                 "Convert 2D game cover art into realistic 3D boxart renders.\n"
-                "Compatible with RetroArch and LaunchBox."
+                "Compatible with RetroArch and LaunchBox.\n\n"
+                "Cover art belongs to its game's publisher, so please use "
+                "the boxes Slipcase makes for your own collection. Slipcase "
+                "is not affiliated with or endorsed by any console maker, "
+                "game publisher, ScreenScraper, TheGamesDB or libretro."
             ).format(__version__),
         )

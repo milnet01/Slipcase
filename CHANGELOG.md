@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **The About box and the README now say who owns the cover art**
+  Covers belong to their publishers, and Slipcase is not affiliated with any
+  console maker, publisher or cover-art service.
+
 ## [1.3.1] - 2026-10-10
 
 **Theme:** Safer cover downloads and a steadier search window.

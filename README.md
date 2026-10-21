@@ -124,6 +124,12 @@ speed and memory rules that changes must not break. `CLAUDE.md` is the short
 orientation. `ROADMAP.md` is generated from a shared database, so edit it
 through the roadmap tooling rather than by hand.
 
+## Cover art
+
+Cover art belongs to its game's publisher, so please use the boxes Slipcase
+makes for your own collection. Slipcase is not affiliated with or endorsed by
+any console maker, game publisher, ScreenScraper, TheGamesDB or libretro.
+
 ## Licence
 
 MIT — see [LICENSE](LICENSE). You may use, change and share this freely,
