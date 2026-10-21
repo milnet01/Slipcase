@@ -133,6 +133,17 @@ class TestCaseData(unittest.TestCase):
         ntsc = CASE_TYPES["PS1 Jewel Case (NTSC-U)"]
         self.assertGreater(generate_front_texture(ntsc, 284, 250).getpixel(at)[3], 0)
 
+    def test_ridge_lines_on_the_front_only(self):
+        """The lid's two ridge lines mark where it opens, on the front; the
+        back's overlay has none (the user, 2026-10-21)."""
+        ntsc = CASE_TYPES["PS1 Jewel Case (NTSC-U)"]
+        # At 2 px/mm the booklet starts at x = 39 and the inner ridge is x = 38.
+        ridge, beside, y = 38, 42, 25
+        front = generate_front_texture(ntsc, 284, 250)
+        back = generate_front_texture(ntsc, 284, 250, back=True)
+        self.assertGreater(front.getpixel((ridge, y))[3] - front.getpixel((beside, y))[3], 10)
+        self.assertLessEqual(abs(back.getpixel((ridge, y))[3] - back.getpixel((beside, y))[3]), 3)
+
 
 class TestFaces(unittest.TestCase):
 

@@ -363,7 +363,9 @@ overlay. The PS1 PAL case's moulded top and bottom text is SLIP-0110's.
 The plastic detail is measured from the user's PAL Ridge Racer Type 4
 photos (2026-10-21). The front overlay draws a 1 mm light rim round the
 lid. It draws two 0.6 mm ridge lines, 1.5 mm apart, down the hinge strip's
-booklet side. It adds a soft diagonal streak along x/w + y/h = 0.7. The
+booklet side, on the front only: they mark where the lid opens, so the
+back's overlay has the rim alone (the user, 2026-10-21). It adds a soft
+diagonal streak along x/w + y/h = 0.7. The
 hinge side gets 3 mm end caps in the plastic colour and a 1 mm rim on each
 long side. On a case with `matte_hinge_strip` (PS1 PAL: its black parts
 are matte, its clear parts glossy, the user, 2026-10-21) the front's shine

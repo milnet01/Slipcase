@@ -24,7 +24,8 @@ def generate_front_texture(case_type: CaseType, width: int, height: int,
 
     Returns an RGBA image with subtle emboss/deboss features drawn as
     semi-transparent highlight/shadow pairs. `back` says the overlay is for
-    a jewel case's back, whose clear base is glossy all over.
+    a jewel case's back, whose clear base is glossy all over and has no lid
+    ridges.
     """
     overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
@@ -32,7 +33,7 @@ def generate_front_texture(case_type: CaseType, width: int, height: int,
 
     # Every jewel entry, whatever its name, is the same moulding (SLIP-0106).
     if case_type.layout == "jewel":
-        _draw_jewel_front(draw, case_type, width, height)
+        _draw_jewel_front(draw, case_type, width, height, ridges=not back)
         gloss = generate_lid_shine(width, height)
         gloss.alpha_composite(_lid_streak(width, height))
         if case_type.matte_hinge_strip and not back:
@@ -165,13 +166,16 @@ STREAK_ALPHA = 34           # the lid's diagonal reflection, at its centre line
 
 
 def _draw_jewel_front(draw: ImageDraw.ImageDraw, case_type: CaseType,
-                      w: int, h: int) -> None:
+                      w: int, h: int, ridges: bool = True) -> None:
     """Jewel case lid: a light rim round the outside, and two ridge lines
-    down the hinge strip's booklet side, where the lid's hinge edge sits."""
+    down the hinge strip's booklet side, where the lid's hinge edge sits.
+    The back has the rim only: the ridges mark where the lid opens."""
     p = w / case_type.width
     rim = max(1, round(JEWEL_RIM_MM * p))
     draw.rectangle([(0, 0), (w - 1, h - 1)], outline=(255, 255, 255, _RIM_ALPHA),
                    width=rim)
+    if not ridges:
+        return
     booklet_x = _booklet_x(case_type, p)
     ridge = max(1, round(JEWEL_RIDGE_MM * p))
     for x in (booklet_x - ridge, booklet_x - ridge - JEWEL_RIDGE_GAP_MM * p):

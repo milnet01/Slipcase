@@ -54,6 +54,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A jewel case's back no longer shows the lid's double line** (SLIP-0106)
+  The two lines beside the hinge mark where the front lid opens, so they
+  now appear on the front only.
+
 - **A European PlayStation back insert no longer leaves its printed edges on
   the back** (SLIP-0111)
   A European insert is wider than a US one. With the US case shown, its two
