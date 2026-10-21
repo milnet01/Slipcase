@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: SLIP=113 -->
+<!-- ants-roadmap-id-high-water: SLIP=114 -->
 
 # Slipcase — Roadmap
 
@@ -1155,6 +1155,21 @@ building.
   does. Tests: tests/test_case_list.py. Next: the researched variants.
   **Layman:** Pick the exact case your copy came in, such as a silver Platinum PS2 case or a thick multi-disc case, so your rendered library matches your shelf.
   Kind: feature.
+  Source: user-request-2026-10-21.
+
+- 🚧 [SLIP-0114] **Show a jewel case's clear lid margin round the booklet as lit plastic, not black.**
+  The user, 2026-10-21, shared a downloaded Ridge Racer Type 4 render
+  "showing how it shows plastic". Their own PAL photo ("Front of case")
+  settled what to copy: the lid margin above, right of and below the
+  booklet averages (106, 95, 96) against the hinge strip's (39, 38, 42),
+  so it reads lighter; the hinge strip shows no ridges, so none were
+  added. The user agreed, 2026-10-21.
+  Built (2026-10-21): core/case_texture.py _draw_jewel_front lights the
+  margin at _MARGIN_ALPHA 110 (judged by eye), front only. Test:
+  tests/test_jewel.py::test_lid_margin_is_lit. Waiting on the user's
+  by-eye check; flip to shipped when right.
+  **Layman:** The thin clear border round a CD-case cover now looks like see-through plastic catching the light, as on a real case.
+  Kind: enhancement.
   Source: user-request-2026-10-21.
 
 ## Project record

@@ -144,6 +144,20 @@ class TestCaseData(unittest.TestCase):
         self.assertGreater(front.getpixel((ridge, y))[3] - front.getpixel((beside, y))[3], 10)
         self.assertLessEqual(abs(back.getpixel((ridge, y))[3] - back.getpixel((beside, y))[3]), 3)
 
+    def test_lid_margin_is_lit(self):
+        """The clear lid round the booklet reads lighter than the booklet
+        and the hinge strip, as in the user's PAL Ridge Racer Type 4 photo
+        (2026-10-21); the back is unchanged."""
+        pal = CASE_TYPES["PS1 Jewel Case (PAL)"]
+        front = generate_front_texture(pal, 284, 250)
+        back = generate_front_texture(pal, 284, 250, back=True)
+        # At 2 px/mm: rim y < 2, top margin y < 5, booklet x 39 to 278.
+        booklet, top, right, hinge = (150, 20), (150, 3), (281, 125), (10, 3)
+        for margin in (top, right):
+            self.assertGreater(front.getpixel(margin)[3] - front.getpixel(booklet)[3], 60)
+        self.assertEqual(front.getpixel(hinge)[3], 0)
+        self.assertLess(back.getpixel(top)[3] - back.getpixel(booklet)[3], 30)
+
 
 class TestFaces(unittest.TestCase):
 

@@ -161,6 +161,7 @@ JEWEL_RIDGE_GAP_MM = 1.5    # between those two lines
 JEWEL_CAP_MM = 3.0          # the tray's end caps over the hinge, top and bottom
 _RIM_ALPHA = 70
 _RIDGE_ALPHA = 55
+_MARGIN_ALPHA = 110
 _CAP_ALPHA = 235
 STREAK_ALPHA = 34           # the lid's diagonal reflection, at its centre line
 
@@ -177,6 +178,15 @@ def _draw_jewel_front(draw: ImageDraw.ImageDraw, case_type: CaseType,
     if not ridges:
         return
     booklet_x = _booklet_x(case_type, p)
+    # The clear lid's margin round the booklet, top, right and bottom, reads
+    # lighter than the tray under it in the user's photo.
+    lit = (255, 255, 255, _MARGIN_ALPHA)
+    top = round((case_type.height - case_type.jewel.booklet[1]) / 2 * p)
+    right = round(booklet_x + case_type.jewel.booklet[0] * p)
+    x0 = round(booklet_x)
+    draw.rectangle([(x0, rim), (w - 1 - rim, top - 1)], fill=lit)
+    draw.rectangle([(x0, h - top), (w - 1 - rim, h - 1 - rim)], fill=lit)
+    draw.rectangle([(right, top), (w - 1 - rim, h - top - 1)], fill=lit)
     ridge = max(1, round(JEWEL_RIDGE_MM * p))
     for x in (booklet_x - ridge, booklet_x - ridge - JEWEL_RIDGE_GAP_MM * p):
         draw.rectangle([(round(x), rim), (round(x) + ridge - 1, h - 1 - rim)],
