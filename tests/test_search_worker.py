@@ -290,5 +290,40 @@ class TestAnimationMemory(unittest.TestCase):
         self.assertNotIn("done", seen)
 
 
+class TestAnimationScale(unittest.TestCase):
+    """The box keeps one size through the sweep (SLIP-0105).
+
+    Each frame was fitted to the output width at its own angle, so a DVD
+    box was about 39% taller at 50 degrees than at 10.
+    """
+
+    def test_front_height_is_the_same_at_every_angle(self):
+        import tempfile
+        import numpy as np
+        from PIL import Image, ImageSequence
+        with tempfile.TemporaryDirectory() as d:
+            out = os.path.join(d, "spin.png")
+            worker = _animation_worker(
+                front_image=Image.new("RGB", (135, 190), (255, 0, 0)),
+                case_color=(128, 128, 128), spine_color=(0, 0, 255),
+                output_width=200, frame_count=2, output_path=out,
+                show_texture=False, supersample=1,
+            )
+            errors = []
+            worker.error.connect(errors.append)
+            worker.run()
+            self.assertEqual(errors, [])
+            heights = []
+            with Image.open(out) as img:
+                self.assertLessEqual(img.size[0], 200)
+                for frame in ImageSequence.Iterator(img):
+                    px = np.array(frame.convert("RGBA"))
+                    red = (px[..., 0] > 200) & (px[..., 1] < 60) & (px[..., 2] < 60)
+                    rows = np.flatnonzero(red.any(axis=1))
+                    heights.append(rows[-1] - rows[0] + 1)
+            self.assertEqual(len(heights), 2)
+            self.assertLessEqual(abs(heights[0] - heights[1]), 2, heights)
+
+
 if __name__ == "__main__":
     unittest.main()

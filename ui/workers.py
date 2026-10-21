@@ -11,7 +11,7 @@ from PyQt6.QtCore import QThread, pyqtSignal
 from core.box_file import box_paths, write_box_file
 from core.box_model import build_box_model
 from core.case_types import CaseType
-from core.renderer import BoxRenderer
+from core.renderer import BoxRenderer, visible_width_mm
 
 # Most memory an animation's frames may take. Every frame is held until the
 # encoder runs, so 120 frames at 2048px wide came to several gigabytes with
@@ -336,6 +336,11 @@ class AnimationWorker(QThread):
             total = len(angles)
             frames: list[Image.Image] = []
             max_w, max_h = 0, 0
+            # Every frame is sized as the widest one is, so the box keeps one
+            # size as it turns (SLIP-0105).
+            fit_angle = max(
+                angles, key=lambda a: visible_width_mm(self.case_type, a)
+            )
 
             for i, angle in enumerate(angles):
                 if self.isInterruptionRequested():
@@ -351,6 +356,7 @@ class AnimationWorker(QThread):
                     show_texture=self.show_texture,
                     supersample=self.supersample,
                     background=self.background,
+                    fit_angle=fit_angle,
                 )
                 frame = renderer.render(
                     front_image=self.front_image,

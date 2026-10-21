@@ -26,6 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   answering, and Slipcase gave up after 30 seconds. A search now waits up to
   90 seconds. Choosing a system still makes the search much faster.
 
+- **The box in an exported animation keeps one size as it turns** (SLIP-0105)
+  Each frame was fitted to the chosen width on its own, so a DVD box looked
+  over a third taller at a sharp angle than face-on. Every frame now uses the
+  scale of the widest frame.
+
 ## [1.3.1] - 2026-10-10
 
 **Theme:** Safer cover downloads and a steadier search window.

@@ -66,6 +66,12 @@ _HIGHLIGHT_ALPHA = 0.3
 _DARK_EDGE_ALPHA = 0.15
 
 
+def visible_width_mm(case_type: CaseType, angle: float) -> float:
+    """Front plus spine as seen from `angle` degrees, in millimetres."""
+    a = math.radians(angle)
+    return case_type.width * math.cos(a) + case_type.depth * math.sin(a)
+
+
 class BoxRenderer:
     """Renders a 3D box from cover art images using perspective projection."""
 
@@ -79,9 +85,14 @@ class BoxRenderer:
         show_texture: bool = True,
         supersample: int = 2,
         background: str = "transparent",
+        fit_angle: float | None = None,
     ):
+        """`fit_angle` sizes the box as it is sized at that angle rather than
+        its own. An animation passes its widest angle, so every frame shares
+        one scale and the box does not grow as it turns (SLIP-0105)."""
         self.case_type = case_type
         self.angle = angle
+        self.fit_angle = angle if fit_angle is None else fit_angle
         self.output_width = min(max(int(output_width), 1), MAX_OUTPUT_WIDTH)
         self.show_reflection = show_reflection
         self.show_shadow = show_shadow
@@ -132,7 +143,7 @@ class BoxRenderer:
         w = self.output_width * scale
 
         # Compute box dimensions in pixels based on case proportions
-        box_dims = self._compute_box_dimensions(w)
+        box_dims = self._compute_box_dimensions(w, self.fit_angle)
         front_w = box_dims["front_w"]
         front_h = box_dims["front_h"]
         spine_w = box_dims["spine_w"]
@@ -224,6 +235,12 @@ class BoxRenderer:
             shadow_w = max(0, _SHADOW_REACH[0] - _CANVAS_PAD // 2) * scale
             shadow_h = max(0, _SHADOW_REACH[1] - (_CANVAS_PAD - _CANVAS_TOP_PAD)) * scale
         total_w = proj_spine_w + proj_front_w + _CANVAS_PAD * scale + shadow_w
+        # The width this canvas would have at fit_angle. The final downscale
+        # fits that width, not this one, to output_width (SLIP-0105).
+        fit_rad = math.radians(self.fit_angle)
+        fit_w = (total_w - proj_spine_w - proj_front_w
+                 + int(front_w * math.cos(fit_rad))
+                 + int(spine_w * math.sin(fit_rad)))
         total_h = front_h + proj_top_h * 2 + _CANVAS_PAD * scale + shadow_h
         reflection_space = front_h // 3 if self.show_reflection else 0
         canvas_h = total_h + reflection_space
@@ -360,9 +377,11 @@ class BoxRenderer:
         # at 85% of the target -- so dividing height by `scale` while pinning
         # width to output_width stretched every render horizontally by 12-14%,
         # against the real-world millimetre proportions CaseType exists to
-        # preserve. Height is derived from the width instead.
-        final_w = self.output_width
-        final_h = max(1, round(canvas.size[1] * final_w / canvas.size[0]))
+        # preserve. Height is derived from the width instead. At its own
+        # angle fit_w is the canvas width, so final_w is output_width.
+        factor = self.output_width / fit_w
+        final_w = max(1, round(canvas.size[0] * factor))
+        final_h = max(1, round(canvas.size[1] * factor))
         canvas = canvas.resize((final_w, final_h), Image.Resampling.LANCZOS)
 
         # Crop out excess transparency
@@ -372,14 +391,11 @@ class BoxRenderer:
 
         return canvas
 
-    def _compute_box_dimensions(self, target_width: int) -> dict:
-        """Compute pixel dimensions for box faces based on case type and target width."""
+    def _compute_box_dimensions(self, target_width: int, angle: float) -> dict:
+        """Compute pixel dimensions for box faces, fitting the box as seen at
+        `angle` to the target width."""
         ct = self.case_type
-        angle_rad = math.radians(self.angle)
-
-        # Total visible width = front * cos(angle) + spine * sin(angle)
-        total_ratio = ct.width * math.cos(angle_rad) + ct.depth * math.sin(angle_rad)
-        pixels_per_mm = (target_width * 0.85) / total_ratio
+        pixels_per_mm = (target_width * 0.85) / visible_width_mm(ct, angle)
 
         front_w = int(ct.width * pixels_per_mm)
         front_h = int(ct.height * pixels_per_mm)

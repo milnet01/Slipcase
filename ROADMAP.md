@@ -1950,7 +1950,7 @@ building.
   Kind: fix.
   Source: in-session-2026-09-30.
 
-- 📋 [SLIP-0105] **An exported animation's box grows and shrinks as it turns.**
+- ✅ [SLIP-0105] **An exported animation's box grows and shrinks as it turns.**
   Reported by ants-projects-hub-website (message 609): in the trailer
   the saved Nebula Drift DVD animation (10 to 50 degrees, bounce) shows
   the box clearly taller at the sharp angle. Seen in
@@ -1963,6 +1963,13 @@ building.
   direction: one scale for the whole sweep (the widest angle's).
   When released, message ants-projects-hub-website so the trailer can be
   re-recorded.
+  Fixed (2026-10-21): reproduced first, a red DVD front measured 267 px
+  tall at 10 degrees and 367 px at 50. BoxRenderer takes fit_angle, and
+  the final downscale fits the canvas that angle would have;
+  AnimationWorker passes the sweep's widest angle (visible_width_mm).
+  Now equal within 2 px, locked by
+  tests/test_search_worker.py::TestAnimationScale. Normal renders are
+  pixel-identical to before (54 compared). Website told once released.
   **Layman:** In a turning-box animation the box should stay the same size; today it gets taller at sharp angles.
   Kind: fix.
   Source: session-message-609-2026-10-12.
