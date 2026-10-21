@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: SLIP=114 -->
+<!-- ants-roadmap-id-high-water: SLIP=115 -->
 
 # Slipcase — Roadmap
 
@@ -1184,6 +1184,21 @@ building.
   ribs at a 1 mm pitch, alpha 40 (judged by eye), front only. Test:
   tests/test_jewel.py::test_ps1_hinge_strip_is_ridged.
   **Layman:** The thin clear border round a CD-case cover now looks like see-through plastic catching the light, as on a real case.
+  Kind: enhancement.
+  Source: user-request-2026-10-21.
+
+- 🚧 [SLIP-0115] **Show the back card's hinge strip through a clear jewel tray's front hinge strip.**
+  The user's US Dreamcast photos (~/Pictures/Dreamcast Cases/,
+  2026-10-21) show the back card's "Sega Dreamcast" strip through the
+  clear tray, filling the front's hinge strip; Slipcase drew it pale
+  grey. The user agreed, 2026-10-21.
+  Built (2026-10-21): CaseType.clear_tray on Dreamcast Jewel Case
+  (NTSC-U); jewel_faces pastes the hinge picture (card strip or wrap
+  spine) over the hinge strip, stretched to it. With no hinge picture
+  the strip stays plastic. Amends SLIP-0106 INV-6. Test:
+  tests/test_jewel.py::test_clear_tray_shows_the_hinge_strip_paper.
+  Waiting on the user's by-eye check; flip to shipped when right.
+  **Layman:** On a see-through US Dreamcast case, the white "Sega Dreamcast" edge of the back insert now shows beside the cover, as on a real case.
   Kind: enhancement.
   Source: user-request-2026-10-21.
 

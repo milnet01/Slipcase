@@ -220,6 +220,23 @@ class TestFaces(unittest.TestCase):
         self.assertEqual((m.top, m.bottom, m.edge), (BLACK_TRAY,) * 3)
         self.assertEqual((model(BLUE).top, model(BLUE).bottom, model(BLUE).edge), (BLUE,) * 3)
 
+    def test_clear_tray_shows_the_hinge_strip_paper(self):
+        """INV-6: a clear tray shows the hinge picture through the front's
+        hinge strip, as on the user's US Dreamcast cases (2026-10-21); an
+        opaque tray, or no hinge picture, shows plastic."""
+        booklet = Image.new("RGB", (1200, 1200), (128, 128, 128))
+
+        def strip_px(case, back):
+            front = _faces(booklet, back, case, platform="Dreamcast").front
+            px = front.width / CASE_TYPES[case].width
+            return front.getpixel((round(9 * px), front.height // 2))[:3]
+
+        dc, ps1 = "Dreamcast Jewel Case (NTSC-U)", "PS1 Jewel Case (NTSC-U)"
+        self.assertEqual(strip_px(dc, _card(CASE_TYPES[dc], [RED, GREEN, BLUE])), BLUE)
+        self.assertEqual(strip_px(dc, None), CASE_TYPES[dc].plastic)
+        self.assertEqual(strip_px(ps1, _card(CASE_TYPES[ps1], [RED, GREEN, BLUE])),
+                         CASE_TYPES[ps1].plastic)
+
     def test_rendered_top_stands_apart_from_the_border(self):
         """A render's top face is lit lighter than the front's plastic border,
         so the two do not merge into one thick band (the user, 2026-10-21)."""

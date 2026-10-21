@@ -28,6 +28,9 @@ class CaseType:
     matte_hinge_strip: bool = False
     # Fine vertical ridges across the lid's hinge strip, on the front.
     ridged_hinge_strip: bool = False
+    # A see-through jewel tray: the front's hinge strip shows the hinge
+    # picture's paper through it (SLIP-0115).
+    clear_tray: bool = False
     # Text moulded into the plastic of the top and bottom edges (SLIP-0110).
     moulded_logo: str | None = None
     # Overlay family for the wrap layout: "dvd", "bluray", "switch", "ds",
@@ -189,7 +192,7 @@ CASE_TYPES: dict[str, CaseType] = {
         width=142, height=125, depth=10.4,
         platforms=("Dreamcast",),
         # A clear tray has no colour of its own: a pale grey stands in.
-        jewel=_STANDARD_PAPER, plastic=(0xC8, 0xCC, 0xD0),
+        jewel=_STANDARD_PAPER, plastic=(0xC8, 0xCC, 0xD0), clear_tray=True,
     ),
     "Dreamcast Jewel Case (NTSC-J)": CaseType(
         name="Dreamcast Jewel Case (NTSC-J)",

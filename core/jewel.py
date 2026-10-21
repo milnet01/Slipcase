@@ -218,6 +218,15 @@ def jewel_faces(
 
     back_src = middle if middle is not None else wrap_back
     hinge_src = right_strip if right_strip is not None else wrap_spine
+    if case_type.clear_tray and hinge_src is not None:
+        # A clear tray shows the hinge strip's paper through the front's
+        # hinge strip, widened by the curved plastic (the user's photos).
+        front.alpha_composite(
+            hinge_src.convert("RGBA").resize(
+                (max(1, round((W - margin - booklet_w) * p)), max(1, round(card_h * p))),
+                Image.Resampling.LANCZOS),
+            (0, round((H - card_h) / 2 * p)),
+        )
     return JewelFaces(
         front=front,
         back=_on_plastic(back_src, middle_mm, (W, H), p, plastic)

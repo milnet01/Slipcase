@@ -246,7 +246,7 @@ panel when the front is a wrap.
 resized to the booklet area and pasted. The area's top, bottom and right
 margins are equal: `m = (H − booklet_h) / 2`. The strip left of it,
 `W − m − booklet_w` wide, is the hinge strip: tray plastic seen through the
-lid. Every jewel case is 142 × 125 with a 120 × 120 booklet, so the strip
+lid, or on a clear tray the hinge picture's paper (SLIP-0115). Every jewel case is 142 × 125 with a 120 × 120 booklet, so the strip
 is 19.5 mm on each. The user confirms it is the same on every jewel case
 (§ 3); the 19.5 mm is computed, U. The hinge strip is geometry, so it is drawn whatever
 `show_texture` says.
@@ -454,7 +454,10 @@ shows.
   are not passed to `split_back_card`.
 
 - **INV-6** — A jewel front is `plastic` in the hinge strip and the booklet
-  in the booklet area. Top, bottom and edge colours are
+  in the booklet area. Amended by SLIP-0115: on a `clear_tray` case with a
+  hinge picture, the hinge strip shows that picture instead
+  (`tests/test_jewel.py::test_clear_tray_shows_the_hinge_strip_paper`).
+  Top, bottom and edge colours are
   `case_color or plastic`, never sampled from the art.
   *Test:* `tests/test_jewel.py::test_front_layout_and_colours`. A uniform
   red booklet on `PS1 Jewel Case (PAL)`, `show_texture` off, through
