@@ -26,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   A US PlayStation or Dreamcast case's clear tray shows its printed
   "PlayStation" or "Sega Dreamcast" panel beside the booklet (SLIP-0115).
 
+- **SNES and N64 boxes lie landscape, as the US and European boxes do**
+  (SLIP-0108)
+  A Japanese cover gets the tall Super Famicom or Japanese N64 box.
+
 - **Turn the box in 3D, and save it for RetroDB** (SLIP-0104)
   A new 3D View shows all six sides of the box. Turn it with the mouse or
   the arrow keys, zoom with the wheel, or let Auto-spin turn it. Exports and

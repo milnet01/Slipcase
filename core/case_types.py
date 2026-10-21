@@ -237,16 +237,33 @@ CASE_TYPES: dict[str, CaseType] = {
         platforms=("NES",),
         texture="cardboard",
     ),
+    # US and PAL SNES and N64 boxes lie landscape; the Japanese ones stand
+    # portrait. Sources: docs/research/SLIP-0108-cartridge-boxes.md.
     "SNES Cartridge Box": CaseType(
         name="SNES Cartridge Box",
-        width=127, height=175, depth=30,
+        # A US Chrono Trigger box, 7 x 5 x 1.25 in.
+        width=178, height=127, depth=32,
         platforms=("SNES",),
+        texture="cardboard",
+    ),
+    "Super Famicom Cartridge Box": CaseType(
+        name="Super Famicom Cartridge Box",
+        width=105, height=190, depth=30,
+        platforms=(),
         texture="cardboard",
     ),
     "N64 Cartridge Box": CaseType(
         name="N64 Cartridge Box",
-        width=127, height=175, depth=25,
+        # Unmeasured: the SNES box's size, inside the 181 x 127 x 32 mm a
+        # protector seller gives.
+        width=178, height=127, depth=32,
         platforms=("N64",),
+        texture="cardboard",
+    ),
+    "N64 Cartridge Box (NTSC-J)": CaseType(
+        name="N64 Cartridge Box (NTSC-J)",
+        width=138, height=190, depth=30,
+        platforms=(),
         texture="cardboard",
     ),
     "Genesis Clamshell": CaseType(
@@ -366,6 +383,8 @@ REGIONAL_CASES: dict[tuple[str, str], str] = {
     ("PS2", "PAL"): "PS2 DVD Case (PAL)",
     ("DS", "PAL"): "DS Case (PAL)",
     ("GameCube", "NTSC-J"): "GameCube Case (NTSC-J)",
+    ("SNES", "NTSC-J"): "Super Famicom Cartridge Box",
+    ("N64", "NTSC-J"): "N64 Cartridge Box (NTSC-J)",
 }
 
 

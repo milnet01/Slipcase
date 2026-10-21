@@ -1082,6 +1082,13 @@ building.
   and PAL landscape, Japanese portrait); Master System and Genesis cases
   have black plastic top and bottom. Cardboard boxes' top and bottom
   print: still open (spine colour is the stand-in).
+  Progress (2026-10-21): SNES Cartridge Box is 178 x 127 x 32 (a US
+  Chrono Trigger box, 7 x 5 x 1.25 in, quote re-read at source); N64
+  Cartridge Box takes the same size, unmeasured. New regional cases:
+  Super Famicom Cartridge Box 105 x 190 x 30 and N64 Cartridge Box
+  (NTSC-J) 138 x 190 x 30, one owner's measurement each, re-read at
+  source. Test: tests/test_case_list.py TestCartridgeBoxShape. Next:
+  plastic Sega cases, then missing consoles.
   **Layman:** Cartridge game boxes (NES, SNES, N64, Game Boy and others) get the right size and shape for each region.
   Kind: feature.
   Source: user-request-2026-10-21.

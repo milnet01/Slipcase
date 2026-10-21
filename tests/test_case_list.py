@@ -28,6 +28,32 @@ class TestCasesForPlatform(unittest.TestCase):
         self.assertNotIn("PS1 Jewel Case (PAL)", cases_for_platform("Dreamcast"))
 
 
+class TestCartridgeBoxShape(unittest.TestCase):
+    """SLIP-0108: US and PAL SNES and N64 boxes lie landscape; the Japanese
+    Super Famicom and N64 boxes stand portrait (docs/research/
+    SLIP-0108-cartridge-boxes.md)."""
+
+    def test_shapes_by_region(self):
+        from core.case_types import case_for
+        for platform in ("SNES", "N64"):
+            with self.subTest(platform=platform):
+                for region in ("NTSC-U", "PAL"):
+                    ct = case_for(platform, region)
+                    self.assertGreater(ct.width, ct.height)
+                jp = case_for(platform, "NTSC-J")
+                self.assertLess(jp.width, jp.height)
+                self.assertIn(jp.name, cases_for_platform(platform))
+
+    def test_measured_sizes(self):
+        from core.case_types import case_for
+        self.assertEqual((CASE_TYPES["SNES Cartridge Box"].width,
+                          CASE_TYPES["SNES Cartridge Box"].height), (178, 127))
+        sfc = case_for("SNES", "NTSC-J")
+        self.assertEqual((sfc.width, sfc.height, sfc.depth), (105, 190, 30))
+        n64j = case_for("N64", "NTSC-J")
+        self.assertEqual((n64j.width, n64j.height, n64j.depth), (138, 190, 30))
+
+
 class TestEditionCases(unittest.TestCase):
     """Edition cases: the standard case's size in another plastic."""
 
