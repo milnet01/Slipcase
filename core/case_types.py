@@ -26,6 +26,8 @@ class CaseType:
     # A jewel lid clear only over the booklet: the hinge strip is the tray's
     # matte plastic, so the lid's gloss stops at the booklet's side.
     matte_hinge_strip: bool = False
+    # Fine vertical ridges across the lid's hinge strip, on the front.
+    ridged_hinge_strip: bool = False
     # Text moulded into the plastic of the top and bottom edges (SLIP-0110).
     moulded_logo: str | None = None
     # Overlay family for the wrap layout: "dvd", "bluray", "switch", "ds",
@@ -163,7 +165,7 @@ CASE_TYPES: dict[str, CaseType] = {
         name="PS1 Jewel Case (NTSC-U)",
         width=142, height=125, depth=10.4,
         platforms=("PS1",),
-        jewel=_STANDARD_PAPER, plastic=_BLACK_TRAY,
+        jewel=_STANDARD_PAPER, plastic=_BLACK_TRAY, ridged_hinge_strip=True,
     ),
     # Only thicker than the standard case. Its back card is measured from a
     # PAL scan: wider, with end strips that wrap the 18 mm sides. Its black
@@ -173,14 +175,14 @@ CASE_TYPES: dict[str, CaseType] = {
         width=142, height=125, depth=18,
         platforms=(),
         jewel=JewelGeometry(booklet=(120, 120), back_card=(158, 118), strip=13.5),
-        plastic=_BLACK_TRAY, matte_hinge_strip=True,
+        plastic=_BLACK_TRAY, matte_hinge_strip=True, ridged_hinge_strip=True,
         moulded_logo="PlayStation",
     ),
     "PS1 Jewel Case (NTSC-J)": CaseType(
         name="PS1 Jewel Case (NTSC-J)",
         width=142, height=125, depth=10,
         platforms=(),
-        jewel=_STANDARD_PAPER, plastic=_BLACK_TRAY,
+        jewel=_STANDARD_PAPER, plastic=_BLACK_TRAY, ridged_hinge_strip=True,
     ),
     "Dreamcast Jewel Case (NTSC-U)": CaseType(
         name="Dreamcast Jewel Case (NTSC-U)",

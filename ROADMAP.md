@@ -1177,6 +1177,12 @@ building.
   margin at _MARGIN_ALPHA 110 (judged by eye), front only. Test:
   tests/test_jewel.py::test_lid_margin_is_lit. Waiting on the user's
   by-eye check; flip to shipped when right.
+  The user decided, 2026-10-21: "add the ridged black strip for all
+  relevant PS1 cases", as in the downloaded render, though their own
+  photo shows the strip smooth. Built: CaseType.ridged_hinge_strip on
+  the PS1 NTSC-U, PAL and NTSC-J cases; _draw_jewel_front draws 0.4 mm
+  ribs at a 1 mm pitch, alpha 40 (judged by eye), front only. Test:
+  tests/test_jewel.py::test_ps1_hinge_strip_is_ridged.
   **Layman:** The thin clear border round a CD-case cover now looks like see-through plastic catching the light, as on a real case.
   Kind: enhancement.
   Source: user-request-2026-10-21.

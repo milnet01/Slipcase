@@ -128,7 +128,9 @@ class TestCaseData(unittest.TestCase):
         though the back's clear base and the NTSC-U lid still shine there."""
         pal = CASE_TYPES["PS1 Jewel Case (PAL)"]
         at = (10, 10)  # 5 mm in: on the hinge strip, clear of the rim
-        self.assertEqual(generate_front_texture(pal, 284, 250).getpixel(at)[3], 0)
+        # No gloss: the strip's ridges are the same at its top and bottom.
+        front = generate_front_texture(pal, 284, 250)
+        self.assertEqual(front.getpixel(at)[3], front.getpixel((10, 200))[3])
         self.assertGreater(generate_front_texture(pal, 284, 250, back=True).getpixel(at)[3], 0)
         ntsc = CASE_TYPES["PS1 Jewel Case (NTSC-U)"]
         self.assertGreater(generate_front_texture(ntsc, 284, 250).getpixel(at)[3], 0)
@@ -144,6 +146,26 @@ class TestCaseData(unittest.TestCase):
         self.assertGreater(front.getpixel((ridge, y))[3] - front.getpixel((beside, y))[3], 10)
         self.assertLessEqual(abs(back.getpixel((ridge, y))[3] - back.getpixel((beside, y))[3]), 3)
 
+    def test_ps1_hinge_strip_is_ridged(self):
+        """A PS1 case's hinge strip carries fine vertical ridges on the
+        front (the user, 2026-10-21); other jewel cases and the back do not."""
+        row = range(4, 30)  # at 2 px/mm: across the hinge strip, short of its ridge lines
+        y = 125
+
+        def spread(overlay):
+            alphas = [overlay.getpixel((x, y))[3] for x in row]
+            return max(alphas) - min(alphas)
+
+        for name in ("PS1 Jewel Case (NTSC-U)", "PS1 Jewel Case (PAL)",
+                     "PS1 Jewel Case (NTSC-J)"):
+            with self.subTest(case=name):
+                ct = CASE_TYPES[name]
+                self.assertGreater(spread(generate_front_texture(ct, 284, 250)), 20)
+                self.assertLess(spread(generate_front_texture(ct, 284, 250, back=True)), 10)
+        for name in ("CD Jewel Case", "Dreamcast Jewel Case (PAL)"):
+            with self.subTest(case=name):
+                self.assertLess(spread(generate_front_texture(CASE_TYPES[name], 284, 250)), 10)
+
     def test_lid_margin_is_lit(self):
         """The clear lid round the booklet reads lighter than the booklet
         and the hinge strip, as in the user's PAL Ridge Racer Type 4 photo
@@ -155,7 +177,7 @@ class TestCaseData(unittest.TestCase):
         booklet, top, right, hinge = (150, 20), (150, 3), (281, 125), (10, 3)
         for margin in (top, right):
             self.assertGreater(front.getpixel(margin)[3] - front.getpixel(booklet)[3], 60)
-        self.assertEqual(front.getpixel(hinge)[3], 0)
+        self.assertEqual(front.getpixel(hinge)[3], front.getpixel((10, 200))[3])
         self.assertLess(back.getpixel(top)[3] - back.getpixel(booklet)[3], 30)
 
 

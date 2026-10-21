@@ -162,6 +162,11 @@ JEWEL_CAP_MM = 3.0          # the tray's end caps over the hinge, top and bottom
 _RIM_ALPHA = 70
 _RIDGE_ALPHA = 55
 _MARGIN_ALPHA = 110
+# A PS1 lid's ribbed hinge strip, as in the downloaded Ridge Racer Type 4
+# render the user chose (2026-10-21); sizes and alpha judged by eye.
+JEWEL_RIB_MM = 0.4
+JEWEL_RIB_PITCH_MM = 1.0
+_RIB_ALPHA = 40
 _CAP_ALPHA = 235
 STREAK_ALPHA = 34           # the lid's diagonal reflection, at its centre line
 
@@ -188,7 +193,18 @@ def _draw_jewel_front(draw: ImageDraw.ImageDraw, case_type: CaseType,
     draw.rectangle([(x0, h - top), (w - 1 - rim, h - 1 - rim)], fill=lit)
     draw.rectangle([(right, top), (w - 1 - rim, h - top - 1)], fill=lit)
     ridge = max(1, round(JEWEL_RIDGE_MM * p))
-    for x in (booklet_x - ridge, booklet_x - ridge - JEWEL_RIDGE_GAP_MM * p):
+    outer_ridge_x = booklet_x - ridge - JEWEL_RIDGE_GAP_MM * p
+    if case_type.ridged_hinge_strip:
+        # Vertical ribs across the strip, stopping a pitch short of the
+        # outer ridge line so the two lines stay distinct.
+        pitch = JEWEL_RIB_PITCH_MM * p
+        rib = max(1, round(JEWEL_RIB_MM * p))
+        x = rim + pitch / 2
+        while x + rib <= outer_ridge_x - pitch:
+            draw.rectangle([(round(x), rim), (round(x) + rib - 1, h - 1 - rim)],
+                           fill=(255, 255, 255, _RIB_ALPHA))
+            x += pitch
+    for x in (booklet_x - ridge, outer_ridge_x):
         draw.rectangle([(round(x), rim), (round(x) + ridge - 1, h - 1 - rim)],
                        fill=(255, 255, 255, _RIDGE_ALPHA))
 
