@@ -959,7 +959,7 @@ building.
   Kind: feature.
   Source: in-session-2026-08-27.
 
-- 📋 [SLIP-0104] **A 3D box viewer the user can rotate and zoom, shared with RetroDB.**
+- 🚧 [SLIP-0104] **A 3D box viewer the user can rotate and zoom, shared with RetroDB.**
   The user asked (2026-10-10) for a model of the box, all six sides,
   that the viewer can rotate and zoom, with the usual controls that go
   with that. The same feature goes into RetroDB once it is built here,
@@ -995,6 +995,14 @@ building.
   user ruling; box-file format v1 unchanged. Told RetroDB and asked it
   to roadmap the importer and CSS 3D viewer with its user. Next: build
   Slipcase's half with write-code, tests first.
+  Progress (2026-10-21): RetroDB filed its half as PASS-59-142 (importer)
+  and PASS-59-143 (CSS 3D viewer), both planned; open on its side for its
+  user: where import starts, and whether the faces replace boxart_3d.
+  Slipcase's half built: core/box_model.py, core/box_file.py,
+  ui/box_viewer.py, the export/box_file setting, Export PNG and batch
+  writing. Every INV-1 to INV-12 test passes, and each was seen to fail
+  with its rule broken. Left: § 10's by-eye check of the viewer on the
+  Linux desktop and the Windows test machine.
   **Layman:** See the whole game box, every side, and turn it around or zoom in with the mouse.
   Kind: feature.
   Source: user-request-2026-10-10.

@@ -24,6 +24,13 @@ You don't need either one to use it. The images are ordinary PNG files.
 - **Build a 3D case** from a front cover, and optionally a back cover and spine.
 - **Show the back of the box** too: switch View to Back to see the back
   cover with the spine beside it.
+- **Turn the box in 3D.** Tick **3D View** (Ctrl+3) under the preview. Drag
+  to turn the box, right-drag to move it, and use the wheel to zoom.
+  Double-click to reset. **Auto-spin** turns it for you.
+- **Save a box file for RetroDB.** Each exported or batch-rendered PNG gets a
+  box file beside it: `Name.box.json` plus front, spine and back pictures.
+  RetroDB is adding an importer for these, to show the same turnable box.
+  Turn this off under Settings, Export.
 - **Invent a spine** when you don't have one, from the platform's own colours
   plus the game title and serial number.
 - **Match the real case.** Sizes come from actual measurements, so a Game Boy

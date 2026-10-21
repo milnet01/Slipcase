@@ -41,7 +41,10 @@ main.py
   -> ui/main_window.py       (GUI)
        -> ui/themes.py       (theme system)
        -> ui/preview_widget.py
+       -> ui/box_viewer.py   (turnable 3D view)
        -> ui/workers.py      (background threads)
+       -> core/box_model.py  (faces of the turnable box)
+       -> core/box_file.py   (box file for RetroDB)
        -> ui/settings_dialog.py
        -> ui/search_dialog.py
        -> ui/animation_dialog.py
@@ -72,7 +75,7 @@ Every worker declares `error(str)`.
 
 | Worker | Purpose | Signals |
 |--------|---------|---------|
-| `RenderWorker` | Single 3D render | `rendered(Image)`, `error(str)` |
+| `RenderWorker` | Single 3D render, then its box model | `rendered(Image)`, `model_ready(BoxModel)`, `error(str)` |
 | `BatchWorker` | Multi-file processing | `progress(int,int,str)`, `finished_signal(int)`, `error(str)` |
 | `AnimationWorker` | Multi-angle animation | `progress(int,int)`, `finished_signal(str)`, `error(str)` |
 | `SearchWorker` | API game search | `results_ready(list,int)`, `finished_signal()`, `error(str)` |
@@ -273,6 +276,7 @@ The application uses a centralized theme system (`ui/themes.py`):
 | Generate | Ctrl+G / F5 |
 | Copy to Clipboard | Ctrl+Shift+C |
 | Toggle Comparison | Ctrl+D |
+| Toggle 3D View | Ctrl+3 |
 | Search Online | Ctrl+F |
 | Quit | Ctrl+Q |
 
@@ -281,7 +285,8 @@ The application uses a centralized theme system (`ui/themes.py`):
 - **Left panel** (~280px): Image loading, spine config, case settings, action buttons
 - **Right panel** (flex): Preview display with controls below
 - **QSplitter** between panels for user resizing
-- **QStackedWidget** for single preview / comparison toggle
+- **QStackedWidget** for single preview / comparison / 3D view; the
+  Compare and 3D View toggles exclude each other
 - **Progress bar**: Hidden by default, shown during batch/animation operations
 
 ---
@@ -312,6 +317,8 @@ api/
 rendering/
   {angle, output_width, background, reflection, shadow, texture, supersample,
    compress_level}
+export/
+  {box_file}
 ui/
   {last_platform, last_case_type, last_image_directory, window_geometry,
    recent_files, theme, auto_filename, last_export_directory}
@@ -399,6 +406,9 @@ Results are aggregated and displayed with source attribution.
 | `test_libretro.py` | libretro URL candidates and download short-circuit |
 | `test_api_recordings.py` | ScreenScraper and TheGamesDB search parsing against replies recorded live (`tests/fixtures/`); recordings carry no credentials |
 | `test_search_worker.py` | Search worker always finishes; source counting; frame totals |
+| `test_box_model.py` | Turnable-box faces: face selection, case details, colours (SLIP-0104) |
+| `test_box_file.py` | Box file: format, reading rules, failure cleanup, face limits, stems, Export PNG and batch writing |
+| `test_box_viewer.py` | 3D viewer: visible faces, limits and reset, model from the render worker, transparent background |
 
 ### Test Utilities
 
@@ -461,6 +471,9 @@ them, so a rule is changed here and nowhere else.
   `main.py` imports the value rather than repeating it. Pillow only *warns* at
   this value and raises above 2x it, so `download_image()` also checks
   `width * height` before decoding.
+- **Box-file names**: `write_box_file` refuses, before writing anything, a
+  stem whose face names are not single plain file names, so no face lands
+  outside the chosen folder (SLIP-0104 INV-10).
 - **No code execution**: User-provided text (titles, serials, filenames) is only rendered as image text via PIL, never passed to `eval`, `exec`, `subprocess`, or shell commands.
 - **File dialogs**: Filter by image extensions to prevent accidental loading of non-image files.
 - **Network**: HTTPS only. `timeout=(10, 30)` bounds the connect and each read
@@ -522,7 +535,7 @@ All memory patterns listed here are **mandatory** and must be followed in any co
 
 ### Workers (`ui/workers.py`)
 - **AnimationWorker**: Normalise frames in-place (`frames[i] = canvas`). Convert GIF frames in-place. Never create separate `normalized` or `rgb_frames` lists. `del frames` after save.
-- **BatchWorker**: `img.load()` after `Image.open()`. `del img` after render. `del result` after save. Never accumulate images across loop iterations.
+- **BatchWorker**: `img.load()` after `Image.open()`. `del result` after save. `del img` once the render and, with the box file on, its box model are built. Never accumulate images across loop iterations.
 
 ### QThread Lifecycle
 - **All workers** must connect `finished.connect(worker.deleteLater)` at creation time.
@@ -546,7 +559,8 @@ All memory patterns listed here are **mandatory** and must be followed in any co
 ### Caches and References
 - `SearchDialog._preview_cache` and `_results` must be cleared on dialog close (both accept and reject paths), *after* the dialog's workers have been interrupted and waited on -- a late `results_ready` or `preview_ready` would otherwise refill what was just cleared.
 - `PreviewWidget.clear_image()` sets both `_rendered_image` and `_source_pixmap` to `None`.
-- `MainWindow.closeEvent` clears `_front_image`, `_back_image`, and all preview widgets.
+- `MainWindow.closeEvent` clears `_front_image`, `_back_image`, `_box_model`, and all preview widgets.
+- `BoxViewer.set_model` converts a model's faces to `QImage` once and drops the previous model's; `set_model(None)` releases them, and `closeEvent` calls it.
 
 ---
 

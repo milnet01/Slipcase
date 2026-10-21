@@ -8,8 +8,9 @@ from pathlib import Path
 from PIL import Image
 from PyQt6.QtCore import QThread, pyqtSignal
 
+from core.box_file import box_paths, write_box_file
+from core.box_model import build_box_model
 from core.case_types import CaseType
-from core.png_utils import save_optimized_png
 from core.renderer import BoxRenderer
 
 # Most memory an animation's frames may take. Every frame is held until the
@@ -22,26 +23,43 @@ MAX_ANIMATION_BYTES = 1024 ** 3
 # Top-level helper for ProcessPoolExecutor (must be picklable)
 # ---------------------------------------------------------------------------
 
-def unique_output_path(output_dir: str, name: str, source_path: str) -> str:
-    """Return a non-colliding output path for a batch render.
+def _stem_taken(output_dir: str, stem: str, source: str, given: set[str]) -> bool:
+    png = os.path.join(output_dir, f"{stem}.png")
+    return (stem.casefold() in given or os.path.abspath(png) == source
+            or any(os.path.exists(p) for p in [png, *box_paths(output_dir, stem)]))
 
-    Two defects this closes. Covers are generically named, so `A/cover.png`
-    and `B/cover.png` both mapped to `<out>/cover.png` and the second silently
-    won. And if the user picked the source folder as the output folder, a
-    `.png` source was overwritten by its own render.
+
+def pick_output_stems(file_paths: list[str], output_dir: str) -> list[str]:
+    """Pick each batch file's output stem, before any render starts.
+
+    A stem is taken only when neither its PNG nor any of its box-file paths
+    exists, and no earlier file in the batch was given it. Covers are
+    generically named, so `A/cover.png` and `B/cover.png` both mapped to
+    `<out>/cover.png` and the second silently won. And if the user picked the
+    source folder as the output folder, a `.png` source was overwritten by
+    its own render. Stems are compared case-blind, as Windows names are.
     """
-    src = os.path.abspath(source_path)
-    candidate = os.path.join(output_dir, f"{name}.png")
-    n = 1
-    while os.path.exists(candidate) or os.path.abspath(candidate) == src:
-        candidate = os.path.join(output_dir, f"{name} ({n}).png")
-        n += 1
-    return candidate
+    given: set[str] = set()
+    stems = []
+    for fp in file_paths:
+        name = Path(fp).stem
+        source = os.path.abspath(fp)
+        stem, n = name, 1
+        while _stem_taken(output_dir, stem, source, given):
+            stem = f"{name} ({n})"
+            n += 1
+        given.add(stem.casefold())
+        stems.append(stem)
+    return stems
 
 
 def _render_single_image(args: tuple) -> str:
-    """Render one image in a worker process.  Returns the output filename stem."""
-    fp, output_dir, case_type, renderer_kwargs, compress_level = args
+    """Render one batch file to `<stem>.png`, and its box file when asked.
+
+    Runs in a worker process, or in the batch thread when rendering
+    sequentially. Returns the output stem.
+    """
+    fp, output_dir, stem, case_type, renderer_kwargs, compress_level, box_file = args
     # Imports happen inside the child process (spawn context)
     from PIL import Image as _Img
     from core.renderer import BoxRenderer as _BR
@@ -52,16 +70,28 @@ def _render_single_image(args: tuple) -> str:
     img = _Img.open(fp)
     img.load()
     result = renderer.render(front_image=img, title=name)
-    del img
-    out_path = unique_output_path(output_dir, name, fp)
-    _save(result, out_path, compress_level=compress_level)
+    _save(result, os.path.join(output_dir, f"{stem}.png"), compress_level=compress_level)
     del result
-    return name
+    if box_file:
+        try:
+            model = build_box_model(
+                img, None, case_type, title=name, serial="", platform="",
+                spine_color=None, case_color=None, spine_left_offset=0,
+                spine_right_offset=0, full_cover=None,
+                show_texture=renderer.show_texture,
+            )
+            write_box_file(model, output_dir, stem, compress_level)
+        except Exception as e:
+            raise RuntimeError(f"PNG saved, but the box file was not: {e}") from e
+        del model
+    del img
+    return stem
 
 
 class RenderWorker(QThread):
-    """Background thread for rendering the 3D box."""
+    """Background thread for rendering the 3D box and building its model."""
     rendered = pyqtSignal(object)  # PIL Image
+    model_ready = pyqtSignal(object)  # BoxModel of the same render
     error = pyqtSignal(str)
 
     def __init__(self, renderer: BoxRenderer, front: Image.Image,
@@ -85,7 +115,7 @@ class RenderWorker(QThread):
         self.full_cover = full_cover
 
     def run(self) -> None:
-        """Render once and emit the image, or the error message."""
+        """Render once and emit the image, then the box model, or the error."""
         try:
             result = self.renderer.render(
                 front_image=self.front,
@@ -101,6 +131,18 @@ class RenderWorker(QThread):
                 view=self.view,
             )
             self.rendered.emit(result)
+            self.model_ready.emit(build_box_model(
+                self.front, self.back, self.renderer.case_type,
+                title=self.title,
+                serial=self.serial,
+                platform=self.platform,
+                spine_color=self.spine_color,
+                case_color=self.case_color,
+                spine_left_offset=self.spine_left_offset,
+                spine_right_offset=self.spine_right_offset,
+                full_cover=self.full_cover,
+                show_texture=self.renderer.show_texture,
+            ))
         except Exception as e:
             self.error.emit(str(e))
 
@@ -116,10 +158,12 @@ class BatchWorker(QThread):
     error = pyqtSignal(str)
 
     def __init__(self, file_paths: list[str], output_dir: str, renderer: BoxRenderer,
-                 compress_level: int = 6):
+                 compress_level: int = 6, box_file: bool = False):
         super().__init__()
         self.file_paths = file_paths
         self.output_dir = output_dir
+        # export.box_file: write each render's box file beside its PNG.
+        self.box_file = box_file
         # rendering.compress_level, which single exports already honoured;
         # batch saved at the default (SLIP-0091).
         self.compress_level = compress_level
@@ -144,22 +188,24 @@ class BatchWorker(QThread):
         count = 0
         try:
             total = len(self.file_paths)
-            args_list = [self._args_for(fp) for fp in self.file_paths]
+            stems = pick_output_stems(self.file_paths, self.output_dir)
+            args_list = [self._args_for(fp, stem)
+                         for fp, stem in zip(self.file_paths, stems, strict=True)]
             workers = max(1, min((os.cpu_count() or 2) - 1, 4))
 
             if total >= 4 and workers > 1:
                 count = self._run_parallel(args_list, total, workers)
             else:
-                count = self._run_sequential(total)
+                count = self._run_sequential(args_list)
         except Exception as e:
             self.error.emit(f"Batch failed: {e}")
         finally:
             self.finished_signal.emit(count)
 
-    def _args_for(self, fp: str) -> tuple:
+    def _args_for(self, fp: str, stem: str) -> tuple:
         """The picklable arguments _render_single_image takes for one file."""
-        return (fp, self.output_dir, self._case_type, self._renderer_kwargs,
-                self.compress_level)
+        return (fp, self.output_dir, stem, self._case_type, self._renderer_kwargs,
+                self.compress_level, self.box_file)
 
     def _run_parallel(self, args_list: list, total: int, workers: int) -> int:
         count = 0
@@ -192,31 +238,22 @@ class BatchWorker(QThread):
             # indices that actually finished -- `completed` counts finished
             # FUTURES, which in completion order says nothing about position.
             self.error.emit(f"Parallel rendering unavailable: {e}")
-            count += self._run_sequential(total, skip=done)
+            count += self._run_sequential(args_list, skip=done)
         return count
 
-    def _run_sequential(self, total: int, skip: set[int] | None = None) -> int:
+    def _run_sequential(self, args_list: list, skip: set[int] | None = None) -> int:
         count = 0
         skip = skip or set()
-        for i in range(total):
+        total = len(args_list)
+        for i, args in enumerate(args_list):
             if i in skip:
                 continue
             if self.isInterruptionRequested():
                 break
-            fp = self.file_paths[i]
-            name = Path(fp).stem
+            name = Path(args[0]).stem
             self.progress.emit(i + 1, total, name)
             try:
-                img = Image.open(fp)
-                img.load()
-                renderer = BoxRenderer(
-                    case_type=self._case_type, **self._renderer_kwargs,
-                )
-                result = renderer.render(front_image=img, title=name)
-                del img
-                out_path = unique_output_path(self.output_dir, name, fp)
-                save_optimized_png(result, out_path, compress_level=self.compress_level)
-                del result
+                _render_single_image(args)
                 count += 1
             except Exception as e:
                 self.error.emit(f"{name}: {e}")

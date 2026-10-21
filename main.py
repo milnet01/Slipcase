@@ -52,18 +52,21 @@ def _smoke(app: QApplication, report_path: str | None) -> int:
 
         with tempfile.TemporaryDirectory() as scratch:
             # The batch path: a worker process that imports the renderer and
-            # writes a PNG. In a frozen build without freeze_support() the
-            # worker re-runs the application instead and this never returns.
+            # writes a PNG and a box file. In a frozen build without
+            # freeze_support() the worker re-runs the application instead
+            # and this never returns.
             cover = os.path.join(scratch, "cover.jpg")
             Image.new("RGB", (300, 420), (40, 90, 160)).save(cover)
             case_type = next(iter(CASE_TYPES.values()))
             with ProcessPoolExecutor(1, mp_context=get_context("spawn")) as pool:
-                job = (cover, scratch, case_type, {"output_width": 256}, 6)
+                job = (cover, scratch, "cover", case_type, {"output_width": 256}, 6, True)
                 name = pool.submit(_render_single_image, job).result(timeout=120)
             with Image.open(os.path.join(scratch, f"{name}.png")) as rendered:
                 rendered.load()
                 if rendered.getbbox() is None:
                     raise RuntimeError("the batch render came out empty")
+            if not os.path.isfile(os.path.join(scratch, f"{name}.box.json")):
+                raise RuntimeError("the batch wrote no box file")
 
             # The window: every dialog import and the platform plugin.
             window = MainWindow(Config(os.path.join(scratch, "config.json")))

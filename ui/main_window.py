@@ -16,6 +16,8 @@ from PyQt6.QtWidgets import (
     QStackedWidget, QVBoxLayout, QWidget, QProgressBar,
 )
 
+from core.box_file import box_paths, write_box_file
+from core.box_model import BoxModel
 from core.case_types import CASE_TYPES, ALL_PLATFORMS, PLATFORM_CASE_MAP
 from core.config import Config
 from core.image_utils import detect_spine_bounds, is_full_cover, split_full_cover
@@ -24,6 +26,7 @@ from core.renderer import MAX_OUTPUT_WIDTH, BoxRenderer
 from core.spine_generator import CASE_COLORS_ERROR
 from core.version import __version__
 from ui.animation_dialog import AnimationDialog
+from ui.box_viewer import BoxViewer
 from ui.preview_widget import BusyOverlay, PreviewWidget, pil_to_qpixmap
 from ui.settings_dialog import SettingsDialog
 from ui.search_dialog import SearchDialog
@@ -90,6 +93,11 @@ class MainWindow(QMainWindow):
         # answer does not depend on the offset sliders, so it is computed
         # once per image and case type, not per slider step (SLIP-0067).
         self._spine_bounds: tuple | None = None
+        # The model of the render on show, for the 3D view and the box file.
+        # None while the preview shows something no render here made, such
+        # as downloaded 3D boxart (SLIP-0104).
+        self._box_model: BoxModel | None = None
+        self._render_angle = 30.0
 
         self._build_menu()
         self._build_ui()
@@ -165,6 +173,11 @@ class MainWindow(QMainWindow):
         compare_action.setShortcut("Ctrl+D")
         compare_action.triggered.connect(self._toggle_compare)
         tools_menu.addAction(compare_action)
+
+        view_3d_action = QAction(self.tr("Toggle &3D View"), self)
+        view_3d_action.setShortcut("Ctrl+3")
+        view_3d_action.triggered.connect(self._toggle_3d_view)
+        tools_menu.addAction(view_3d_action)
 
         tools_menu.addSeparator()
 
@@ -479,7 +492,8 @@ class MainWindow(QMainWindow):
         right_layout = QVBoxLayout(right)
         right_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Stacked widget: page 0 = single preview, page 1 = comparison
+        # Stacked widget: page 0 = single preview, page 1 = comparison,
+        # page 2 = turnable 3D view
         self.preview_stack = QStackedWidget()
 
         # Page 0: single preview
@@ -512,6 +526,10 @@ class MainWindow(QMainWindow):
 
         self.preview_stack.addWidget(compare_widget)
 
+        # Page 2: turnable 3D view
+        self.box_viewer = BoxViewer()
+        self.preview_stack.addWidget(self.box_viewer)
+
         # Busy overlay (covers the preview stack)
         self._busy_overlay = BusyOverlay(self.preview_stack)
 
@@ -523,6 +541,20 @@ class MainWindow(QMainWindow):
         self.compare_check.setToolTip(self.tr("Show original cover alongside 3D render (Ctrl+D)"))
         self.compare_check.toggled.connect(self._on_compare_toggled)
         compare_row.addWidget(self.compare_check)
+        self.view_3d_check = QCheckBox(self.tr("3D View"))
+        self.view_3d_check.setToolTip(self.tr(
+            "Turn the box with the mouse, move it with the right button, zoom "
+            "with the wheel; double-click to reset (Ctrl+3)"
+        ))
+        self.view_3d_check.toggled.connect(self._on_view_3d_toggled)
+        compare_row.addWidget(self.view_3d_check)
+        self.auto_spin_btn = QPushButton(self.tr("Auto-spin"))
+        self.auto_spin_btn.setCheckable(True)
+        self.auto_spin_btn.setEnabled(False)
+        self.auto_spin_btn.setToolTip(self.tr("Turn the box slowly; any drag stops it"))
+        self.auto_spin_btn.toggled.connect(self.box_viewer.set_auto_spin)
+        self.box_viewer.auto_spin_changed.connect(self.auto_spin_btn.setChecked)
+        compare_row.addWidget(self.auto_spin_btn)
         compare_row.addStretch()
         right_layout.addLayout(compare_row)
 
@@ -779,6 +811,8 @@ class MainWindow(QMainWindow):
         self.preview.clear_image()
         self.compare_original.clear_image()
         self.compare_render.clear_image()
+        self._box_model = None
+        self.box_viewer.set_model(None)
         super().closeEvent(event)
 
     # --- Platform / Case ---
@@ -1012,6 +1046,10 @@ class MainWindow(QMainWindow):
         except (TypeError, ValueError):
             return 2
 
+    def _box_file_enabled(self) -> bool:
+        """export.box_file: write a box file beside each PNG (SLIP-0104)."""
+        return bool(self.config.get("export", "box_file", default=True))
+
     def _compress_level(self) -> int:
         """PNG zlib level from config, clamped to 0-9."""
         try:
@@ -1049,6 +1087,7 @@ class MainWindow(QMainWindow):
         self._busy_overlay.resize(self.preview_stack.size())
         self._busy_overlay.show_busy()
         renderer = self._get_renderer()
+        self._render_angle = renderer.angle
 
         self._render_worker = RenderWorker(
             renderer=renderer,
@@ -1068,15 +1107,23 @@ class MainWindow(QMainWindow):
             view=self._view(),
         )
         self._render_worker.rendered.connect(self._on_rendered)
+        self._render_worker.model_ready.connect(self._on_model_ready)
         self._render_worker.error.connect(self._on_render_error)
         self._render_worker.finished.connect(self._render_worker.deleteLater)
         self._render_worker.start()
 
     def _on_rendered(self, image: Image.Image) -> None:
+        # The worker sends this render's model next; until then the old
+        # model belongs to the old render, so Export PNG must not pair them.
+        self._box_model = None
         self._busy_overlay.hide_busy()
         self.preview.set_image(image)
         self.compare_render.set_image(image)
         self.status.showMessage(self.tr("Rendered: {0}x{1}").format(image.size[0], image.size[1]))
+
+    def _on_model_ready(self, model: BoxModel) -> None:
+        self._box_model = model
+        self.box_viewer.set_model(model, angle=self._render_angle)
 
     def _on_render_error(self, msg: str) -> None:
         self._busy_overlay.hide_busy()
@@ -1150,9 +1197,40 @@ class MainWindow(QMainWindow):
                     self.tr("Could not write the PNG:\n{0}").format(e),
                 )
                 return
+            self._export_box_file(path)
             self.config.set("ui", "last_export_directory", str(Path(path).parent))
             self._save_config()
             self.status.showMessage(self.tr("Exported: {0}").format(path))
+
+    def _export_box_file(self, png_path: str) -> None:
+        """Write the shown render's box file beside its exported PNG.
+
+        The stem is the PNG's, less a trailing " 3D Boxart". Skipped when the
+        setting is off or the preview shows no render of this window's own.
+        The PNG is already saved, so a failure here is only reported.
+        """
+        if self._box_model is None or not self._box_file_enabled():
+            return
+        png = Path(png_path)
+        stem = png.stem.removesuffix(" 3D Boxart")
+        folder = str(png.parent)
+        if any(Path(p).exists() for p in box_paths(folder, stem)):
+            answer = QMessageBox.question(
+                self, self.tr("Replace Box File?"),
+                self.tr('A box file named "{0}" is already in this folder. '
+                        "Replace it?").format(stem),
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return
+        try:
+            write_box_file(self._box_model, folder, stem,
+                           compress_level=self._compress_level())
+        except (OSError, ValueError) as e:
+            QMessageBox.warning(
+                self, self.tr("Box File Not Saved"),
+                self.tr("The PNG was saved, but its box file could not be "
+                        "written:\n{0}").format(e),
+            )
 
     def _with_confirmed_suffix(self, path: str, ext: str) -> str | None:
         """Append `ext` if missing, asking before an overwrite the dialog missed.
@@ -1269,6 +1347,7 @@ class MainWindow(QMainWindow):
 
         self._batch_worker = BatchWorker(
             files, output_dir, renderer, compress_level=self._compress_level(),
+            box_file=self._box_file_enabled(),
         )
         self._batch_worker.progress.connect(self._on_batch_progress)
         self._batch_worker.finished_signal.connect(self._on_batch_done)
@@ -1333,6 +1412,9 @@ class MainWindow(QMainWindow):
     def _on_search_3d_boxart(self, image: Image.Image, name: str) -> None:
         """Handle pre-rendered 3D boxart from ScreenScraper — show directly in preview."""
         self.preview.set_image(image)
+        # A flat picture from elsewhere: no model of this window's goes with it.
+        self._box_model = None
+        self.box_viewer.set_model(None)
         if name:
             self.title_input.setText(name)
         self.status.showMessage(self.tr("3D boxart loaded: {0}").format(name))
@@ -1340,10 +1422,37 @@ class MainWindow(QMainWindow):
     # --- Comparison view ---
 
     def _on_compare_toggled(self, checked: bool) -> None:
-        self.preview_stack.setCurrentIndex(1 if checked else 0)
+        if checked:
+            self.view_3d_check.setChecked(False)
+        self._update_preview_page()
 
     def _toggle_compare(self) -> None:
         self.compare_check.setChecked(not self.compare_check.isChecked())
+
+    # --- 3D view ---
+
+    def _on_view_3d_toggled(self, checked: bool) -> None:
+        if checked:
+            self.compare_check.setChecked(False)
+            self.box_viewer.setFocus()
+            if self._box_model is None:
+                self.status.showMessage(self.tr("Generate a render to see it in 3D."))
+        else:
+            self.box_viewer.set_auto_spin(False)
+        self.auto_spin_btn.setEnabled(checked)
+        self._update_preview_page()
+
+    def _toggle_3d_view(self) -> None:
+        self.view_3d_check.setChecked(not self.view_3d_check.isChecked())
+
+    def _update_preview_page(self) -> None:
+        """Comparison and the 3D view exclude each other; neither is page 0."""
+        if self.view_3d_check.isChecked():
+            self.preview_stack.setCurrentIndex(2)
+        elif self.compare_check.isChecked():
+            self.preview_stack.setCurrentIndex(1)
+        else:
+            self.preview_stack.setCurrentIndex(0)
 
     # --- Animation export ---
 

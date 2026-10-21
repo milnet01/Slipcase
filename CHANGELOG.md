@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Turn the box in 3D, and save it for RetroDB** (SLIP-0104)
+  A new 3D View shows all six sides of the box. Turn it with the mouse or
+  the arrow keys, zoom with the wheel, or let Auto-spin turn it. Exports and
+  batch renders now also save a box file beside each PNG, ready for RetroDB's
+  planned importer. A setting under Settings, Export turns the box file off.
+
 - **The About box and the README now say who owns the cover art**
   Covers belong to their publishers, and Slipcase is not affiliated with any
   console maker, publisher or cover-art service.

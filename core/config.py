@@ -67,6 +67,11 @@ DEFAULT_CONFIG = {
         # ~5% smaller and 2-4x slower.
         "compress_level": 6,
     },
+    "export": {
+        # Write a box file (SLIP-0104) beside every PNG export and batch
+        # render, so RetroDB can show the turnable box.
+        "box_file": True,
+    },
     "ui": {
         "last_platform": "PS2",
         "last_case_type": "DVD Case",

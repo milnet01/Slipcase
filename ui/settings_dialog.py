@@ -27,6 +27,7 @@ class SettingsDialog(QDialog):
         tabs.addTab(self._build_screenscraper_tab(), "ScreenScraper")
         tabs.addTab(self._build_thegamesdb_tab(), "TheGamesDB")
         tabs.addTab(self._build_libretro_tab(), "libretro")
+        tabs.addTab(self._build_export_tab(), self.tr("Export"))
         layout.addWidget(tabs)
 
         buttons = QDialogButtonBox(
@@ -118,6 +119,27 @@ class SettingsDialog(QDialog):
 
         return widget
 
+    def _build_export_tab(self) -> QWidget:
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+
+        self.box_file_enabled = QCheckBox(self.tr("Save a box file with each export"))
+        layout.addWidget(self.box_file_enabled)
+
+        info = QLabel(
+            self.tr(
+                "Beside each exported or batch-rendered PNG, also save the box's "
+                "size, colours and face pictures (.box.json and three PNGs), so "
+                "RetroDB can show the box in 3D."
+            )
+        )
+        info.setWordWrap(True)
+        info.setStyleSheet(themed_dim_text_style())
+        layout.addWidget(info)
+        layout.addStretch()
+
+        return widget
+
     def _load_values(self) -> None:
         """Load saved values into fields."""
         self.ss_devid.setText(self.config.get("api", "screenscraper", "devid", default=""))
@@ -129,6 +151,9 @@ class SettingsDialog(QDialog):
         self.tgdb_api_key.setText(self.config.get("api", "thegamesdb", "api_key", default=""))
         self.libretro_enabled.setChecked(
             bool(self.config.get("api", "libretro", "enabled", default=True))
+        )
+        self.box_file_enabled.setChecked(
+            bool(self.config.get("export", "box_file", default=True))
         )
 
     def _save_and_accept(self) -> None:
@@ -143,6 +168,7 @@ class SettingsDialog(QDialog):
         self.config.set("api", "screenscraper", "password", self.ss_password.text().strip())
         self.config.set("api", "thegamesdb", "api_key", self.tgdb_api_key.text().strip())
         self.config.set("api", "libretro", "enabled", self.libretro_enabled.isChecked())
+        self.config.set("export", "box_file", self.box_file_enabled.isChecked())
         try:
             self.config.save()
         except OSError as e:

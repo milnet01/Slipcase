@@ -26,7 +26,7 @@ from core.png_utils import save_optimized_png
 from core.spine_generator import CASE_COLORS_ERROR, _load_case_colors
 from core.renderer import MAX_OUTPUT_WIDTH, BoxRenderer
 from ui.main_window import MainWindow
-from ui.workers import unique_output_path
+from ui.workers import pick_output_stems
 
 
 def _cover(width=700, height=1000):
@@ -129,17 +129,17 @@ class TestBatchOutputPaths(unittest.TestCase):
 
     def test_same_stem_from_different_folders_does_not_collide(self):
         out = pathlib.Path(tempfile.mkdtemp())
-        first = unique_output_path(str(out), "cover", "/library/A/cover.png")
-        pathlib.Path(first).write_bytes(b"x")
-        second = unique_output_path(str(out), "cover", "/library/B/cover.png")
+        first, second = pick_output_stems(
+            ["/library/A/cover.png", "/library/B/cover.png"], str(out),
+        )
         self.assertNotEqual(first, second)
 
     def test_source_image_is_never_its_own_output(self):
         out = pathlib.Path(tempfile.mkdtemp())
         source = out / "cover.png"
         source.write_bytes(b"original")
-        result = unique_output_path(str(out), "cover", str(source))
-        self.assertNotEqual(pathlib.Path(result).resolve(), source.resolve())
+        [stem] = pick_output_stems([str(source)], str(out))
+        self.assertNotEqual((out / f"{stem}.png").resolve(), source.resolve())
         self.assertEqual(source.read_bytes(), b"original")
 
 
@@ -822,12 +822,13 @@ class TestBatchHonoursCompressLevel(unittest.TestCase):
             renderer = BoxRenderer(CASE_TYPES["DVD Case"], output_width=128)
             worker = workers.BatchWorker([src], d, renderer, compress_level=9)
 
+            args = worker._args_for(src, "Cover")
             with patch("core.png_utils.save_optimized_png") as save:
-                workers._render_single_image(worker._args_for(src))
+                workers._render_single_image(args)
             self.assertEqual(save.call_args.kwargs.get("compress_level"), 9)
 
-            with patch.object(workers, "save_optimized_png") as save:
-                worker._run_sequential(1)
+            with patch("core.png_utils.save_optimized_png") as save:
+                worker._run_sequential([args])
             self.assertEqual(save.call_args.kwargs.get("compress_level"), 9)
 
 
