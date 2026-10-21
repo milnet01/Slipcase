@@ -1070,7 +1070,7 @@ building.
   Kind: feature.
   Source: user-request-2026-10-21.
 
-- 📋 [SLIP-0108] **Give cartridge boxes their real size and shape, per region.**
+- 🚧 [SLIP-0108] **Give cartridge boxes their real size and shape, per region.**
   Phase 3 of SLIP-0106, split out for its own spec. Sourced in
   docs/research/SLIP-0106-real-cases.md: US SNES and N64 boxes are
   landscape, Super Famicom and N64 JP portrait; JP Game Boy and GBA boxes
