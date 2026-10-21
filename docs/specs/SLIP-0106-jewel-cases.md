@@ -621,7 +621,7 @@ Dreamcast front only, and check the clear tray reads as clear.
 ## 9. Out of scope
 
 - Sizes and colours for every other system (keep cases, handhelds) —
-  phase 2, queued as SLIP-0107.
+  phase 2, SLIP-0107 (`SLIP-0107-keep-cases.md`).
 - Cartridge boxes — phase 3, queued as SLIP-0108.
 - The US long box (Saturn US, Sega CD US, early PS1 US) — deferred; not
   yet queued. Its art layout is unverified (research file).

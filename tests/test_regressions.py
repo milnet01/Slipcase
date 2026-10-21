@@ -67,7 +67,7 @@ class TestRenderAspectRatio(unittest.TestCase):
         return visible_w / case.height
 
     def test_proportions_hold_across_output_widths(self):
-        case = CASE_TYPES["DVD Case"]
+        case = CASE_TYPES["PS2 DVD Case"]
         expected = self._expected_ratio(case, 30.0)
         for width in (512, 800, 1200):
             with self.subTest(output_width=width):
@@ -80,7 +80,7 @@ class TestRenderAspectRatio(unittest.TestCase):
                 self.assertAlmostEqual(actual / expected, 1.0, delta=0.05)
 
     def test_proportions_hold_across_case_types(self):
-        for name in ("DVD Case", "Blu-ray Case", "CD Jewel Case"):
+        for name in ("PS2 DVD Case", "PS3 Blu-ray Case", "CD Jewel Case"):
             with self.subTest(case=name):
                 case = CASE_TYPES[name]
                 out = BoxRenderer(
@@ -91,7 +91,7 @@ class TestRenderAspectRatio(unittest.TestCase):
                 self.assertAlmostEqual(ratio, 1.0, delta=0.05)
 
     def test_supersample_does_not_change_proportions(self):
-        case = CASE_TYPES["DVD Case"]
+        case = CASE_TYPES["PS2 DVD Case"]
         ratios = []
         for ss in (1, 2):
             out = BoxRenderer(
@@ -115,7 +115,7 @@ class TestReflection(unittest.TestCase):
 
     def test_reflection_is_not_blank_in_a_render(self):
         out = BoxRenderer(
-            case_type=CASE_TYPES["DVD Case"], angle=30.0, output_width=512,
+            case_type=CASE_TYPES["PS2 DVD Case"], angle=30.0, output_width=512,
             show_reflection=True, show_shadow=False, supersample=2,
         ).render(front_image=_cover(), title="T")
         w, h = out.size
@@ -217,8 +217,8 @@ class TestPlatformCaseMapping(unittest.TestCase):
                 seen[platform] = case_name
 
     def test_pc_maps_to_the_dvd_case(self):
-        self.assertEqual(get_case_for_platform("PC").name, "DVD Case")
-        self.assertEqual(PLATFORM_CASE_MAP["PC"], "DVD Case")
+        self.assertEqual(get_case_for_platform("PC").name, "PC DVD Case")
+        self.assertEqual(PLATFORM_CASE_MAP["PC"], "PC DVD Case")
 
 
 
@@ -395,13 +395,13 @@ class TestDegenerateRenderIsRefused(unittest.TestCase):
     """
 
     def test_a_width_too_small_to_project_names_the_problem(self):
-        renderer = BoxRenderer(CASE_TYPES["DVD Case"], output_width=1, angle=30)
+        renderer = BoxRenderer(CASE_TYPES["PS2 DVD Case"], output_width=1, angle=30)
         with self.assertRaises(ValueError) as caught:
             renderer.render(Image.new("RGBA", (700, 1000), (255, 0, 0, 255)))
         self.assertIn("too small", str(caught.exception))
 
     def test_a_usable_width_still_renders(self):
-        renderer = BoxRenderer(CASE_TYPES["DVD Case"], output_width=64, angle=30)
+        renderer = BoxRenderer(CASE_TYPES["PS2 DVD Case"], output_width=64, angle=30)
         out = renderer.render(Image.new("RGBA", (700, 1000), (255, 0, 0, 255)))
         self.assertGreater(out.size[0], 1)
 
@@ -416,13 +416,13 @@ class TestOutputWidthIsBounded(unittest.TestCase):
     """
 
     def test_a_width_past_the_ceiling_is_clamped(self):
-        renderer = BoxRenderer(CASE_TYPES["DVD Case"], output_width=8192)
+        renderer = BoxRenderer(CASE_TYPES["PS2 DVD Case"], output_width=8192)
         self.assertEqual(renderer.output_width, MAX_OUTPUT_WIDTH)
 
     def test_a_width_inside_the_range_is_untouched(self):
         for width in (128, 512, 1200, MAX_OUTPUT_WIDTH):
             with self.subTest(width=width):
-                renderer = BoxRenderer(CASE_TYPES["DVD Case"], output_width=width)
+                renderer = BoxRenderer(CASE_TYPES["PS2 DVD Case"], output_width=width)
                 self.assertEqual(renderer.output_width, width)
 
     def test_the_ceiling_covers_every_documented_target(self):
@@ -476,7 +476,7 @@ class TestWindowGeometry(unittest.TestCase):
 class TestSpineRefinement(unittest.TestCase):
     """Stage 2 of spine detection (STANDARDS.md section 5)."""
 
-    CASE = CASE_TYPES["DVD Case"]
+    CASE = CASE_TYPES["PS2 DVD Case"]
 
     def _cover(self, h=400):
         # A full-cover canvas of the case's full-cover aspect ratio.
@@ -767,12 +767,12 @@ class TestSpineSliderStaysCheap(unittest.TestCase):
         cls._app = QApplication.instance() or QApplication([])
 
     def _window_with_full_cover(self, d):
-        case = CASE_TYPES["DVD Case"]
+        case = CASE_TYPES["PS2 DVD Case"]
         h = 300
         w = round(h * (2 * case.width + case.depth) / case.height)
         window = MainWindow(Config(config_path=os.path.join(d, "c.json")))
         self.addCleanup(_destroy_now, window)
-        window.case_combo.setCurrentText("DVD Case")
+        window.case_combo.setCurrentText("PS2 DVD Case")
         window._set_front_image(Image.new("RGB", (w, h), (90, 120, 200)))
         return window
 
@@ -819,7 +819,7 @@ class TestBatchHonoursCompressLevel(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             src = os.path.join(d, "Cover.png")
             Image.new("RGB", (100, 140), (200, 50, 50)).save(src)
-            renderer = BoxRenderer(CASE_TYPES["DVD Case"], output_width=128)
+            renderer = BoxRenderer(CASE_TYPES["PS2 DVD Case"], output_width=128)
             worker = workers.BatchWorker([src], d, renderer, compress_level=9)
 
             args = worker._args_for(src, "Cover")
@@ -836,7 +836,7 @@ class TestFullCoverCanBeOverruled(unittest.TestCase):
     """A landscape front-only image inside the full-cover aspect band was
     always split, two thirds discarded, with no way to say no (SLIP-0051)."""
 
-    CASE = CASE_TYPES["DVD Case"]
+    CASE = CASE_TYPES["PS2 DVD Case"]
 
     def _wide(self):
         h = 300
@@ -862,7 +862,7 @@ class TestFullCoverCanBeOverruled(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             window = MainWindow(Config(config_path=os.path.join(d, "c.json")))
             self.addCleanup(_destroy_now, window)
-            window.case_combo.setCurrentText("DVD Case")
+            window.case_combo.setCurrentText("PS2 DVD Case")
             window._set_front_image(self._wide())
             self.assertTrue(window.full_cover_check.isChecked())
             window.full_cover_check.setChecked(False)
@@ -875,7 +875,7 @@ class TestBackView(unittest.TestCase):
     """The box can be rendered from behind: back cover with the spine
     beside it (SLIP-0033, by the user's choice on 2026-09-29)."""
 
-    CASE = CASE_TYPES["DVD Case"]
+    CASE = CASE_TYPES["PS2 DVD Case"]
     RED, GREEN, BLUE = (220, 30, 30), (30, 200, 30), (30, 30, 220)
 
     def _wrap(self):
@@ -941,7 +941,7 @@ class TestBackViewChoice(unittest.TestCase):
     def _window(self, d):
         window = MainWindow(Config(config_path=os.path.join(d, "c.json")))
         self.addCleanup(_destroy_now, window)
-        window.case_combo.setCurrentText("DVD Case")
+        window.case_combo.setCurrentText("PS2 DVD Case")
         window._set_front_image(Image.new("RGB", (270, 380), (30, 30, 220)))
         return window
 

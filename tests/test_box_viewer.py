@@ -20,7 +20,7 @@ def _destroy_now(widget) -> None:
 
 def _model(back: bool = True) -> BoxModel:
     return BoxModel(
-        case_type=CASE_TYPES["DVD Case"],
+        case_type=CASE_TYPES["PS2 DVD Case"],
         top=(40, 40, 40), bottom=(40, 40, 40), edge=(40, 40, 40),
         front=Image.new("RGB", (135, 190), (200, 60, 60)),
         spine=Image.new("RGB", (14, 190), (60, 200, 60)),
@@ -77,7 +77,7 @@ class TestLimitsAndReset(_ViewerTest):
         self.assertEqual(viewer.distance, viewer.max_distance)
         viewer.zoom_by(1e6)  # in
         self.assertEqual(viewer.distance, viewer.min_distance)
-        ct = CASE_TYPES["DVD Case"]
+        ct = CASE_TYPES["PS2 DVD Case"]
         half_diagonal = math.sqrt(ct.width ** 2 + ct.height ** 2 + ct.depth ** 2) / 2
         self.assertGreater(viewer.min_distance, half_diagonal,
                            "the camera can move inside the box")
@@ -96,7 +96,7 @@ class TestModelFromWorker(_ViewerTest):
         import ui.box_viewer as box_viewer
 
         worker = RenderWorker(
-            renderer=BoxRenderer(CASE_TYPES["DVD Case"], output_width=128),
+            renderer=BoxRenderer(CASE_TYPES["PS2 DVD Case"], output_width=128),
             front=Image.new("RGB", (135, 190), (200, 60, 60)), back=None,
             title="Game", serial="", platform="PS2", spine_color=None,
         )

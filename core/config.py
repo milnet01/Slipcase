@@ -74,7 +74,7 @@ DEFAULT_CONFIG = {
     },
     "ui": {
         "last_platform": "PS2",
-        "last_case_type": "DVD Case",
+        "last_case_type": "PS2 DVD Case",
         "last_image_directory": "",
         "window_geometry": None,
         "recent_files": [],

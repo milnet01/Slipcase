@@ -91,7 +91,7 @@ class TestCaseData(unittest.TestCase):
             with self.subTest(case=ct.name):
                 self.assertEqual(wrap_panels_mm(ct), (ct.width, ct.depth, ct.width, ct.height))
         model = build_box_model(
-            _noise(135, 190, 1), None, CASE_TYPES["DVD Case"], title="Game",
+            _noise(135, 190, 1), None, CASE_TYPES["PS2 DVD Case"], title="Game",
             serial="", platform="PS2", spine_color=None, case_color=None,
             spine_left_offset=0, spine_right_offset=0, full_cover=None,
             show_texture=False,
@@ -314,7 +314,7 @@ class TestCardCase(unittest.TestCase):
             with self.subTest(size=size, shown=shown.name):
                 got = jewel.card_case(Image.new("RGB", size), "PS1", shown)
                 self.assertEqual(got.name, expected.name)
-        dvd = CASE_TYPES["DVD Case"]
+        dvd = CASE_TYPES["PS2 DVD Case"]
         self.assertIs(jewel.card_case(Image.new("RGB", (1580, 1180)), "PS2", dvd), dvd)
 
     def test_fold_reach_crosses_any_strip(self):
@@ -392,7 +392,7 @@ class TestCaseChoice(unittest.TestCase):
             cases = window._batch_cases(files)
             self.assertEqual([c.name for c in cases],
                              ["PS1 Jewel Case (PAL)", "PS1 Jewel Case (NTSC-U)"])
-            worker = BatchWorker(files, d, BoxRenderer(CASE_TYPES["DVD Case"]),
+            worker = BatchWorker(files, d, BoxRenderer(CASE_TYPES["PS2 DVD Case"]),
                                  case_types=cases)
             self.addCleanup(worker.deleteLater)
             for f, case in zip(files, cases, strict=True):

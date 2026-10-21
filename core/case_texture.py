@@ -28,7 +28,7 @@ def generate_front_texture(case_type: CaseType, width: int, height: int,
     """
     overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
-    name = case_type.name
+    texture = case_type.texture
 
     # Every jewel entry, whatever its name, is the same moulding (SLIP-0106).
     if case_type.layout == "jewel":
@@ -40,20 +40,23 @@ def generate_front_texture(case_type: CaseType, width: int, height: int,
             window_x = _booklet_x(case_type, p) - (2 * JEWEL_RIDGE_MM + JEWEL_RIDGE_GAP_MM) * p
             gloss.paste((0, 0, 0, 0), (0, 0, max(0, round(window_x)), height))
         overlay.alpha_composite(gloss)
-    elif name == "DVD Case":
+    elif texture == "dvd":
         _draw_dvd_front(draw, width, height)
-    elif name == "Blu-ray Case":
+    elif texture == "bluray":
         _draw_bluray_front(draw, width, height)
-    elif name in ("NES Cartridge Box", "SNES Cartridge Box",
-                   "N64 Cartridge Box", "Genesis Clamshell",
-                   "Game Boy Box", "GBA Box", "Universal Cart Case"):
+    elif texture == "cardboard":
         _draw_cardboard_front(draw, width, height)
-    elif name == "Switch Case":
+    elif texture == "switch":
         _draw_switch_front(draw, width, height)
-    elif name in ("DS Case", "3DS Case"):
+    elif texture == "ds":
         _draw_ds_front(draw, width, height)
-    elif name in ("PSP Case", "PS Vita Case"):
+    elif texture == "psp":
         _draw_psp_front(draw, width, height)
+
+    # A clear keep case shines as a jewel lid does (SLIP-0107 § 4.3).
+    if case_type.clear and case_type.layout == "wrap":
+        overlay.alpha_composite(generate_lid_shine(width, height))
+        overlay.alpha_composite(_lid_streak(width, height))
 
     return overlay
 
@@ -62,20 +65,17 @@ def generate_spine_texture(case_type: CaseType, width: int, height: int) -> Imag
     """Generate a spine texture overlay for the given case type."""
     overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
-    name = case_type.name
+    texture = case_type.texture
 
     if case_type.layout == "jewel":
         _draw_jewel_spine(draw, case_type, width, height)
-    elif name == "DVD Case":
+    elif texture == "dvd":
         _draw_dvd_spine(draw, width, height)
-    elif name == "Blu-ray Case":
+    elif texture == "bluray":
         _draw_bluray_spine(draw, width, height)
-    elif name in ("NES Cartridge Box", "SNES Cartridge Box",
-                   "N64 Cartridge Box", "Genesis Clamshell",
-                   "Game Boy Box", "GBA Box", "Universal Cart Case"):
+    elif texture == "cardboard":
         _draw_cardboard_spine(draw, width, height)
-    elif name in ("Switch Case", "DS Case", "3DS Case",
-                  "PSP Case", "PS Vita Case"):
+    elif texture in ("switch", "ds", "psp"):
         _draw_keepcase_spine(draw, width, height)
 
     return overlay

@@ -21,13 +21,19 @@ class CaseType:
     platforms: tuple[str, ...]
     # None: the wrap layout, one back + spine + front cover (SLIP-0106).
     jewel: JewelGeometry | None = None
-    # Bare plastic colour; the wrap layout ignores it for now.
+    # Bare plastic colour; on a clear case, its tint (SLIP-0107).
     plastic: tuple[int, int, int] | None = None
     # A jewel lid clear only over the booklet: the hinge strip is the tray's
     # matte plastic, so the lid's gloss stops at the booklet's side.
     matte_hinge_strip: bool = False
     # Text moulded into the plastic of the top and bottom edges (SLIP-0110).
     moulded_logo: str | None = None
+    # Overlay family for the wrap layout: "dvd", "bluray", "switch", "ds",
+    # "psp", "cardboard", or None for no overlay (SLIP-0107).
+    texture: str | None = None
+    # Clear or tinted plastic: the cover shows through, so the edges keep
+    # the cover's colour, tinted by `plastic` when set, and the front shines.
+    clear: bool = False
 
     @property
     def layout(self) -> str:
@@ -49,17 +55,93 @@ class CaseType:
 # card with a 6 mm strip at each end.
 _STANDARD_PAPER = JewelGeometry(booklet=(120, 120), back_card=(150, 118), strip=6)
 _BLACK_TRAY = (0x10, 0x10, 0x10)
+_BLACK_KEEP = (0x14, 0x14, 0x14)
+_WHITE_KEEP = (0xEE, 0xEE, 0xEE)
+_BLUE_TINT = (0x2A, 0x6C, 0xD0)
+_GREEN_TINT = (0x2E, 0x9E, 0x3A)
 
 CASE_TYPES: dict[str, CaseType] = {
-    "DVD Case": CaseType(
-        name="DVD Case",
+    # Keep cases: one printed sheet wraps back + spine + front under a clear
+    # sleeve. Sizes and colours per console and region (SLIP-0107 § 4.1);
+    # colours the sources do not give are judged by eye. A clear case
+    # shows the cover through its plastic; `plastic` then tints it.
+    "PS2 DVD Case": CaseType(
+        name="PS2 DVD Case",
         width=135, height=190, depth=14,
-        platforms=("PS2", "Wii", "Xbox", "Xbox 360", "PC", "GameCube"),
+        platforms=("PS2",),
+        plastic=_BLACK_KEEP, texture="dvd",
     ),
-    "Blu-ray Case": CaseType(
-        name="Blu-ray Case",
-        width=135, height=171, depth=12.5,
-        platforms=("PS3", "PS4", "PS5", "Xbox One", "Xbox Series X"),
+    "PS2 DVD Case (PAL)": CaseType(
+        name="PS2 DVD Case (PAL)",
+        width=135, height=190, depth=14,
+        platforms=(),
+        plastic=(0x1F, 0x4E, 0xA8), texture="dvd",
+    ),
+    "Wii DVD Case": CaseType(
+        name="Wii DVD Case",
+        width=135, height=190, depth=14,
+        platforms=("Wii",),
+        plastic=_WHITE_KEEP, texture="dvd",
+    ),
+    "GameCube DVD Case": CaseType(
+        name="GameCube DVD Case",
+        width=135, height=190, depth=14,
+        platforms=("GameCube",),
+        plastic=_BLACK_KEEP, texture="dvd",
+    ),
+    "GameCube Case (NTSC-J)": CaseType(
+        name="GameCube Case (NTSC-J)",
+        width=107, height=149, depth=17,
+        platforms=(),
+        clear=True, texture="dvd",
+    ),
+    "PC DVD Case": CaseType(
+        name="PC DVD Case",
+        width=135, height=190, depth=14,
+        platforms=("PC",),
+        plastic=_BLACK_KEEP, texture="dvd",
+    ),
+    "Xbox Case": CaseType(
+        name="Xbox Case",
+        width=129, height=189, depth=13,
+        platforms=("Xbox",),
+        plastic=(0x5C, 0xB0, 0x2E), texture="dvd",
+    ),
+    "Xbox 360 Case": CaseType(
+        name="Xbox 360 Case",
+        width=133, height=187, depth=13,
+        platforms=("Xbox 360",),
+        plastic=(0x6C, 0xC0, 0x40), clear=True, texture="dvd",
+    ),
+    "PS3 Blu-ray Case": CaseType(
+        name="PS3 Blu-ray Case",
+        width=135, height=171.5, depth=13,
+        platforms=("PS3",),
+        plastic=(0xF0, 0xF0, 0xF0), clear=True, texture="bluray",
+    ),
+    "PS4 Blu-ray Case": CaseType(
+        name="PS4 Blu-ray Case",
+        width=135, height=171.5, depth=13,
+        platforms=("PS4",),
+        plastic=_BLUE_TINT, clear=True, texture="bluray",
+    ),
+    "PS5 Blu-ray Case": CaseType(
+        name="PS5 Blu-ray Case",
+        width=135, height=171.5, depth=13,
+        platforms=("PS5",),
+        plastic=_BLUE_TINT, clear=True, texture="bluray",
+    ),
+    "Xbox One Case": CaseType(
+        name="Xbox One Case",
+        width=135, height=171.5, depth=13,
+        platforms=("Xbox One",),
+        plastic=_GREEN_TINT, clear=True, texture="bluray",
+    ),
+    "Xbox Series X Case": CaseType(
+        name="Xbox Series X Case",
+        width=135, height=171.5, depth=13,
+        platforms=("Xbox Series X",),
+        plastic=_GREEN_TINT, clear=True, texture="bluray",
     ),
     # Jewel cases stand landscape: the back card folds at the ends of its
     # long side, so the folds sit on the case's two 125 mm edges, one being
@@ -69,7 +151,7 @@ CASE_TYPES: dict[str, CaseType] = {
     # default; REGIONAL_CASES picks the variant.
     "CD Jewel Case": CaseType(
         name="CD Jewel Case",
-        # "PC" is deliberately NOT listed here: it is claimed by DVD Case
+        # "PC" is deliberately NOT listed here: it is claimed by PC DVD Case
         # above, and PLATFORM_CASE_MAP is built by overwriting, so listing it
         # twice silently gave the later entry the platform and made the
         # mapping depend on CASE_TYPES' insertion order.
@@ -123,61 +205,79 @@ CASE_TYPES: dict[str, CaseType] = {
         name="NES Cartridge Box",
         width=127, height=175, depth=22,
         platforms=("NES",),
+        texture="cardboard",
     ),
     "SNES Cartridge Box": CaseType(
         name="SNES Cartridge Box",
         width=127, height=175, depth=30,
         platforms=("SNES",),
+        texture="cardboard",
     ),
     "N64 Cartridge Box": CaseType(
         name="N64 Cartridge Box",
         width=127, height=175, depth=25,
         platforms=("N64",),
+        texture="cardboard",
     ),
     "Genesis Clamshell": CaseType(
         name="Genesis Clamshell",
         width=135, height=195, depth=23,
         platforms=("Genesis", "Mega Drive"),
+        texture="cardboard",
     ),
     "Game Boy Box": CaseType(
         name="Game Boy Box",
         width=79, height=112, depth=30,
         platforms=("Game Boy", "Game Boy Color"),
+        texture="cardboard",
     ),
     "GBA Box": CaseType(
         name="GBA Box",
         width=79, height=112, depth=22,
         platforms=("GBA",),
+        texture="cardboard",
     ),
     "DS Case": CaseType(
         name="DS Case",
-        width=122, height=135, depth=14,
+        width=122, height=135, depth=15,
         platforms=("DS",),
+        plastic=_BLACK_KEEP, texture="ds",
+    ),
+    "DS Case (PAL)": CaseType(
+        name="DS Case (PAL)",
+        width=122, height=135, depth=20,
+        platforms=(),
+        clear=True, texture="ds",
     ),
     "3DS Case": CaseType(
         name="3DS Case",
         width=122, height=135, depth=12,
         platforms=("3DS",),
+        plastic=_WHITE_KEEP, texture="ds",
     ),
     "PSP Case": CaseType(
         name="PSP Case",
-        width=105, height=170, depth=14,
+        width=99, height=168, depth=14,
         platforms=("PSP",),
+        clear=True, texture="psp",
     ),
     "PS Vita Case": CaseType(
         name="PS Vita Case",
-        width=107, height=135, depth=12,
+        width=105, height=135, depth=12,
         platforms=("Vita",),
+        plastic=(0x1E, 0x50, 0xB4), texture="psp",
     ),
     "Switch Case": CaseType(
         name="Switch Case",
-        width=104, height=169, depth=10.5,
+        width=104, height=170, depth=10,
         platforms=("Switch",),
+        clear=True, texture="switch",
     ),
     "Universal Cart Case": CaseType(
         name="Universal Cart Case",
         width=135, height=185, depth=24.5,
         platforms=(),
+        texture="cardboard",
     ),
 }
 
@@ -205,6 +305,9 @@ REGIONAL_CASES: dict[tuple[str, str], str] = {
     ("PS1", "NTSC-J"): "PS1 Jewel Case (NTSC-J)",
     ("Dreamcast", "NTSC-J"): "Dreamcast Jewel Case (NTSC-J)",
     ("Dreamcast", "PAL"): "Dreamcast Jewel Case (PAL)",
+    ("PS2", "PAL"): "PS2 DVD Case (PAL)",
+    ("DS", "PAL"): "DS Case (PAL)",
+    ("GameCube", "NTSC-J"): "GameCube Case (NTSC-J)",
 }
 
 

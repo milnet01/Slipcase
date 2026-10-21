@@ -36,6 +36,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Each console now has its own DVD, Blu-ray or handheld case, in its real
+  size and plastic** (SLIP-0107)
+  "DVD Case" and "Blu-ray Case" become one case per console, such as "PS2
+  DVD Case" and "PS4 Blu-ray Case". A European PS2 or DS game, or a Japanese
+  GameCube game, gets its region's case from the file name. Coloured cases
+  show their real plastic on the top, bottom and opening edge: a European
+  PS2 case is blue, a Wii case white. Clear cases such as Switch and PSP
+  show the cover through their edges, with a soft shine. Several handheld
+  sizes are corrected. Case Color still overrides the plastic.
+
 - **The CD Jewel Case now stands landscape, as the real case does**
   (SLIP-0106)
   It is 142 mm wide and 125 mm tall, and draws as a jewel case. PlayStation

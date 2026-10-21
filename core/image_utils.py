@@ -211,6 +211,40 @@ def extract_dominant_edge_color(
     return (int(r), int(g), int(b))
 
 
+# How far a clear case's tint pulls the cover's colour seen through it.
+# Judged by eye at build (SLIP-0107 § 4.2).
+CLEAR_TINT = 0.3
+
+
+def case_edge_colours(
+    front_image: Image.Image,
+    case_type: CaseType,
+    case_color: tuple[int, int, int] | None,
+) -> tuple[tuple[int, int, int], tuple[int, int, int], tuple[int, int, int]]:
+    """A case's top, bottom and opening-edge colours (SLIP-0107 § 4.2).
+
+    The user's case colour wins. An opaque case with a plastic colour is
+    that plastic all round. Otherwise the top and bottom are sampled from
+    the front at those edges, as the cover shows through a clear case,
+    tinted CLEAR_TINT toward a clear case's plastic; the opening edge takes
+    the top's colour.
+    """
+    if case_color is not None:
+        return case_color, case_color, case_color
+    if case_type.plastic is not None and not case_type.clear:
+        return case_type.plastic, case_type.plastic, case_type.plastic
+
+    def sampled(edge: str) -> tuple[int, int, int]:
+        colour = extract_dominant_edge_color(front_image, edge=edge)
+        if case_type.plastic is None:
+            return colour
+        return tuple(round(c + (t - c) * CLEAR_TINT)
+                     for c, t in zip(colour, case_type.plastic, strict=True))
+
+    top = sampled("top")
+    return top, sampled("bottom"), top
+
+
 def wrap_panels_mm(case_type: CaseType) -> tuple[float, float, float, float]:
     """A full cover's panels in mm: (back, spine, front, height).
 

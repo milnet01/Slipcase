@@ -1044,7 +1044,7 @@ building.
   Kind: feature.
   Source: user-request-2026-10-21.
 
-- 📋 [SLIP-0107] **Give keep cases and handheld cases their real size and plastic, per region.**
+- 🚧 [SLIP-0107] **Give keep cases and handheld cases their real size and plastic, per region.**
   Phase 2 of SLIP-0106, split out because each phase gets its own spec
   (SLIP-0106 spec § 15). Sourced sizes and colours are in
   docs/research/SLIP-0106-real-cases.md: e.g. Switch 1 cases are clear,
@@ -1052,6 +1052,12 @@ building.
   for NTSC, GameCube JP 107 x 149 x 17 and clear. Uses SLIP-0106's region
   detection and plastic field. User's order (2026-10-21): after the jewel
   cases.
+  Built (2026-10-21) to docs/specs/SLIP-0107-keep-cases.md: one case per
+  console and region, real plastic edges on opaque cases, cover colour
+  plus shine on clear ones, overlays chosen by CaseType.texture. PS2 PAL
+  blue, NTSC black (Wikipedia and the user's Gemini answer). Tests:
+  tests/test_keep_cases.py. Waiting on the user's by-eye check; flip to
+  shipped when right.
   **Layman:** DVD-style and handheld game cases get the right size and plastic colour for each console and region.
   Kind: feature.
   Source: user-request-2026-10-21.

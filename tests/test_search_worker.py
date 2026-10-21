@@ -229,7 +229,7 @@ def _animation_worker(**overrides):
     from core.case_types import CASE_TYPES
     from ui.workers import AnimationWorker
     args = dict(
-        case_type=CASE_TYPES["DVD Case"], front_image=None, back_image=None,
+        case_type=CASE_TYPES["PS2 DVD Case"], front_image=None, back_image=None,
         title="", serial="", platform="", spine_color=None, case_color=None,
         spine_left_offset=0, spine_right_offset=0, output_path="",
         output_width=64, start_angle=10, end_angle=50, frame_count=5,

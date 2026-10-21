@@ -31,12 +31,17 @@ class TestDetectRegion(unittest.TestCase):
 class TestCaseFor(unittest.TestCase):
 
     def test_case_for(self):
-        """INV-2: a regional variant where one exists, else the default."""
+        """INV-2 (SLIP-0106), INV-6 (SLIP-0107): a regional variant where one
+        exists, else the default."""
         expected = {
             ("PS1", PAL): "PS1 Jewel Case (PAL)",
             ("PS1", NTSC_U): "PS1 Jewel Case (NTSC-U)",
             ("Dreamcast", NTSC_J): "Dreamcast Jewel Case (NTSC-J)",
-            ("PS2", PAL): "DVD Case",
+            ("PS2", PAL): "PS2 DVD Case (PAL)",
+            ("PS2", NTSC_U): "PS2 DVD Case",
+            ("DS", PAL): "DS Case (PAL)",
+            ("GameCube", NTSC_J): "GameCube Case (NTSC-J)",
+            ("GameCube", PAL): "GameCube DVD Case",
             ("Saturn", PAL): "CD Jewel Case",
         }
         for (platform, region), name in expected.items():

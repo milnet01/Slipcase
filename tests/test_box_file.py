@@ -25,7 +25,7 @@ def _noise(w: int, h: int, seed: int, mode: str = "RGB") -> Image.Image:
 
 def _model(back: bool = True) -> BoxModel:
     return BoxModel(
-        case_type=CASE_TYPES["DVD Case"],
+        case_type=CASE_TYPES["PS2 DVD Case"],
         top=(0x1C, 0x2B, 0xAA), bottom=(1, 2, 3), edge=(0xFF, 0xEE, 0x0D),
         front=_noise(135, 190, 1), spine=_noise(14, 190, 2),
         back=_noise(135, 190, 3) if back else None,
@@ -56,7 +56,7 @@ class TestWriting(unittest.TestCase):
                     "format": "slipcase-box",
                     "version": 1,
                     "generator": f"Slipcase {__version__}",
-                    "case": {"name": "DVD Case", "width_mm": 135,
+                    "case": {"name": "PS2 DVD Case", "width_mm": 135,
                              "height_mm": 190, "depth_mm": 14},
                     "colours": {"top": "#1C2BAA", "bottom": "#010203",
                                 "edge": "#FFEE0D"},
@@ -148,7 +148,7 @@ class TestWriting(unittest.TestCase):
 
     def test_face_limits(self):
         """INV-4: faces are RGB, at most 1600 px, never enlarged."""
-        ct = CASE_TYPES["DVD Case"]
+        ct = CASE_TYPES["PS2 DVD Case"]
         for size in ((3000, 4200), (100, 140)):
             with self.subTest(size=size), tempfile.TemporaryDirectory() as d:
                 front = _noise(*size, seed=5, mode="RGBA")
@@ -191,7 +191,7 @@ class TestReading(unittest.TestCase):
             with self.subTest(back=with_back), tempfile.TemporaryDirectory() as d:
                 written = _model(with_back)
                 model = read_box_file(write_box_file(written, d, "Game"))
-                ct = CASE_TYPES["DVD Case"]
+                ct = CASE_TYPES["PS2 DVD Case"]
                 self.assertEqual(
                     (model.case_type.name, model.case_type.width,
                      model.case_type.height, model.case_type.depth),
@@ -355,7 +355,8 @@ class TestBatchStems(unittest.TestCase):
             out = os.path.join(d, "out")
             os.mkdir(out)
             open(os.path.join(out, "game.box.json"), "w").close()
-            worker = BatchWorker([src], out, BoxRenderer(CASE_TYPES["DVD Case"], output_width=128),
+            worker = BatchWorker([src], out,
+                                 BoxRenderer(CASE_TYPES["PS2 DVD Case"], output_width=128),
                                  box_file=True)
             errors = []
             worker.error.connect(errors.append)

@@ -13,7 +13,7 @@ from core.case_texture import (
     generate_front_texture, generate_moulded_edge, generate_spine_texture,
 )
 from core.case_types import CaseType
-from core.image_utils import extract_dominant_edge_color, is_full_cover, split_full_cover
+from core.image_utils import case_edge_colours, is_full_cover, split_full_cover
 from core.jewel import jewel_faces
 from core.spine_generator import generate_spine
 
@@ -108,9 +108,7 @@ def build_box_model(
         if back_image is None:
             back_image = split_back
 
-    top = case_color or extract_dominant_edge_color(front_image, edge="top")
-    bottom = case_color or extract_dominant_edge_color(front_image, edge="bottom")
-    edge = case_color or top
+    top, bottom, edge = case_edge_colours(front_image, case_type, case_color)
 
     face_aspect = case_type.width / case_type.height
     front = _scaled(front_image, face_aspect)

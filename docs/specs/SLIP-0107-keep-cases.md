@@ -1,7 +1,7 @@
 <!-- ants-spec-format: 1 -->
 # SLIP-0107 — Give keep cases and handheld cases their real size and plastic, per region
 
-**Status:** spec draft (2026-10-21).
+**Status:** implemented (2026-10-21); waiting on the user's by-eye check.
 **Kind:** feature.
 **Source:** ROADMAP SLIP-0107 (user-request-2026-10-21). Phase 2 of
 SLIP-0106. Research:
@@ -61,8 +61,11 @@ as for jewel cases.
 - **PS2 by region.** User, 2026-10-21: "Most are blue, platinum versions
   were a matte silver (or more like gray). Some are black but not sure
   when." Wikipedia: "Navy blue or black", "Blue in PAL regions from 2001
-  onward". So PAL is blue, NTSC-U and NTSC-J black. Platinum silver is
-  out of scope (§ 9).
+  onward". The user's Gemini answer, 2026-10-21 (unsourced): PAL launch
+  cases (2000 to early 2002) very dark navy, standard PAL cases from
+  mid-2002 a brighter "PS2 blue"; NTSC-U and NTSC-J standard cases black.
+  So PAL is the brighter blue, NTSC-U and NTSC-J black. Platinum silver
+  and the edition colours are out of scope (§ 9).
 
 ## 4. Design
 
@@ -85,7 +88,7 @@ W × H × D in mm. "S" = sourced, "W" = working value, judged by eye.
 | Name | Platforms | Size | Plastic | Clear | Texture |
 |---|---|---|---|---|---|
 | PS2 DVD Case | PS2 | 135 × 190 × 14 S | black W | no | dvd |
-| PS2 DVD Case (PAL) | — | 135 × 190 × 14 S | navy blue W | no | dvd |
+| PS2 DVD Case (PAL) | — | 135 × 190 × 14 S | blue W | no | dvd |
 | Wii DVD Case | Wii | 135 × 190 × 14 S | white W | no | dvd |
 | GameCube DVD Case | GameCube | 135 × 190 × 14 S | black W | no | dvd |
 | GameCube Case (NTSC-J) | — | 107 × 149 × 17 S | none | yes | dvd |

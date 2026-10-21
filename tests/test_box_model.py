@@ -17,7 +17,7 @@ def _noise(w: int, h: int, seed: int) -> Image.Image:
     return Image.fromarray(rng.integers(0, 256, (h, w, 3), dtype=np.uint8), "RGB")
 
 
-def _build(front, back=None, case="DVD Case", **overrides):
+def _build(front, back=None, case="PS2 DVD Case", **overrides):
     kwargs = dict(
         title="Game", serial="SLUS-00001", platform="PS2", spine_color=None,
         case_color=None, spine_left_offset=0, spine_right_offset=0,
@@ -47,7 +47,7 @@ class TestFaceSelection(unittest.TestCase):
         self.assertTrue(np.array_equal(np.array(a), np.array(b)))
 
     def test_full_cover_faces(self):
-        ct = CASE_TYPES["DVD Case"]
+        ct = CASE_TYPES["PS2 DVD Case"]
         cover = _noise(568, 380, seed=1)  # back + spine + front, to scale
         model = _build(cover, spine_left_offset=6, spine_right_offset=-4)
         back, spine, front = split_full_cover(
@@ -63,7 +63,7 @@ class TestFaceSelection(unittest.TestCase):
         self.assertSamePixels(model.back, _scaled(loaded, model.back.size).convert("RGB"))
 
     def test_front_only_faces(self):
-        ct = CASE_TYPES["DVD Case"]
+        ct = CASE_TYPES["PS2 DVD Case"]
         cover = _noise(270, 380, seed=3)
         model = _build(cover, full_cover=False, spine_color=(10, 20, 30))
         self.assertIsNone(model.back)
@@ -87,9 +87,9 @@ class TestCaseDetails(unittest.TestCase):
     """INV-11: case details are baked into the faces, the back's mirrored."""
 
     def test_case_details_baked_in(self):
-        ct = CASE_TYPES["Blu-ray Case"]
+        ct = CASE_TYPES["PS3 Blu-ray Case"]
         grey = Image.new("RGB", (270, 342), (128, 128, 128))
-        model = _build(grey, back=grey.copy(), case="Blu-ray Case",
+        model = _build(grey, back=grey.copy(), case="PS3 Blu-ray Case",
                        full_cover=False, show_texture=True)
 
         w, h = model.front.size
@@ -119,7 +119,7 @@ class TestCaseDetails(unittest.TestCase):
                                        np.array(_on(expected_spine, model.edge))))
 
         # With show_texture clear, no face carries the overlay.
-        plain = _build(grey, back=grey.copy(), case="Blu-ray Case",
+        plain = _build(grey, back=grey.copy(), case="PS3 Blu-ray Case",
                        full_cover=False, show_texture=False)
         self.assertTrue(np.array_equal(np.array(plain.front),
                                        np.array(_scaled(grey, (w, h)).convert("RGB"))))
@@ -135,12 +135,13 @@ class TestColours(unittest.TestCase):
     def test_colours(self):
         cover = Image.new("RGB", (270, 380), (200, 0, 0))
         cover.paste((0, 0, 200), (0, 190, 270, 380))
-        model = _build(cover, full_cover=False)
+        # A clear, untinted case shows the cover's own colours (SLIP-0107).
+        model = _build(cover, case="Switch Case", full_cover=False)
         self.assertEqual(model.top, (200, 0, 0))
         self.assertEqual(model.bottom, (0, 0, 200))
         self.assertEqual(model.edge, model.top)
 
-        model = _build(cover, full_cover=False, case_color=(9, 8, 7))
+        model = _build(cover, case="Switch Case", full_cover=False, case_color=(9, 8, 7))
         self.assertEqual((model.top, model.bottom, model.edge), ((9, 8, 7),) * 3)
 
 

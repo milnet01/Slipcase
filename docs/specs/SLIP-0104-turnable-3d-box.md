@@ -90,7 +90,7 @@ S.bottom.png      bottom (absent when there is none)
   "format": "slipcase-box",
   "version": 1,
   "generator": "Slipcase 1.4.0",
-  "case": {"name": "DVD Case", "width_mm": 135, "height_mm": 190, "depth_mm": 14},
+  "case": {"name": "PS2 DVD Case", "width_mm": 135, "height_mm": 190, "depth_mm": 14},
   "colours": {"top": "#1C1C1C", "bottom": "#1C1C1C", "edge": "#1C1C1C"},
   "faces": {"front": "S.front.png", "spine": "S.spine.png", "back": "S.back.png",
             "edge": "S.edge.png", "top": "S.top.png", "bottom": "S.bottom.png"}
@@ -345,7 +345,7 @@ and the shortcut Ctrl+3 (unused today; added to `STANDARDS.md` § 6).
 - **INV-11** — With `show_texture` set, every face carries § 4.2's overlay
   at the face's own size, the back's mirrored; with it clear, none does.
   *Test:* `tests/test_box_model.py::test_case_details_baked_in` builds a
-  Blu-ray Case model from uniform grey (128) front and back covers, so the
+  PS3 Blu-ray Case model from uniform grey (128) front and back covers, so the
   overlay's faint lines change pixels, and compares each face with the
   overlay composited by hand. A Blu-ray front is not mirror-symmetric (its
   spine-edge groove), so only the mirroring rule passes the back.

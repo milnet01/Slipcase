@@ -43,10 +43,12 @@ You don't need either one to use it. The images are ordinary PNG files.
 
 ## Case types it knows
 
-DVD Case · Blu-ray Case · CD Jewel Case · PS1 Jewel Case (NTSC-U, PAL and
+PS2 DVD Case (US and PAL) · Wii DVD Case · GameCube DVD Case · GameCube
+Case (NTSC-J) · PC DVD Case · Xbox Case · Xbox 360 Case · PS3, PS4 and PS5
+Blu-ray Cases · Xbox One Case · Xbox Series X Case · CD Jewel Case · PS1 Jewel Case (NTSC-U, PAL and
 NTSC-J) · Dreamcast Jewel Case (NTSC-U, PAL and NTSC-J) · NES Cartridge Box ·
 SNES Cartridge Box · N64 Cartridge Box · Genesis Clamshell · Game Boy Box ·
-GBA Box · DS Case · 3DS Case · PSP Case · PS Vita Case · Switch Case ·
+GBA Box · DS Case (US and PAL) · 3DS Case · PSP Case · PS Vita Case · Switch Case ·
 Universal Cart Case
 
 A jewel case shows the front booklet under a clear lid, the back insert's
@@ -103,8 +105,9 @@ keep the project somewhere other than where it is now.
 ## Using it
 
 1. **Load a front cover** — or use **Search Online** to fetch one.
-2. **Pick the case type** that matches the game. For PlayStation and
-   Dreamcast covers, Slipcase reads the region from the file name's tag,
+2. **Pick the case type** that matches the game. For PlayStation, PS2,
+   Dreamcast, DS and GameCube covers, Slipcase reads the region from the
+   file name's tag,
    such as "(Europe)" or "(Japan)", and picks that region's case. A name
    with no tag counts as USA. Pick another case in the list to override it.
 3. **Adjust the angle** if you want. The default is 30 degrees, which is the

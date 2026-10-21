@@ -718,7 +718,7 @@ class MainWindow(QMainWindow):
         if idx >= 0:
             self.platform_combo.setCurrentIndex(idx)
 
-        case_type = self.config.get("ui", "last_case_type", default="DVD Case")
+        case_type = self.config.get("ui", "last_case_type", default="PS2 DVD Case")
         idx = self.case_combo.findText(case_type)
         if idx >= 0:
             self.case_combo.setCurrentIndex(idx)

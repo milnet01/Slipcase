@@ -24,8 +24,8 @@ class TestCaseTypes(unittest.TestCase):
         self.assertGreaterEqual(len(CASE_TYPES), 15)
 
     def test_platform_mapping(self):
-        self.assertEqual(get_case_for_platform("PS2").name, "DVD Case")
-        self.assertEqual(get_case_for_platform("PS4").name, "Blu-ray Case")
+        self.assertEqual(get_case_for_platform("PS2").name, "PS2 DVD Case")
+        self.assertEqual(get_case_for_platform("PS4").name, "PS4 Blu-ray Case")
         self.assertEqual(get_case_for_platform("Switch").name, "Switch Case")
 
     def test_all_platforms_list(self):
@@ -33,11 +33,11 @@ class TestCaseTypes(unittest.TestCase):
         self.assertIn("NES", ALL_PLATFORMS)
 
     def test_case_aspect_ratio(self):
-        dvd = CASE_TYPES["DVD Case"]
+        dvd = CASE_TYPES["PS2 DVD Case"]
         self.assertAlmostEqual(dvd.aspect_ratio, 135 / 190, places=3)
 
     def test_case_depth_ratio(self):
-        dvd = CASE_TYPES["DVD Case"]
+        dvd = CASE_TYPES["PS2 DVD Case"]
         self.assertAlmostEqual(dvd.depth_ratio, 14 / 135, places=3)
 
 
@@ -101,7 +101,7 @@ class TestRenderer(unittest.TestCase):
         return img
 
     def test_basic_render(self):
-        case_type = CASE_TYPES["DVD Case"]
+        case_type = CASE_TYPES["PS2 DVD Case"]
         renderer = BoxRenderer(
             case_type=case_type,
             angle=30,
@@ -116,7 +116,7 @@ class TestRenderer(unittest.TestCase):
         self.assertGreater(result.size[1], 0)
 
     def test_render_with_effects(self):
-        case_type = CASE_TYPES["Blu-ray Case"]
+        case_type = CASE_TYPES["PS3 Blu-ray Case"]
         renderer = BoxRenderer(
             case_type=case_type,
             angle=25,
@@ -148,7 +148,7 @@ class TestRenderer(unittest.TestCase):
         # strength -- a square cut (SLIP-0032). A soft shadow fades to near
         # nothing at the edge. Full strength is _SHADOW_OPACITY * 255 = 102.
         import numpy as np
-        for name in ("DVD Case", "Game Boy Box"):
+        for name in ("PS2 DVD Case", "Game Boy Box"):
             for angle in (5, 30, 60):
                 renderer = BoxRenderer(
                     case_type=CASE_TYPES[name],

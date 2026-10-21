@@ -17,7 +17,7 @@ from core.case_texture import generate_front_texture, generate_spine_texture
 from core.image_utils import (
     apply_directional_shading,
     apply_uniform_shading,
-    extract_dominant_edge_color,
+    case_edge_colours,
     generate_reflection,
     generate_shadow,
     is_full_cover,
@@ -334,15 +334,12 @@ class BoxRenderer:
 
         # --- Top and bottom faces (drawn on single layer to save an allocation) ---
         if proj_top_h > 3:
-            # A jewel case's top and bottom are bare tray plastic.
+            top_color, bottom_color, _ = case_edge_colours(
+                front_image, self.case_type, case_color)
+            # A jewel case's top and bottom are bare tray plastic, lifted.
             if jewel:
-                plastic = case_color or self.case_type.plastic
                 top_color = bottom_color = tuple(
-                    round(c + (255 - c) * _JEWEL_EDGE_LIFT) for c in plastic)
-            else:
-                top_color = case_color or extract_dominant_edge_color(front_image, edge="top")
-                bottom_color = case_color or extract_dominant_edge_color(
-                    front_image, edge="bottom")
+                    round(c + (255 - c) * _JEWEL_EDGE_LIFT) for c in top_color)
             faces = self._render_faces(
                 front_w=front_w,
                 spine_w=spine_w,
