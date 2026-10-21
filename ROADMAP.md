@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: SLIP=115 -->
+<!-- ants-roadmap-id-high-water: SLIP=116 -->
 
 # Slipcase — Roadmap
 
@@ -2214,3 +2214,18 @@ building.
   **Layman:** A European PlayStation back insert now picks the European case by itself, so its printed edges go on the case's sides, and the boundary sliders can always reach far enough to fix a cut by hand.
   Kind: fix.
   Source: user-report-2026-10-21.
+
+- 📋 [SLIP-0116] **With no cover-art service set up, Search Online finds nothing for a name typed in lower case or in part.**
+  The user, 2026-10-21, on the Windows PC with no credentials set:
+  "game", "crash bandicoot" and "crash" found nothing (platform PS2).
+  libretro is the only source then, and it is an exact file-name lookup
+  (SLIP-0089 added region suffixes only). Measured 2026-10-21, PS1:
+  "crash bandicoot" misses, "Crash Bandicoot" and "Crash Bandicoot
+  (USA)" hit. Nothing tells the user that libretro wants the exact
+  title with capitals. Options: try a capitalised candidate, say in the
+  dialog that libretro needs the exact title, or match against the
+  per-system listing (SLIP-0089 rejected it at about 1 MB for SNES).
+  **Layman:** Searching for a game's cover without an account finds nothing unless you type the title exactly, capitals included.
+  Kind: fix.
+  Source: user-report-2026-10-21.
+  Lanes: api, ui.
