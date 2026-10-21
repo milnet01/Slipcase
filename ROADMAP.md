@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: SLIP=116 -->
+<!-- ants-roadmap-id-high-water: SLIP=117 -->
 
 # Slipcase — Roadmap
 
@@ -1210,6 +1210,11 @@ building.
   By-eye check (2026-10-21): the PAL PS1 case looks good. The NTSC PS1
   case needs work: the user says it is see-through and shows the back
   cover through it. Waiting on the user's photos.
+  US PS1 (2026-10-21): the user's Final Fantasy VIII photo shows the
+  tray is clear, with white "PlayStation" on black reading bottom to top
+  through the hinge strip. PS1 Jewel Case (NTSC-U) now carries that
+  tray_print (SLIP-0115's machinery); its ribs still cover the whole
+  strip. Waiting on the user's by-eye check of the US case.
   **Layman:** The thin clear border round a CD-case cover now looks like see-through plastic catching the light, as on a real case.
   Kind: enhancement.
   Source: user-request-2026-10-21.
@@ -1227,6 +1232,16 @@ building.
   Waiting on the user's by-eye check; flip to shipped when right.
   By-eye check (2026-10-21): needs work. The user says the clear case
   shows what is on the back cover. Waiting on the user's photos.
+  Reworked (2026-10-21) from the user's photos: what shows through a
+  clear tray is a panel printed on the inside of the back card, the same
+  on every game, not the hinge spine. US Dreamcast: grey "Sega
+  Dreamcast" with an orange swirl on white, reading top to bottom.
+  CaseType.clear_tray became tray_print (core/case_types.py TrayPrint);
+  core/jewel.py tray_print_panel draws it whatever was loaded. Text
+  lengths estimated from the photos; the swirl is a drawn spiral, not
+  the logo. Test renamed:
+  tests/test_jewel.py::test_clear_tray_shows_the_tray_print. Waiting on
+  the user's by-eye check.
   **Layman:** On a see-through US Dreamcast case, the white "Sega Dreamcast" edge of the back insert now shows beside the cover, as on a real case.
   Kind: enhancement.
   Source: user-request-2026-10-21.
@@ -2229,3 +2244,14 @@ building.
   Kind: fix.
   Source: user-report-2026-10-21.
   Lanes: api, ui.
+
+- 📋 [SLIP-0117] **A US PS1 front scan that includes the hinge strip is squeezed into the booklet, so "PlayStation" shows twice.**
+  Seen 2026-10-21 rendering libretro's Crash Bandicoot (USA) cover on
+  PS1 Jewel Case (NTSC-U): the scan is the whole case front, black
+  "PlayStation" strip included, and jewel_faces resizes all of it into
+  the 120 x 120 booklet area beside the drawn tray print. Needs a way to
+  tell a booklet scan from a whole-front scan, and to crop the strip off.
+  **Layman:** Some PS1 covers already include the black PlayStation edge, so the box shows that edge twice.
+  Kind: fix.
+  Source: session-2026-10-21.
+  Lanes: core.

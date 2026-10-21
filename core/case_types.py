@@ -12,6 +12,18 @@ class JewelGeometry:
 
 
 @dataclass(frozen=True)
+class TrayPrint:
+    """The panel printed on the inside of a clear tray's back card, seen
+    through the front's hinge strip. It is the same on every game."""
+    text: str
+    paper: tuple[int, int, int]
+    ink: tuple[int, int, int]
+    length: float           # mm the text runs along the strip
+    reads_up: bool          # bottom to top on an upright case
+    swirl: bool = False     # Dreamcast's orange swirl after the first word
+
+
+@dataclass(frozen=True)
 class CaseType:
     """A game case type with real-world dimensions in millimeters."""
     name: str
@@ -28,9 +40,9 @@ class CaseType:
     matte_hinge_strip: bool = False
     # Fine vertical ridges across the lid's hinge strip, on the front.
     ridged_hinge_strip: bool = False
-    # A see-through jewel tray: the front's hinge strip shows the hinge
-    # picture's paper through it (SLIP-0115).
-    clear_tray: bool = False
+    # A see-through jewel tray: the front's hinge strip shows this panel of
+    # the back card through it (SLIP-0115).
+    tray_print: TrayPrint | None = None
     # Text moulded in a panel on a jewel tray's front hinge strip (SLIP-0112).
     strip_logo: str | None = None
     # Text moulded into the plastic of the top and bottom edges (SLIP-0110).
@@ -66,6 +78,14 @@ _BLACK_KEEP = (0x14, 0x14, 0x14)
 _WHITE_KEEP = (0xEE, 0xEE, 0xEE)
 _BLUE_TINT = (0x2A, 0x6C, 0xD0)
 _GREEN_TINT = (0x2E, 0x9E, 0x3A)
+# What the user's US cases show through the clear tray (photos, 2026-10-21):
+# Final Fantasy VIII's white "PlayStation" on black, and six Dreamcast games'
+# grey "Sega Dreamcast" on white. Lengths estimated from those photos.
+_PS1_US_TRAY_PRINT = TrayPrint(text="PlayStation", paper=(0x10, 0x10, 0x10),
+                               ink=(0xF0, 0xF0, 0xF0), length=63, reads_up=True)
+_DREAMCAST_US_TRAY_PRINT = TrayPrint(text="Sega Dreamcast", paper=(0xF4, 0xF4, 0xF2),
+                                     ink=(0x50, 0x50, 0x50), length=67, reads_up=False,
+                                     swirl=True)
 
 CASE_TYPES: dict[str, CaseType] = {
     # Keep cases: one printed sheet wraps back + spine + front under a clear
@@ -171,6 +191,7 @@ CASE_TYPES: dict[str, CaseType] = {
         width=142, height=125, depth=10.4,
         platforms=("PS1",),
         jewel=_STANDARD_PAPER, plastic=_BLACK_TRAY, ridged_hinge_strip=True,
+        tray_print=_PS1_US_TRAY_PRINT,
     ),
     # Only thicker than the standard case. Its back card is measured from a
     # PAL scan: wider, with end strips that wrap the 18 mm sides. Its black
@@ -194,7 +215,8 @@ CASE_TYPES: dict[str, CaseType] = {
         width=142, height=125, depth=10.4,
         platforms=("Dreamcast",),
         # A clear tray has no colour of its own: a pale grey stands in.
-        jewel=_STANDARD_PAPER, plastic=(0xC8, 0xCC, 0xD0), clear_tray=True,
+        jewel=_STANDARD_PAPER, plastic=(0xC8, 0xCC, 0xD0),
+        tray_print=_DREAMCAST_US_TRAY_PRINT,
     ),
     "Dreamcast Jewel Case (NTSC-J)": CaseType(
         name="Dreamcast Jewel Case (NTSC-J)",

@@ -11,12 +11,12 @@ import logging
 import math
 from dataclasses import dataclass
 
-from PIL import Image
+from PIL import Image, ImageDraw
 
-from core.case_types import CASE_TYPES, CaseType, case_for
+from core.case_types import CASE_TYPES, CaseType, TrayPrint, case_for
 from core.image_utils import _fold_band_means, _nudge, is_full_cover, split_full_cover
 from core.region import NTSC_J, NTSC_U, PAL
-from core.spine_generator import generate_spine
+from core.spine_generator import _get_font, generate_spine
 
 _log = logging.getLogger(__name__)
 
@@ -137,6 +137,54 @@ def _on_plastic(image: Image.Image, size_mm: tuple[float, float],
     return face
 
 
+# Dreamcast's swirl: its colour, and its size as a share of the font size.
+# Judged by eye against the user's photos.
+_SWIRL_COLOUR = (0xE8, 0x5A, 0x1E)
+_SWIRL_SHARE = 0.75
+
+
+def tray_print_panel(tray: TrayPrint, size_mm: tuple[float, float], p: float) -> Image.Image:
+    """A clear tray's printed panel, `size_mm` across and down at `p` px/mm:
+    `tray.paper` with `tray.text` in `tray.ink`, `tray.length` mm long and
+    centred, running along the strip. A swirl goes after the first word."""
+    w, h = max(1, round(size_mm[0] * p)), max(1, round(size_mm[1] * p))
+    words = tray.text.split(" ", 1) if tray.swirl else [tray.text]
+
+    def widths(font):
+        space = font.getlength(" ")
+        swirl = font.size * _SWIRL_SHARE + 2 * space if tray.swirl else 0
+        return [font.getlength(word) for word in words], swirl
+
+    # Size the font at 100 px, then scale it to the length.
+    word_w, swirl_w = widths(_get_font(100, bold=False))
+    font = _get_font(max(4, round(100 * tray.length * p / (sum(word_w) + swirl_w))), bold=False)
+    word_w, swirl_w = widths(font)
+
+    # Drawn lying down, then turned to run along the strip.
+    lying = Image.new("RGBA", (h, w), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(lying)
+    x = (h - sum(word_w) - swirl_w) / 2
+    y = w / 2
+    draw.text((x, y), words[0], font=font, fill=(*tray.ink, 255), anchor="lm")
+    if tray.swirl:
+        radius = font.size * _SWIRL_SHARE / 2
+        cx = x + word_w[0] + swirl_w / 2
+        turns = 2.5
+        points = []
+        for i in range(81):
+            t = i / 80
+            angle = t * turns * 2 * math.pi
+            r = radius * (1 - 0.8 * t)
+            points.append((cx + r * math.cos(angle), y + r * math.sin(angle)))
+        draw.line(points, fill=(*_SWIRL_COLOUR, 255), width=max(1, round(radius / 4)))
+        draw.text((x + word_w[0] + swirl_w, y), words[1], font=font,
+                  fill=(*tray.ink, 255), anchor="lm")
+
+    panel = Image.new("RGBA", (w, h), (*tray.paper, 255))
+    panel.alpha_composite(lying.rotate(90 if tray.reads_up else -90, expand=True))
+    return panel
+
+
 def jewel_faces(
     front_image: Image.Image,
     back_image: Image.Image | None,
@@ -218,13 +266,11 @@ def jewel_faces(
 
     back_src = middle if middle is not None else wrap_back
     hinge_src = right_strip if right_strip is not None else wrap_spine
-    if case_type.clear_tray and hinge_src is not None:
-        # A clear tray shows the hinge strip's paper through the front's
-        # hinge strip, widened by the curved plastic (the user's photos).
+    if case_type.tray_print is not None:
+        # A clear tray shows the back card's printed panel through the
+        # front's hinge strip. Scans do not carry it, so it is drawn.
         front.alpha_composite(
-            hinge_src.convert("RGBA").resize(
-                (max(1, round((W - margin - booklet_w) * p)), max(1, round(card_h * p))),
-                Image.Resampling.LANCZOS),
+            tray_print_panel(case_type.tray_print, (W - margin - booklet_w, card_h), p),
             (0, round((H - card_h) / 2 * p)),
         )
     return JewelFaces(
