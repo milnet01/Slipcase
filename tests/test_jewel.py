@@ -162,9 +162,33 @@ class TestCaseData(unittest.TestCase):
                 ct = CASE_TYPES[name]
                 self.assertGreater(spread(generate_front_texture(ct, 284, 250)), 20)
                 self.assertLess(spread(generate_front_texture(ct, 284, 250, back=True)), 10)
-        for name in ("CD Jewel Case", "Dreamcast Jewel Case (PAL)"):
+        for name in ("CD Jewel Case", "Dreamcast Jewel Case (NTSC-J)"):
             with self.subTest(case=name):
                 self.assertLess(spread(generate_front_texture(CASE_TYPES[name], 284, 250)), 10)
+
+    def test_dreamcast_pal_strip_logo(self):
+        """SLIP-0112: a PAL Dreamcast front carries "Dreamcast" moulded in a
+        panel on its hinge strip, running up the strip; the back and the
+        other Dreamcast cases do not."""
+        def logo_box(name, back=False):
+            o = np.asarray(generate_front_texture(CASE_TYPES[name], 1420, 1250, back=back))
+            # The hinge strip inside the rim and short of its ridge lines, at
+            # 10 px/mm. Sharp steps mark moulding; the lid's shine is smooth.
+            strip = o[20:1230, 15:160, 3].astype(int)
+            edges = np.zeros(strip.shape, dtype=bool)
+            edges[:, 1:] |= np.abs(np.diff(strip, axis=1)) > 10
+            edges[1:, :] |= np.abs(np.diff(strip, axis=0)) > 10
+            rows = np.flatnonzero(edges.any(axis=1))
+            cols = np.flatnonzero(edges.any(axis=0))
+            if not len(rows):
+                return None
+            return rows[-1] - rows[0], cols[-1] - cols[0]
+
+        tall, wide = logo_box("Dreamcast Jewel Case (PAL)")
+        self.assertGreater(tall, 3 * wide)
+        self.assertTrue(300 < tall < 500)   # the panel, about 40 mm
+        self.assertIsNone(logo_box("Dreamcast Jewel Case (PAL)", back=True))
+        self.assertIsNone(logo_box("Dreamcast Jewel Case (NTSC-U)"))
 
     def test_lid_margin_is_lit(self):
         """The clear lid round the booklet reads lighter than the booklet

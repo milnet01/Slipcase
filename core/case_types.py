@@ -31,6 +31,8 @@ class CaseType:
     # A see-through jewel tray: the front's hinge strip shows the hinge
     # picture's paper through it (SLIP-0115).
     clear_tray: bool = False
+    # Text moulded in a panel on a jewel tray's front hinge strip (SLIP-0112).
+    strip_logo: str | None = None
     # Text moulded into the plastic of the top and bottom edges (SLIP-0110).
     moulded_logo: str | None = None
     # Overlay family for the wrap layout: "dvd", "bluray", "switch", "ds",
@@ -205,6 +207,7 @@ CASE_TYPES: dict[str, CaseType] = {
         width=142, height=125, depth=10.4,
         platforms=(),
         jewel=_STANDARD_PAPER, plastic=(0x2A, 0x4F, 0x9E),
+        strip_logo="Dreamcast",
     ),
     "NES Cartridge Box": CaseType(
         name="NES Cartridge Box",

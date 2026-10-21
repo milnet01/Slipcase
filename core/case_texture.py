@@ -34,6 +34,8 @@ def generate_front_texture(case_type: CaseType, width: int, height: int,
     # Every jewel entry, whatever its name, is the same moulding (SLIP-0106).
     if case_type.layout == "jewel":
         _draw_jewel_front(draw, case_type, width, height, ridges=not back)
+        if case_type.strip_logo and not back:
+            overlay.alpha_composite(_strip_logo(case_type, width, height))
         gloss = generate_lid_shine(width, height)
         gloss.alpha_composite(_lid_streak(width, height))
         if case_type.matte_hinge_strip and not back:
@@ -293,6 +295,65 @@ def generate_moulded_edge(case_type: CaseType, plastic: tuple[int, int, int],
              - _MOULD_SHADOW * np.clip(m - below, 0, 1))
     pixels = np.asarray(plastic, dtype=np.float32) + shade[:, :, np.newaxis]
     return Image.fromarray(np.clip(np.round(pixels), 0, 255).astype(np.uint8), "RGB")
+
+
+# A PAL Dreamcast tray's hinge strip, from photos of an empty case
+# (SLIP-0112): raised text in a smooth, slightly recessed rounded panel,
+# centred on the strip, on a stippled strip. Sizes estimated from one
+# photo; alphas judged by eye.
+STRIP_PANEL_MM = (40, 7)
+STRIP_TEXT_MM = 30
+_PANEL_EDGE = 50        # the panel's recessed rim, shadow above and light below
+_STIPPLE = 8            # the strip's grain; under the steps a test reads as moulding
+
+
+def _strip_logo(case_type: CaseType, w: int, h: int) -> Image.Image:
+    """The front hinge strip's moulding as an RGBA overlay: stipple, the
+    recessed panel and `case_type.strip_logo` raised in it, reading up the
+    strip."""
+    p = w / case_type.width
+    strip_w = round(_booklet_x(case_type, p))
+    rim = max(1, round(JEWEL_RIM_MM * p))
+    rng = np.random.default_rng(0)
+    grain = np.zeros((h, w, 4), dtype=np.uint8)
+    grain[rim:h - rim, rim:strip_w, :3] = 255
+    grain[rim:h - rim, rim:strip_w, 3] = rng.integers(
+        0, _STIPPLE + 1, (h - 2 * rim, max(0, strip_w - rim)), dtype=np.uint8)
+    out = Image.fromarray(grain, "RGBA")
+
+    # The panel and its text, drawn lying down, then turned to run up the strip.
+    pw, ph = round(STRIP_PANEL_MM[0] * p), round(STRIP_PANEL_MM[1] * p)
+    panel = Image.new("RGBA", (pw, ph), (0, 0, 0, 0))
+    d = ImageDraw.Draw(panel)
+    edge = max(1, round(0.3 * p))
+    d.rounded_rectangle([(0, 0), (pw - 1, ph - 1)], radius=ph // 3,
+                        outline=(0, 0, 0, _PANEL_EDGE), width=edge)
+    d.rounded_rectangle([(0, edge), (pw - 1, ph - 1)], radius=ph // 3,
+                        outline=(255, 255, 255, _PANEL_EDGE // 2), width=edge)
+    font = _get_font(max(4, ph), bold=False)
+    left, top, right, bottom = font.getbbox(case_type.strip_logo)
+    font = _get_font(max(4, round(font.size * STRIP_TEXT_MM * p / max(1, right - left))),
+                     bold=False)
+    left, top, right, bottom = font.getbbox(case_type.strip_logo)
+    mask = Image.new("L", (pw, ph), 0)
+    ImageDraw.Draw(mask).text(((pw - (right - left)) / 2 - left, (ph - (bottom - top)) / 2 - top),
+                              case_type.strip_logo, font=font, fill=255)
+    m = np.asarray(mask, dtype=np.float32) / 255
+    step = max(1, round(0.15 * p))
+    above = np.zeros_like(m)
+    above[step:] = m[:-step]
+    below = np.zeros_like(m)
+    below[:-step] = m[step:]
+    light = np.clip(_MOULD_HIGHLIGHT * 2 * np.clip(m - above, 0, 1) + 3 * _MOULD_LIFT * m, 0, 255)
+    dark = np.clip(_MOULD_SHADOW * 3 * np.clip(m - below, 0, 1), 0, 255)
+    letters = np.zeros((ph, pw, 4), dtype=np.uint8)
+    lit = light >= dark
+    letters[..., :3] = np.where(lit, 255, 0)[..., np.newaxis]
+    letters[..., 3] = np.round(np.where(lit, light, dark)).astype(np.uint8)
+    panel.alpha_composite(Image.fromarray(letters, "RGBA"))
+    panel = panel.rotate(90, expand=True)
+    out.alpha_composite(panel, (round((strip_w - panel.width) / 2), round((h - panel.height) / 2)))
+    return out
 
 
 # --- Small plastic keep cases (Switch, DS, 3DS, PSP, Vita) ---

@@ -1110,7 +1110,7 @@ building.
   Kind: feature.
   Source: user-request-2026-10-21.
 
-- 📋 [SLIP-0112] **Show "Dreamcast" moulded into a PAL Dreamcast case's top and bottom in the 3D viewer.**
+- 🚧 [SLIP-0112] **Show "Dreamcast" moulded into a PAL Dreamcast case's front hinge strip.**
   The user's Gemini answer, 2026-10-21 (unsourced): PAL Dreamcast cases
   have "Dreamcast" pressed into the top and bottom borders. The user
   asked for it, "but only after a session restart". Uses SLIP-0110's
@@ -1140,7 +1140,15 @@ building.
   https://i.ebayimg.com/images/g/VLoAAeSwPfFppIwl/s-l1600.jpg. Sizes
   estimated from one photo. Depth: no source found. The user has no PAL
   Dreamcast cases.
-  **Layman:** Turn a European Dreamcast box in the 3D viewer and the word "Dreamcast" shows moulded into its top and bottom edges, as on the real case.
+  The user chose, 2026-10-21: draw it on the front strip, in exported
+  images and the 3D viewer alike. Built (2026-10-21):
+  CaseType.strip_logo ("Dreamcast" on Dreamcast Jewel Case (PAL));
+  core/case_texture.py _strip_logo draws the stippled strip, a 40 x 7 mm
+  recessed panel and 30 mm of raised text reading up the strip, front
+  overlay only, so it follows show_texture. Test:
+  tests/test_jewel.py::test_dreamcast_pal_strip_logo. Waiting on the
+  user's by-eye check; flip to shipped when right.
+  **Layman:** A European Dreamcast box shows the word "Dreamcast" moulded into the blue strip beside the cover, as on the real case.
   Kind: feature.
   Source: user-request-2026-10-21.
 
