@@ -1,6 +1,7 @@
 """Unified online cover art search dialog across all configured APIs."""
 
 import html
+from concurrent.futures import ThreadPoolExecutor
 
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtWidgets import (
@@ -70,57 +71,78 @@ class SearchWorker(QThread):
         sources_queried = 0
 
         try:
-            # ScreenScraper
-            ss = _create_ss_client(self.config)
-            try:
-                if ss.is_configured:
-                    sources_queried += 1
-                    sys_id = SCREENSCRAPER_SYSTEMS.get(self.platform)
+            # The three services are independent hosts with their own rate
+            # limits, so they are asked at once: one slow ScreenScraper reply
+            # (8 to 49 seconds, SLIP-0103) no longer delays the other two.
+            # Results keep the order of this tuple.
+            searches = (self._search_ss, self._search_tgdb, self._search_libretro)
+            with ThreadPoolExecutor(max_workers=len(searches)) as pool:
+                futures = [pool.submit(search) for search in searches]
+                for future in futures:
                     try:
-                        results = ss.search_game(self.query, system_id=sys_id)
-                        for r in results[:10]:
-                            all_results.append(("ScreenScraper", r.name, r.platform, r))
+                        queried, results, error = future.result()
                     except Exception as e:
-                        self.error.emit(f"ScreenScraper: {e}")
-            finally:
-                ss.close()
-
-            # TheGamesDB
-            tgdb = _create_tgdb_client(self.config)
-            try:
-                if tgdb.is_configured:
-                    sources_queried += 1
-                    plat_id = THEGAMESDB_PLATFORMS.get(self.platform)
-                    try:
-                        results = tgdb.search_game(self.query, platform_id=plat_id)
-                        for r in results[:10]:
-                            all_results.append(("TheGamesDB", r.name, r.platform, r))
-                    except Exception as e:
-                        self.error.emit(f"TheGamesDB: {e}")
-            finally:
-                tgdb.close()
-
-            # libretro (try direct lookup). It needs no credentials, so the
-            # Settings switch is what gates it (SLIP-0071).
-            lr = LibretroThumbnails()
-            try:
-                lr_system = LIBRETRO_SYSTEMS.get(self.platform)
-                enabled = self.config.get("api", "libretro", "enabled", default=True)
-                if lr_system and enabled:
-                    sources_queried += 1
-                    try:
-                        img = lr.download_boxart(lr_system, self.query)
-                        if img:
-                            all_results.append(("libretro", self.query, self.platform, img))
-                    except Exception as e:
-                        self.error.emit(f"libretro: {e}")
-            finally:
-                lr.close()
+                        self.error.emit(f"Search failed: {e}")
+                        continue
+                    if error:
+                        self.error.emit(error)
+                    sources_queried += queried
+                    all_results.extend(results)
         except Exception as e:
             self.error.emit(f"Search failed: {e}")
         finally:
             self.results_ready.emit(all_results, sources_queried)
             self.finished_signal.emit()
+
+    # Each _search_* returns (whether the source was asked, its hits, its
+    # error message or ""). They run on pool threads, so they never emit:
+    # a signal sent from a thread with no Qt event loop is not reliably
+    # delivered, and run() emits everything from its own thread. Anything
+    # raised out of one is reported by run().
+
+    def _search_ss(self) -> tuple[bool, list, str]:
+        ss = _create_ss_client(self.config)
+        try:
+            if not ss.is_configured:
+                return False, [], ""
+            try:
+                results = ss.search_game(
+                    self.query, system_id=SCREENSCRAPER_SYSTEMS.get(self.platform))
+            except Exception as e:
+                return True, [], f"ScreenScraper: {e}"
+            return True, [("ScreenScraper", r.name, r.platform, r) for r in results[:10]], ""
+        finally:
+            ss.close()
+
+    def _search_tgdb(self) -> tuple[bool, list, str]:
+        tgdb = _create_tgdb_client(self.config)
+        try:
+            if not tgdb.is_configured:
+                return False, [], ""
+            try:
+                results = tgdb.search_game(
+                    self.query, platform_id=THEGAMESDB_PLATFORMS.get(self.platform))
+            except Exception as e:
+                return True, [], f"TheGamesDB: {e}"
+            return True, [("TheGamesDB", r.name, r.platform, r) for r in results[:10]], ""
+        finally:
+            tgdb.close()
+
+    def _search_libretro(self) -> tuple[bool, list, str]:
+        # libretro needs no credentials, so the Settings switch is what
+        # gates it (SLIP-0071).
+        lr = LibretroThumbnails()
+        try:
+            lr_system = LIBRETRO_SYSTEMS.get(self.platform)
+            if not (lr_system and self.config.get("api", "libretro", "enabled", default=True)):
+                return False, [], ""
+            try:
+                img = lr.download_boxart(lr_system, self.query)
+            except Exception as e:
+                return True, [], f"libretro: {e}"
+            return True, ([("libretro", self.query, self.platform, img)] if img else []), ""
+        finally:
+            lr.close()
 
 
 class PreviewWorker(QThread):
