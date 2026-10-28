@@ -39,6 +39,30 @@ def _replay(path):
     return response
 
 
+class TestScreenScraperEmptyReplies(unittest.TestCase):
+    """Replies with no usable games give no results, not a blank one or a
+    crash."""
+
+    def _search(self, body):
+        response = requests.Response()
+        response.status_code = 200
+        response._content = json.dumps(body).encode()
+        response.encoding = "utf-8"
+        client = ScreenScraperAPI("dev", "devpw", "user", "pw")
+        client.min_request_interval = 0
+        with patch.object(client._session, "get", return_value=response):
+            results = client.search_game("Nothing")
+        client.close()
+        return results
+
+    def test_no_match_reply_lists_nothing(self):
+        self.assertEqual(self._search({"response": {"jeux": [{}]}}), [])
+
+    def test_null_response_lists_nothing(self):
+        self.assertEqual(self._search({"response": None}), [])
+        self.assertEqual(self._search({"response": {"jeux": None}}), [])
+
+
 class TestScreenScraperRecording(unittest.TestCase):
 
     def setUp(self):
