@@ -59,26 +59,25 @@ def apply_directional_shading(
     arr = np.array(image.convert("RGBA"))
     h, w = arr.shape[:2]
 
-    if direction == "left":
-        factor = np.linspace(1.0 - intensity, 1.0, w, dtype=np.float32)
-        arr[:, :, :3] = (arr[:, :, :3] * factor[np.newaxis, :, np.newaxis]).astype(np.uint8)
-    elif direction == "right":
-        factor = np.linspace(1.0, 1.0 - intensity, w, dtype=np.float32)
-        arr[:, :, :3] = (arr[:, :, :3] * factor[np.newaxis, :, np.newaxis]).astype(np.uint8)
-    elif direction == "top":
-        factor = np.linspace(1.0 - intensity, 1.0, h, dtype=np.float32)
-        arr[:, :, :3] = (arr[:, :, :3] * factor[:, np.newaxis, np.newaxis]).astype(np.uint8)
-    elif direction == "bottom":
-        factor = np.linspace(1.0, 1.0 - intensity, h, dtype=np.float32)
-        arr[:, :, :3] = (arr[:, :, :3] * factor[:, np.newaxis, np.newaxis]).astype(np.uint8)
+    # The gradient runs from the dark side to the light one, along x for
+    # left/right and along y for top/bottom.
+    horizontal = direction in ("left", "right")
+    dark_first = direction in ("left", "top")
+    start, stop = (1.0 - intensity, 1.0) if dark_first else (1.0, 1.0 - intensity)
+    factor = np.linspace(start, stop, w if horizontal else h, dtype=np.float32)
+    factor = factor[np.newaxis, :, np.newaxis] if horizontal else factor[:, np.newaxis, np.newaxis]
+    arr[:, :, :3] = (arr[:, :, :3] * factor).astype(np.uint8)
 
     return Image.fromarray(arr, "RGBA")
 
 
 def apply_uniform_shading(image: Image.Image, intensity: float = 0.15) -> Image.Image:
     """Apply uniform darkening via direct pixel multiplication."""
+    # Clamped as in apply_directional_shading: outside 0-1 the factor leaves
+    # 0-1 and astype(np.uint8) wraps instead of saturating.
+    intensity = min(max(intensity, 0.0), 1.0)
     arr = np.array(image.convert("RGBA"))
-    arr[:, :, :3] = (arr[:, :, :3] * (1.0 - intensity)).astype(np.uint8)
+    arr[:, :, :3] = (arr[:, :, :3] * np.float32(1.0 - intensity)).astype(np.uint8)
     return Image.fromarray(arr, "RGBA")
 
 
