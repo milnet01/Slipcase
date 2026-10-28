@@ -63,6 +63,20 @@ class TestScreenScraperEmptyReplies(unittest.TestCase):
         self.assertEqual(self._search({"response": {"jeux": None}}), [])
 
 
+class TestTheGamesDBNullReplies(unittest.TestCase):
+
+    def test_null_sections_list_nothing(self):
+        response = requests.Response()
+        response.status_code = 200
+        response._content = b'{"data": null, "include": null}'
+        response.encoding = "utf-8"
+        client = TheGamesDBAPI("key")
+        client.min_request_interval = 0
+        with patch.object(client._session, "get", return_value=response):
+            self.assertEqual(client.search_game("Nothing"), [])
+        client.close()
+
+
 class TestScreenScraperRecording(unittest.TestCase):
 
     def setUp(self):

@@ -19,6 +19,11 @@ class TheGamesDBResult:
     front_thumb_url: str | None = None
 
 
+def _dict(value: object) -> dict:
+    """`value` if it is a dict, else an empty one."""
+    return value if isinstance(value, dict) else {}
+
+
 class TheGamesDBAPI(APIClient):
     """Client for TheGamesDB API v1."""
 
@@ -57,15 +62,20 @@ class TheGamesDBAPI(APIClient):
             return []
 
         results = []
-        games = data.get("data", {}).get("games", [])
-        images = data.get("include", {}).get("boxart", {}).get("data", {})
-        base_url = data.get("include", {}).get("boxart", {}).get("base_url", {})
-        original_base = base_url.get("original", self.IMAGE_BASE + "/")
+        # Any level may be null or missing; a chained .get() on None raised
+        # AttributeError out of the search.
+        games = _dict(data.get("data")).get("games") or []
+        boxart = _dict(_dict(data.get("include")).get("boxart"))
+        images = _dict(boxart.get("data"))
+        base_url = _dict(boxart.get("base_url"))
+        original_base = base_url.get("original") or self.IMAGE_BASE + "/"
         thumb_base = base_url.get("thumb")
 
         for game in games:
+            if not isinstance(game, dict):
+                continue
             game_id = game.get("id", 0)
-            game_images = images.get(str(game_id), [])
+            game_images = images.get(str(game_id)) or []
 
             front_url = None
             front_thumb_url = None
