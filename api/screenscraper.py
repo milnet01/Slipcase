@@ -138,8 +138,16 @@ class ScreenScraperAPI(APIClient):
             # -- a refused login, quota exhaustion -- raises in get_json().
             return []
 
+        response = data.get("response")
+        games = response.get("jeux") if isinstance(response, dict) else None
+        if not isinstance(games, list):
+            return []
         results = []
-        for game in data.get("response", {}).get("jeux", []):
+        for game in games:
+            # A search with no match is answered "jeux": [{}], one empty
+            # game, which would otherwise list as a nameless result.
+            if not isinstance(game, dict) or not game.get("id"):
+                continue
             result = self._parse_game(game)
             if result:
                 results.append(result)
