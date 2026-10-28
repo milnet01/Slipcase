@@ -15,6 +15,7 @@ from core.image_utils import (
     extract_dominant_edge_color,
     generate_reflection,
     apply_directional_shading,
+    apply_uniform_shading,
 )
 from core.config import Config
 
@@ -63,6 +64,23 @@ class TestImageUtils(unittest.TestCase):
         shaded = apply_directional_shading(img, direction="left", intensity=0.3)
         self.assertEqual(shaded.size, img.size)
         self.assertEqual(shaded.mode, "RGBA")
+
+    def test_directional_shading_darkens_the_named_side(self):
+        img = self._make_test_image(w=50, h=50, color=(200, 200, 200))
+        for direction, dark, light in (
+            ("left", (0, 25), (49, 25)), ("right", (49, 25), (0, 25)),
+            ("top", (25, 0), (25, 49)), ("bottom", (25, 49), (25, 0)),
+        ):
+            shaded = apply_directional_shading(img, direction=direction, intensity=0.5)
+            self.assertEqual(shaded.getpixel(dark)[0], 100, direction)
+            self.assertEqual(shaded.getpixel(light)[0], 200, direction)
+
+    def test_uniform_shading_clamps_intensity(self):
+        # Above 1.0 the factor went negative and uint8 wrapped to bright.
+        img = self._make_test_image(color=(200, 200, 200))
+        self.assertEqual(apply_uniform_shading(img, 1.5).getpixel((0, 0))[:3], (0, 0, 0))
+        self.assertEqual(apply_uniform_shading(img, -0.5).getpixel((0, 0))[:3],
+                         (200, 200, 200))
 
 
 class TestCaseTexture(unittest.TestCase):
