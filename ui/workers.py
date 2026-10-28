@@ -400,6 +400,8 @@ class AnimationWorker(QThread):
 
             # Normalize all frames in-place to the same size (frees originals)
             for i, frame in enumerate(frames):
+                if frame.size == (max_w, max_h):
+                    continue  # Already full size; a copy would change nothing
                 canvas = Image.new("RGBA", (max_w, max_h), (0, 0, 0, 0))
                 ox = (max_w - frame.size[0]) // 2
                 oy = max_h - frame.size[1]  # bottom-align
