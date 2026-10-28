@@ -939,18 +939,21 @@ class MainWindow(QMainWindow):
 
     def _load_front(self) -> None:
         img, path = self._load_image_dialog("Open Cover Image")
-        if img:
-            self._front_image_path = path
-            note = self._detect_case(path) if path else None
-            self._set_front_image(img)
-            self._show_case_note(note)
-            if path:
-                self._add_to_recent(path)
-                # Auto-populate title from parent folder name (preferred) or filename
-                if not self.title_input.text().strip():
-                    folder_name = Path(path).parent.name
-                    file_stem = Path(path).stem
-                    self.title_input.setText(folder_name if folder_name else file_stem)
+        if img and path:
+            self._adopt_front_file(img, path)
+
+    def _adopt_front_file(self, img: Image.Image, path: str) -> None:
+        """Make `img`, read from `path`, the front cover: detect its case,
+        add it to the recent list and fill an empty title from its name."""
+        self._front_image_path = path
+        note = self._detect_case(path)
+        self._set_front_image(img)
+        self._show_case_note(note)
+        self._add_to_recent(path)
+        # Auto-populate title from parent folder name (preferred) or filename
+        if not self.title_input.text().strip():
+            p = Path(path)
+            self.title_input.setText(p.parent.name or p.stem)
 
     def _show_case_note(self, note: str | None) -> None:
         """Add _detect_case's note to the status line _set_front_image left."""
@@ -1779,17 +1782,9 @@ class MainWindow(QMainWindow):
         try:
             img = Image.open(path)
             img.load()  # Read into memory, release file handle
-            self._front_image_path = path
-            note = self._detect_case(path)
-            self._set_front_image(img)
-            self._show_case_note(note)
-            self._add_to_recent(path)
+            self._adopt_front_file(img, path)
             self.config.set("ui", "last_image_directory", str(p.parent))
             self._save_config()
-            # Auto-populate title from parent folder name or filename
-            if not self.title_input.text().strip():
-                folder_name = p.parent.name
-                self.title_input.setText(folder_name if folder_name else p.stem)
         except Exception as e:
             QMessageBox.warning(
                 self, self.tr("Error"),
