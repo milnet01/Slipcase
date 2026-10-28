@@ -300,13 +300,15 @@ class BoxRenderer:
         oy = proj_top_h + _CANVAS_TOP_PAD * scale
 
         # --- Warp spine and front in parallel (both release the GIL) ---
+        # How far each far edge (the spine's left, the front's right) is
+        # pulled in at top and bottom.
         far_shrink = int(front_h * (1 - v_shrink) / 2)
         spine_args = dict(
             image=spine_shaded, src_w=spine_w, src_h=front_h,
-            dst_tl=(ox, oy + int(front_h * (1 - v_shrink) / 2)),
+            dst_tl=(ox, oy + far_shrink),
             dst_tr=(ox + proj_spine_w, oy),
             dst_br=(ox + proj_spine_w, oy + front_h),
-            dst_bl=(ox, oy + front_h - int(front_h * (1 - v_shrink) / 2)),
+            dst_bl=(ox, oy + front_h - far_shrink),
             canvas_size=(total_w, canvas_h),
         )
         front_args = dict(
@@ -347,7 +349,6 @@ class BoxRenderer:
                 proj_spine_w=proj_spine_w,
                 proj_top_h=proj_top_h,
                 ox=ox, oy=oy,
-                v_shrink=v_shrink,
                 front_h=front_h,
                 far_shrink=far_shrink,
                 canvas_size=(total_w, canvas_h),
@@ -359,7 +360,7 @@ class BoxRenderer:
 
         # --- Edge highlights ---
         canvas = self._add_edge_lines(canvas, ox, oy, proj_spine_w, proj_front_w,
-                                       front_h, far_shrink, proj_top_h, v_shrink, scale)
+                                       front_h, far_shrink, proj_top_h, scale)
 
         # --- Back view: flip the finished box back the right way round ---
         # Before the shadow and reflection, so both still fall right and down.
@@ -459,8 +460,7 @@ class BoxRenderer:
             if image.size != (src_w, src_h):
                 img_arr = cv2.resize(img_arr, (src_w, src_h),
                                      interpolation=cv2.INTER_LANCZOS4)
-            resized_arr = img_arr
-            padded_arr = cv2.copyMakeBorder(resized_arr, pad, pad, pad, pad,
+            padded_arr = cv2.copyMakeBorder(img_arr, pad, pad, pad, pad,
                                             cv2.BORDER_REPLICATE)
             src_pts = np.float32(src_points)
             dst_pts = np.float32(dst_points)
@@ -515,7 +515,7 @@ class BoxRenderer:
         front_w: int, spine_w: int,
         proj_front_w: int, proj_spine_w: int, proj_top_h: int,
         ox: int, oy: int,
-        v_shrink: float, front_h: int, far_shrink: int,
+        front_h: int, far_shrink: int,
         canvas_size: tuple[int, int],
         top_color: tuple[int, int, int],
         bottom_color: tuple[int, int, int],
@@ -524,11 +524,9 @@ class BoxRenderer:
         canvas = Image.new("RGBA", canvas_size, (0, 0, 0, 0))
         draw = ImageDraw.Draw(canvas)
 
-        spine_far_y_offset = int(front_h * (1 - v_shrink) / 2)
-
         # --- Top face ---
         tr, tg, tb = top_color
-        spine_top_l = (ox, oy + spine_far_y_offset)
+        spine_top_l = (ox, oy + far_shrink)
         spine_top_r = (ox + proj_spine_w, oy)
         front_top_r = (ox + proj_spine_w + proj_front_w, oy + far_shrink)
 
@@ -546,7 +544,7 @@ class BoxRenderer:
 
         # --- Bottom face ---
         br, bg, bb = bottom_color
-        spine_bot_l = (ox, oy + front_h - spine_far_y_offset)
+        spine_bot_l = (ox, oy + front_h - far_shrink)
         spine_bot_r = (ox + proj_spine_w, oy + front_h)
         front_bot_r = (ox + proj_spine_w + proj_front_w, oy + front_h - far_shrink)
 
@@ -569,14 +567,12 @@ class BoxRenderer:
         ox: int, oy: int,
         proj_spine_w: int, proj_front_w: int,
         front_h: int, far_shrink: int, proj_top_h: int,
-        v_shrink: float, scale: int,
+        scale: int,
     ) -> Image.Image:
         """Draw subtle edge lines for definition."""
         draw = ImageDraw.Draw(canvas)
         edge_color = (255, 255, 255, int(255 * _HIGHLIGHT_ALPHA))
         dark_edge = (0, 0, 0, int(255 * _DARK_EDGE_ALPHA))
-
-        spine_far_y_offset = int(front_h * (1 - v_shrink) / 2)
 
         # Spine-front edge (vertical, top to bottom including faces)
         draw.line(
@@ -593,7 +589,7 @@ class BoxRenderer:
         )
 
         # Bottom edge lines
-        spine_bot_l = (ox, oy + front_h - spine_far_y_offset + proj_top_h)
+        spine_bot_l = (ox, oy + front_h - far_shrink + proj_top_h)
         spine_bot_r = (ox + proj_spine_w, oy + front_h + proj_top_h)
         front_bot_r = (ox + proj_spine_w + proj_front_w, oy + front_h - far_shrink + proj_top_h)
 
