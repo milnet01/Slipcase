@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: SLIP=120 -->
+<!-- ants-roadmap-id-high-water: SLIP=122 -->
 
 # Slipcase — Roadmap
 
@@ -249,6 +249,14 @@ which covers the source repository going public.
   The last loop's 8 fixes were read by no lane, so implementation
   is their reader. Spec status: accepted. Loop log:
   docs/reviews/SLIP-0031-auto-update-loop-log.md. No deferred tail.
+  Built (2026-10-29) to the accepted spec: api/releases.py,
+  core/updater.py, core/update_installer.py, ui/update_dialog.py and
+  tests/test_updater.py (every invariant seen red first; 38 mutations
+  each caught). One /code-review high pass found 10 candidates: 4 fixed
+  (82c53c9 before rebase), 6 dismissed or filed as SLIP-0121 and
+  SLIP-0122. Suite 323 passed, 2 skipped. Not yet run: § 7.1's manual
+  N -> N+1 update on Linux and Windows, which needs the release after the
+  one that ships this (user decision 2026-10-29).
   **Layman:** The app can notice a new version, ask if you want it, and install it for you.
   Kind: feature.
   Source: user-request-2026-08-27.
@@ -2438,3 +2446,30 @@ building.
   Kind: fix.
   Source: session-2026-10-21.
   Lanes: core.
+
+- 📋 [SLIP-0121] **Closing the window during a stalled update check can abort Slipcase on exit.**
+  From the 2026-10-29 /code-review of the SLIP-0031 updater, not yet
+  reproduced. ui/main_window.py closeEvent waits 5 s per worker and keeps
+  the reference when the thread is still running. UpdateCheckWorker has
+  no interruption point inside fetch_latest_release (10 s connect, a read
+  timeout per gap, a body deadline), and UpdateDownloadWorker checks
+  should_stop only between reads and not during verify and copy. A
+  thread still running when the QApplication ends is destroyed live,
+  which aborts the process. Shared with the other workers' pattern;
+  whether the interpreter exit actually aborts here is unverified.
+  **Layman:** If you close Slipcase seconds after it starts on a very slow connection, it may crash instead of closing cleanly.
+  Kind: fix.
+  Source: code-review-2026-10-29.
+  Lanes: ui.
+
+- 📋 [SLIP-0122] **The release client copies api/base.py's redirect loop instead of sharing it.**
+  From the 2026-10-29 /code-review of SLIP-0031: api/releases.py _open
+  repeats APIClient._get_validated's manual redirect loop (allowlist
+  re-check per hop, urljoin, no-Location and too-many-redirects errors),
+  differing only in the allowlist test and the exception type. A shared
+  helper taking the check as a parameter would keep one copy of the
+  STANDARDS.md § 10 per-hop rule.
+  **Layman:** Two copies of the same safety check could drift apart when one is changed.
+  Kind: refactor.
+  Source: code-review-2026-10-29.
+  Lanes: api.
