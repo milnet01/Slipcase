@@ -1,7 +1,7 @@
 <!-- ants-spec-format: 1 -->
 # SLIP-0030 — Sign every release download with Ed25519
 
-**Status:** spec draft (2026-10-29).
+**Status:** accepted (2026-10-29).
 **Kind:** security.
 **Source:** ROADMAP SLIP-0030 (user-request-2026-08-27).
 **Blocker for:** SLIP-0031 (the updater verifies these signatures;
@@ -111,10 +111,11 @@ secret with `gh secret set SLIPCASE_SIGNING_KEY < release/slipcase-signing.key`,
 keeps a copy off this machine (§ 14 Q1), and deletes the file.
 
 **Landing order.** The real public key exists only once the user has run
-this script, and INV-6 fails on a placeholder. So the change lands in two
-commits. The first carries this script, the dependency (§ 4.6) and the
-`.gitignore` line. The user then runs the script. The second carries
-`core/update_key.py` with the real key, and the rest of this spec.
+this script. So the change lands in two commits. The first carries this
+script, § 4.6's `requirements.txt`, `requirements.lock` and `STANDARDS.md`
+changes, and the `.gitignore` line. The user then runs the script. The
+second carries `core/update_key.py` with the real key, the `_smoke` check,
+and the rest of this spec.
 `public_key()` has no path for a missing key.
 
 ### 4.4 Signing — `scripts/sign-release.py`
@@ -211,7 +212,7 @@ build venv is used because the build scripts already install
   `.sig` of the file the job built.
   *Test:* `tests/test_release_signing.py::TestWorkflow::test_sig_uploaded`
   — for each asset in § 4.1's table, its `.sig` appears in that job's
-  `upload-artifact` `path:` block and on its `gh release upload` line.
+  `upload-artifact` `path:` block and in its `gh release upload` command.
   *Breaks when:* a job signs but uploads only the asset and `.sha256`.
 
 - **INV-6** — `RELEASE_PUBLIC_KEY_B64` decodes to a valid 32-byte Ed25519
@@ -221,8 +222,10 @@ build venv is used because the build scripts already install
   `core.update_key` made to raise on import. It expects a non-zero exit and
   no `slipcase smoke OK` line. The build scripts check for that line, so
   this holds whether the import fails at start-up or inside `_smoke`.
-  *Breaks when:* the constant is a placeholder or truncated, or `_smoke`
-  skips the key check.
+  *Breaks when:* the constant is truncated or not base64, or `_smoke`
+  skips the key check. A well-formed 32-byte placeholder passes, since
+  `Ed25519PublicKey.from_public_bytes` accepts any 32 bytes (`cryptography`
+  50.0.1, 2026-10-29). § 4.4 step 3 then stops every release job.
 
 - **INV-7** — `gen-signing-key.py` refuses to overwrite an existing key
   file, creates it with mode `0o600`, and its key signs a file that
