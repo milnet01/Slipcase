@@ -72,7 +72,7 @@ departs from finbreak, § 16 says why.
 | `ui/settings_dialog.py` | no | Gains an **Updates** tab |
 | `ui/main_window.py` | no | Starts the check; owns the dialog; the shutdown hook (§ 4.8) |
 | `core/config.py` | no | Gains the `updates` section |
-| `main.py` | no | Hands the window its single-instance release; runs the stale clean-up |
+| `main.py` | no | Passes `instance.release` to `MainWindow`; runs the stale clean-up |
 
 ### 4.2 Settings
 
@@ -140,6 +140,9 @@ class UpdateOffer:
     sig_url: str | None
 ```
 
+`check_for_update` returns `None` without calling `fetch` unless
+`updates.check` is exactly `True` (INV-1).
+
 1. **The endpoint:** `GET https://api.github.com/repos/milnet01/Slipcase/releases/latest`.
    GitHub's documentation says it returns the newest release that is
    neither a draft nor a prerelease (unverified here beyond finbreak's use
@@ -199,6 +202,11 @@ def download(url: str, dest: Path, *, max_bytes: int,
   body shorter than a stated `Content-Length` is an error, so a dropped
   connection is not reported as tampering (finbreak FIBR-0327). It checks
   `should_stop()` after each read. Any failure deletes `dest`.
+  `on_progress(received, total)` gives `total` as the `Content-Length`, or
+  `0` when there is none.
+- **Errors:** both calls raise `ReleaseError`, new in `api/releases.py`, for
+  a network, HTTP, size, time or stop failure, and `OSError` for a failure
+  writing `dest`. So `core/updater.py` never catches a `requests` type.
 - **Each call opens its own `requests.Session` and closes it in
   `finally`** (`STANDARDS.md` § 12, API Sessions).
 
@@ -225,8 +233,8 @@ def download_and_verify(offer: UpdateOffer, installer: Installer, *,
    temp.
 
 Any failure deletes every temp and raises: `UpdateVerificationError` for a
-bad signature, `UpdateDownloadError` for the network, `UpdateError` for the
-disk. All three are new, in `core/updater.py`, and derive from
+bad signature, `UpdateDownloadError` for a `ReleaseError`, `UpdateError` for
+the disk. All three are new, in `core/updater.py`, and derive from
 `UpdateError`.
 
 ### 4.7 The Installer seam
@@ -307,7 +315,10 @@ runs.
   - Otherwise starts one `UpdateDownloadWorker` and shows a progress bar,
     determinate when `Content-Length` is known.
   - On `ready(str)`: if the dialog has since closed, delete the file and
-    stop. Otherwise call `installer.apply(path, window.shutdown_for_update)`.
+    stop. If `_busy_worker()` returns a worker, delete the file and show the
+    busy message above. Otherwise call
+    `installer.apply(path, window.shutdown_for_update)`, and show an
+    `UpdateError` it raises in a `QMessageBox.warning`.
   - On `error(str)`: show it in a `QMessageBox.warning`. A verification
     failure says *The download could not be verified, so nothing was
     installed.*
@@ -322,8 +333,10 @@ runs.
 
 1. `_save_state()`, which saves the config.
 2. Clears images as `closeEvent` does.
-3. Calls the single-instance release `main.py` handed it, so the new copy
-   takes the lock.
+3. Calls `release_instance`, so the new copy takes the lock. It is the
+   argument of `MainWindow(config, release_instance: Callable[[], None] | None = None)`.
+   `main.py::main` passes `instance.release`; `None`, as `_smoke` passes,
+   releases nothing.
 
 ### 4.9 Workers
 
@@ -391,9 +404,9 @@ signatures use a throwaway key monkeypatched over `RELEASE_PUBLIC_KEY_B64`.
   302 points at `https://example.com/` and then at `http://github.com/` —
   both refused before the second request); `TestNetwork::test_exact_hosts`
   (`evil.github.com`, `raw.githubusercontent.com` refused);
-  `TestNetwork::test_network_imports_confined` — a source scan: `requests`,
-  `urllib.request`, `http.client` and `socket` are imported only under
-  `api/`; and `tests/test_security.py` gains a case asserting
+  `TestNetwork::test_network_imports_confined` — a source scan outside
+  `tests/`: `requests`, `urllib.request`, `http.client` and `socket` are
+  imported only under `api/`; and `tests/test_security.py` gains a case asserting
   `ALLOWED_IMAGE_DOMAINS` is exactly its three hosts.
   *Breaks when:* `download` passes `allow_redirects=True`, or
   `core/updater.py` imports `requests`.
@@ -409,7 +422,8 @@ signatures use a throwaway key monkeypatched over `RELEASE_PUBLIC_KEY_B64`.
 - **INV-7** — Nothing is installed unless its signature verifies, and the
   file handed to `apply` holds exactly the verified bytes.
   *Test:* `TestVerify::test_good_signature` (the returned path's bytes equal
-  the signed blob; no other `slipcase-update-*` file remains);
+  the signed blob; on POSIX, with an `AppImageInstaller`, its mode is
+  `0o755`; no other `slipcase-update-*` file remains);
   `TestVerify::test_tamper` (one byte changed in the blob, then in the
   signature → `UpdateVerificationError`, every temp gone); and
   `TestDialog::test_verify_failure_never_applies` (a fake installer's
@@ -427,12 +441,11 @@ signatures use a throwaway key monkeypatched over `RELEASE_PUBLIC_KEY_B64`.
 - **INV-9** — Linux install: the swap is in the target's folder; a failed
   replace leaves the old file byte-identical and the app running; the
   waiter gets the path as `$1`.
-  *Test:* `TestAppImage` with `os.replace`, `subprocess.Popen` and
-  `os._exit` monkeypatched: success → target holds the new bytes with mode
-  `0o755`, the argv ends `["sh", <target>]`, the script text does not
+  *Test:* `TestAppImage` with `subprocess.Popen` and `os._exit`
+  monkeypatched: success → target holds the new bytes, the argv ends `["sh", <target>]`, the script text does not
   contain the target path, `start_new_session` is `True`, the env has
   `PYINSTALLER_RESET_ENVIRONMENT=1` and no `APPIMAGE`, and `before_exit`
-  runs before `os._exit`; `os.replace` raising → target unchanged, temp
+  runs before `os._exit`; `os.replace` patched to raise → target unchanged, temp
   gone, `before_exit` not called; `Popen` raising → `UpdateError`,
   `before_exit` not called. The target path used is `it's here.AppImage`.
   *Breaks when:* the path is formatted into the script, or `before_exit`
@@ -460,14 +473,18 @@ signatures use a throwaway key monkeypatched over `RELEASE_PUBLIC_KEY_B64`.
   **Update now**.
 
 - **INV-12** — Before the app exits for an update, the config is saved and
-  the single-instance lock released; and **Update now** does nothing while
-  a render, batch or animation runs.
+  the single-instance lock released. Nothing is installed while a render,
+  batch or animation runs, and an `UpdateError` from `apply` is shown, not
+  raised.
   *Test:* `TestWindow::test_shutdown_for_update` — a changed setting is in
   the saved file and a fresh `SingleInstance` on the same folder acquires;
-  `TestDialog::test_refused_while_busy` — with a fake running worker no
-  `UpdateDownloadWorker` starts.
-  *Breaks when:* `shutdown_for_update` skips `_save_state`, or the busy
-  check is dropped.
+  `TestDialog::test_refused_while_busy` — with a fake running worker,
+  **Update now** starts no `UpdateDownloadWorker`, and a `ready` deletes its
+  file without calling `apply`; `TestDialog::test_apply_error_shown` — a
+  fake `apply` raising `UpdateError` shows a warning and the slot raises
+  nothing.
+  *Breaks when:* `shutdown_for_update` skips `_save_state`, either busy
+  check is dropped, or the `ready` slot lets `UpdateError` escape.
 
 - **INV-13** — Update workers follow `STANDARDS.md` § 12, and a download
   that finishes after its dialog closed is deleted, not installed.
@@ -612,7 +629,7 @@ Needs two real signed releases: N carrying the updater, then N+1 (§ 15 Q2).
 | INV-9 | **Partial:** `tests/test_updater.py::TestAppImage` checks the command and the order; the real wait and relaunch are § 7.1 step 1 |
 | INV-10 | **Partial:** `tests/test_updater.py::TestWindows` checks the command and the order; the real swap is § 7.1 step 2 |
 | INV-11 | **Partial:** `tests/test_updater.py::TestMode::test_macos_notify`, `TestDialog::test_open_release_page`; a real Mac is § 7.1 step 3, unrun |
-| INV-12 | `tests/test_updater.py::TestWindow::test_shutdown_for_update`, `TestDialog::test_refused_while_busy` |
+| INV-12 | `tests/test_updater.py::TestWindow::test_shutdown_for_update`, `TestDialog::test_refused_while_busy`, `TestDialog::test_apply_error_shown` |
 | INV-13 | `tests/test_updater.py::TestDialog::test_late_ready`, `TestWindow::test_close_stops_update_workers` |
 | INV-14 | `tests/test_updater.py::TestDialog::test_no_exec` |
 | INV-15 | `tests/test_updater.py::TestLeftovers` |
