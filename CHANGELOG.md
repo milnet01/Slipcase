@@ -33,7 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   A Japanese cover gets the tall Super Famicom or Japanese N64 box.
 
 - **Turn the box in 3D, and save it for RetroDB** (SLIP-0104)
-  A new 3D View shows all six sides of the box. Turn it with the mouse or
+  A new 3D View shows all six sides of the box. Press the 3D View button
+  under the preview, or Ctrl+3, to open it. Turn it with the mouse or
   the arrow keys, zoom with the wheel, or let Auto-spin turn it. Exports and
   batch renders now also save a box file beside each PNG, ready for RetroDB's
   planned importer. A setting under Settings, Export turns the box file off.
@@ -43,6 +44,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   console maker, publisher or cover-art service.
 
 ### Changed
+
+- **Online cover search is faster**
+  ScreenScraper, TheGamesDB and libretro are now asked at the same time.
+  A search takes as long as the slowest service, not all three added
+  together. A service that cannot start no longer stops the others.
 
 - **Each console now has its own DVD, Blu-ray or handheld case, in its real
   size and plastic** (SLIP-0107)
@@ -61,6 +67,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Dreamcast ones.
 
 ### Fixed
+
+- **A ScreenScraper search with no match no longer lists a nameless game**
+  An empty or partial reply from ScreenScraper or TheGamesDB now gives no
+  results, instead of failing the whole search.
 
 - **A jewel case's back no longer shows the lid's double line** (SLIP-0106)
   The two lines beside the hinge mark where the front lid opens, so they

@@ -317,10 +317,10 @@ class TestExportPng(unittest.TestCase):
     def test_compare_and_3d_view_exclude_each_other(self):
         with tempfile.TemporaryDirectory() as d:
             window = self._window(d)
-            window.view_3d_check.setChecked(True)
+            window.view_3d_btn.setChecked(True)
             self.assertEqual(window.preview_stack.currentIndex(), 2)
             window.compare_check.setChecked(True)
-            self.assertFalse(window.view_3d_check.isChecked())
+            self.assertFalse(window.view_3d_btn.isChecked())
             self.assertEqual(window.preview_stack.currentIndex(), 1)
             window._toggle_3d_view()
             self.assertFalse(window.compare_check.isChecked())

@@ -565,13 +565,14 @@ class MainWindow(QMainWindow):
         self.compare_check.setToolTip(self.tr("Show original cover alongside 3D render (Ctrl+D)"))
         self.compare_check.toggled.connect(self._on_compare_toggled)
         compare_row.addWidget(self.compare_check)
-        self.view_3d_check = QCheckBox(self.tr("3D View"))
-        self.view_3d_check.setToolTip(self.tr(
+        self.view_3d_btn = QPushButton(self.tr("3D View"))
+        self.view_3d_btn.setCheckable(True)
+        self.view_3d_btn.setToolTip(self.tr(
             "Turn the box with the mouse, move it with the right button, zoom "
             "with the wheel; double-click to reset (Ctrl+3)"
         ))
-        self.view_3d_check.toggled.connect(self._on_view_3d_toggled)
-        compare_row.addWidget(self.view_3d_check)
+        self.view_3d_btn.toggled.connect(self._on_view_3d_toggled)
+        compare_row.addWidget(self.view_3d_btn)
         self.auto_spin_btn = QPushButton(self.tr("Auto-spin"))
         self.auto_spin_btn.setCheckable(True)
         self.auto_spin_btn.setEnabled(False)
@@ -1606,7 +1607,7 @@ class MainWindow(QMainWindow):
 
     def _on_compare_toggled(self, checked: bool) -> None:
         if checked:
-            self.view_3d_check.setChecked(False)
+            self.view_3d_btn.setChecked(False)
         self._update_preview_page()
 
     def _toggle_compare(self) -> None:
@@ -1626,11 +1627,11 @@ class MainWindow(QMainWindow):
         self._update_preview_page()
 
     def _toggle_3d_view(self) -> None:
-        self.view_3d_check.setChecked(not self.view_3d_check.isChecked())
+        self.view_3d_btn.setChecked(not self.view_3d_btn.isChecked())
 
     def _update_preview_page(self) -> None:
         """Comparison and the 3D view exclude each other; neither is page 0."""
-        if self.view_3d_check.isChecked():
+        if self.view_3d_btn.isChecked():
             self.preview_stack.setCurrentIndex(2)
         elif self.compare_check.isChecked():
             self.preview_stack.setCurrentIndex(1)
