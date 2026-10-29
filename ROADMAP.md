@@ -206,6 +206,13 @@ which covers the source repository going public.
   capped calm at a spec's cap; 7 verified findings fixed, none deferred.
   docs/specs/SLIP-0030-release-signing.md is accepted (2026-10-29).
   Loop log: docs/reviews/SLIP-0030-release-signing-loop-log.md.
+  Built (2026-10-29): 562b76f (key script, dependency), a76cbf5 (public
+  key, sign-release.py, workflow steps, --smoke key check), ca87d5f
+  (cryptography 48.0.1 on Intel Macs, which get no wheel from 49 on). The
+  user made the key, loaded the secret and deleted the file. Hand-run
+  release build 40950313461: all four jobs signed; each downloaded file's
+  .sig verified against core/update_key.py. Ships in the next release;
+  § 7.1's check then runs on the release itself.
   **Layman:** Put a tamper-proof seal on each download so the app can tell a real release from a fake one.
   Kind: security.
   Source: user-request-2026-08-27.
