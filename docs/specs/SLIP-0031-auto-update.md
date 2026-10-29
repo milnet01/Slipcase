@@ -1,7 +1,7 @@
 <!-- ants-spec-format: 1 -->
 # SLIP-0031 — Offer an opt-in in-app update, modelled on finbreak
 
-**Status:** spec draft (2026-10-29).
+**Status:** accepted (2026-10-29).
 **Kind:** feature.
 **Source:** ROADMAP SLIP-0031 (user-request-2026-08-27). Ported from
 finbreak's updater: its contract `tests/features/auto_update/spec.md`, and
@@ -219,16 +219,16 @@ def download_and_verify(offer: UpdateOffer, installer: Installer, *,
 ```
 
 1. Stage two temps in `installer.target_path().parent`, named
-   `slipcase-update-<8 random chars><ext>` and the same with `.sig`, by
-   `tempfile.mkstemp`. The same folder keeps the swap a same-filesystem
+   `slipcase-update-<8 random chars><ext>` and
+   `slipcase-update-<8 random chars><ext>.sig`, each by `tempfile.mkstemp`. The same folder keeps the swap a same-filesystem
    move.
 2. Download the asset, then the signature under `MAX_SIGNATURE_BYTES`.
 3. The signature must be exactly 64 bytes.
 4. Read the asset. Verify with `core.update_key.public_key().verify`. A
    failure raises `UpdateVerificationError`.
 5. Write the verified bytes to a fresh temp and delete the download temp,
-   so the file installed is the file checked (finbreak FIBR-0170). On Linux
-   set mode `0o755`.
+   so the file installed is the file checked (finbreak FIBR-0170). For an
+   `AppImageInstaller`, set mode `0o755`.
 6. Delete the signature temp. Release the in-memory copy. Return the fresh
    temp.
 
@@ -308,7 +308,7 @@ runs.
 - Text, plain: *Slipcase {version} is available. You have {current}.*
 - **Later** closes it. Nothing is stored; the next launch offers again.
 - **Skip this version** sets `updates.skipped_version` to the version and
-  calls `config.save()` at once.
+  saves at once through `MainWindow._save_config()`.
 - **Update now** (install mode):
   - While `MainWindow._busy_worker()` returns a worker, it shows *Finish or
     stop the current render first* and does nothing else.
@@ -342,7 +342,8 @@ runs.
 
 Both connect `finished` to `deleteLater` at creation. `closeEvent` adds both
 to the workers it interrupts and waits for (`STANDARDS.md` § 12, QThread
-Lifecycle). `UpdateDownloadWorker` passes `isInterruptionRequested` as
+Lifecycle). `_busy_worker()` keeps its three workers; the update workers
+join `closeEvent` only. `UpdateDownloadWorker` passes `isInterruptionRequested` as
 `should_stop`, so an interrupted download deletes its temps.
 
 | Worker | Signals |
@@ -353,8 +354,8 @@ Lifecycle). `UpdateDownloadWorker` passes `isInterruptionRequested` as
 ### 4.10 Leftovers
 
 `remove_stale_staged_updates(installer)` deletes files beside the target
-that fully match `slipcase-update-[a-z0-9_]{8}` plus one of the staged
-suffixes, are older than one hour, and are not the target. Errors are
+that fully match `slipcase-update-[a-z0-9_]{8}` plus `<ext>` or
+`<ext>.sig`, are older than one hour, and are not the target. Errors are
 logged and ignored. `main.py` calls it after taking the single-instance
 lock, so a second copy never deletes the first copy's download.
 
@@ -384,7 +385,8 @@ signatures use a throwaway key monkeypatched over `RELEASE_PUBLIC_KEY_B64`.
   *Test:* `TestCheck::test_offer_rules`, against current `1.3.1`: `v1.4.0`
   offers; `v1.3.1`, `v1.3.0`, `v1.3.1.0`, `v1.4-rc1`, `latest`, `v1_4.0`
   and `v١.٤.٠` do not; `v1.4.0` with no `.sig`, with two assets of the
-  name, or with an `http://` URL does not; skipped `1.4.0` does not and
+  name, or with an `http://` URL does not; a release whose only assets are
+  `Old-Slipcase-x86_64.AppImage` and its `.sig` does not; skipped `1.4.0` does not and
   `1.4.1` then does.
   *Breaks when:* the grammar uses `int()` alone (`v1_4.0` then offers), or
   the asset match uses `endswith`.
@@ -416,14 +418,14 @@ signatures use a throwaway key monkeypatched over `RELEASE_PUBLIC_KEY_B64`.
   is not 64 bytes is refused.
   *Test:* `TestNetwork::test_caps` with a fake streamed response;
   `TestVerify::test_signature_length`.
-  *Breaks when:* the size check runs after the write, or the short-body
-  check is dropped.
+  *Breaks when:* the size check or the short-body check is dropped.
 
 - **INV-7** — Nothing is installed unless its signature verifies, and the
   file handed to `apply` holds exactly the verified bytes.
   *Test:* `TestVerify::test_good_signature` (the returned path's bytes equal
   the signed blob; on POSIX, with an `AppImageInstaller`, its mode is
-  `0o755`; no other `slipcase-update-*` file remains);
+  `0o755`; it is not the path the injected `download` wrote; no other
+  `slipcase-update-*` file remains);
   `TestVerify::test_tamper` (one byte changed in the blob, then in the
   signature → `UpdateVerificationError`, every temp gone); and
   `TestDialog::test_verify_failure_never_applies` (a fake installer's
@@ -501,8 +503,8 @@ signatures use a throwaway key monkeypatched over `RELEASE_PUBLIC_KEY_B64`.
 
 - **INV-15** — Stale staged files are removed and nothing else is.
   *Test:* `TestLeftovers` — in a temp folder: an old
-  `slipcase-update-abcd1234.AppImage` goes; a new one, the target, and
-  `slipcase-update-notes.txt` stay; an unreadable folder raises nothing.
+  `slipcase-update-abcd1234.AppImage` and `slipcase-update-abcd1234.AppImage.sig`
+  go; a new one, the target, and an old `slipcase-update-notes.txt` stay; an unreadable folder raises nothing.
   *Breaks when:* the pattern is a prefix match, or the age check is dropped.
 
 - **INV-16** — Detection does not adopt another app's AppImage, and an
