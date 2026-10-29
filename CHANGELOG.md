@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Slipcase can tell you when a new version is out** (SLIP-0031)
+  Turn it on in Settings, on the Updates tab; it is off until you do. On
+  Linux and Windows, Update now downloads the new version, checks its
+  signature, installs it and reopens Slipcase. On a Mac it opens the
+  download page. Skip this version stops that version being offered again.
+
 - **Every download on the releases page now has a signature beside it**
   (`.sig`), made with Slipcase's release key. The coming in-app updater will
   refuse any file whose signature does not match (SLIP-0030).

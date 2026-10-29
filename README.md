@@ -122,6 +122,18 @@ keep the project somewhere other than where it is now.
 4. **Export.** For RetroArch, keep the width at or under 512 pixels. For
    LaunchBox, somewhere between 800 and 1200 works well.
 
+## Keeping it up to date
+
+Slipcase can tell you when a new version is out. It is off until you turn it
+on: open **Tools → Settings**, choose the **Updates** tab, and tick **Check
+for new versions when Slipcase starts**. It then asks GitHub once each time
+it starts.
+
+On Linux and Windows, **Update now** downloads the new version, checks that
+the maintainer signed it, replaces your copy and reopens Slipcase. On a Mac
+it only opens the download page. Run from the source code, the setting does
+nothing.
+
 ## Your settings and logins
 
 On Linux and macOS, Slipcase keeps its settings in `~/.config/slipcase/`, or in

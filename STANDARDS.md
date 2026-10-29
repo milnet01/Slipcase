@@ -27,7 +27,7 @@ never whether the result is good enough.
 |--------|---------------|
 | `core/` | Rendering engine, case definitions, image processing, configuration |
 | `ui/` | PyQt6 GUI: windows, dialogs, widgets, background workers, themes |
-| `api/` | External cover art API clients (ScreenScraper, TheGamesDB, libretro) |
+| `api/` | External cover art API clients (ScreenScraper, TheGamesDB, libretro), and the release host the updater asks (`api/releases.py`) |
 | `resources/` | Static assets: icons, platform colors JSON, logos |
 | `tests/` | Unit tests using `unittest` |
 
@@ -37,6 +37,8 @@ never whether the result is good enough.
 main.py
   -> api/base.py            (MAX_IMAGE_PIXELS, applied at import)
   -> core/config.py         (configuration)
+  -> core/update_installer.py (update mode, before the window)
+  -> core/updater.py        (stale staged-update clean-up)
   -> ui/themes.py           (startup stylesheet)
   -> ui/main_window.py       (GUI)
        -> ui/themes.py       (theme system)
@@ -48,6 +50,11 @@ main.py
        -> ui/settings_dialog.py
        -> ui/search_dialog.py
        -> ui/animation_dialog.py
+       -> ui/update_dialog.py (the update offer, SLIP-0031)
+       -> core/update_installer.py (what an update may do here)
+       -> core/updater.py    (update check, download and verify)
+            -> api/releases.py    (the only code that reaches the release host)
+            -> core/update_key.py (the release public key)
        -> core/region.py     (region from a cover's file name)
        -> core/renderer.py   (rendering engine)
             -> core/case_types.py
@@ -81,6 +88,8 @@ Every worker declares `error(str)`.
 | `BatchWorker` | Multi-file processing | `progress(int,int,str)`, `finished_signal(int)`, `error(str)` |
 | `AnimationWorker` | Multi-angle animation | `progress(int,int)`, `finished_signal(str)`, `error(str)` |
 | `SearchWorker` | API game search | `results_ready(list,int)`, `finished_signal()`, `error(str)` |
+| `UpdateCheckWorker` | Asks once per start whether a newer release exists; never emits `error` | `offer_ready(object)`, `error(str)` |
+| `UpdateDownloadWorker` | Downloads and verifies an update | `progress(int,int)`, `ready(str)`, `error(str)` |
 | `PreviewWorker` | Thumbnail download | `preview_ready(Image,int)`, `error(str)` |
 | `DownloadWorker` | Full image download | `image_ready(Image,Image)`, `error(str)` |
 
@@ -347,6 +356,8 @@ rendering/
    compress_level}
 export/
   {box_file}
+updates/
+  {check, skipped_version}
 ui/
   {last_platform, last_case_type, last_image_directory, window_geometry,
    recent_files, theme, auto_filename, last_export_directory}
@@ -355,7 +366,8 @@ ui/
 ### Persistence Rules
 
 - Save on: window close, settings dialog OK, recent file added, image or
-  export directory changed
+  export directory changed, **Skip this version** in the update offer, and
+  `MainWindow.shutdown_for_update()` before an update exits the app
 - Load on: application start (merged with defaults)
 - One copy at a time: `ui/single_instance.py` holds a lock in the runtime
   directory Qt reports -- on Linux `$XDG_RUNTIME_DIR`, or `/tmp/runtime-<user>`,
@@ -440,6 +452,7 @@ Results are aggregated and displayed with source attribution.
 | `test_region.py` | Region from a cover's file name; the case a platform and region pick (SLIP-0106) |
 | `test_jewel.py` | Jewel cases: back-card strips and folds, face sources and layout, plastic colours, overlays, the window's case choice, per-file batch cases (SLIP-0106) |
 | `test_release_signing.py` | Release signing: sign and tamper, bad keys refused, no private key tracked, the secret only in the signing steps, `.sig` uploads, the public key loads, the key script (SLIP-0030) |
+| `test_updater.py` | In-app updater: opt-in, version and asset rules, silent failures, update mode, release allowlist and limits, signature verification, the offer dialog, the window's check and shutdown, the Linux and Windows installers, stale-file clean-up (SLIP-0031) |
 
 ### Test Utilities
 
@@ -476,9 +489,10 @@ them, so a rule is changed here and nowhere else.
 
 ### Image Downloads
 - **Domain allowlist**: `api/base.py` defines `ALLOWED_IMAGE_DOMAINS`, and
-  `_is_allowed_url` gates **every** request -- JSON API calls as well as image
-  downloads. The constant's name is historical. New domains require explicit
-  addition.
+  `_is_allowed_url` gates **every** cover-art request -- JSON API calls as well
+  as image downloads. The constant's name is historical. New domains require
+  explicit addition. The updater's requests have their own list, below; neither
+  list names the other's hosts.
 - **Redirect re-validation**: both paths -- image downloads and JSON API
   calls (`get()`) -- go through `_get_validated`, which follows redirects
   itself with `allow_redirects=False` and re-checks each hop, so a 302 cannot
@@ -489,6 +503,19 @@ them, so a rule is changed here and nowhere else.
   remote response, so adding one back is a deliberate decision.
 - **Size limit**: `MAX_DOWNLOAD_BYTES = 50MB` for an image and `MAX_REPLY_BYTES = 25MB` for a JSON reply, counted after decompression. `_read_body()` reads every reply body, on both paths, and stops at the cap, so an oversized one is never held in memory.
 - **TLS enforcement**: All API requests use `verify=True`. Never disable certificate verification.
+
+### Release Downloads (SLIP-0031)
+- **Release allowlist**: `api/releases.py` is the only code that reaches the
+  release host. `is_allowed_release_url` gates every request it makes against
+  `ALLOWED_RELEASE_HOSTS`: HTTPS, exact host names, no subdomains.
+- **Redirects**: followed by hand with `allow_redirects=False`, each hop
+  re-checked against that list, at most `MAX_REDIRECTS`.
+- **Limits**: the release reply under `MAX_RELEASE_REPLY_BYTES`, an update
+  under `MAX_UPDATE_BYTES` and `MAX_UPDATE_SECONDS`, its signature under
+  `MAX_SIGNATURE_BYTES`. A body shorter than its `Content-Length` is an error.
+- **Verify before install**: `core/updater.py::download_and_verify` checks the
+  64-byte Ed25519 signature against `core/update_key.py` and hands the
+  installer a fresh copy of the verified bytes. Nothing unverified is installed.
 
 ### Credential Protection
 - **Scrubbing**: `_sanitize_message()` strips credential values from error messages and URLs before display or logging. Pattern: `(devpassword|devid|sspassword|ssid|apikey|api_key|password)=***`
@@ -505,7 +532,7 @@ them, so a rule is changed here and nowhere else.
 - **Box-file names**: `write_box_file` refuses, before writing anything, a
   stem whose face names are not single plain file names, so no face lands
   outside the chosen folder (SLIP-0104 INV-10).
-- **No code execution**: User-provided text (titles, serials, filenames) is only rendered as image text via PIL, never passed to `eval`, `exec`, `subprocess`, or shell commands.
+- **No code execution**: User-provided text (titles, serials, filenames) is only rendered as image text via PIL, never passed to `eval`, `exec`, `subprocess`, or shell commands. The updater's installers (`core/update_installer.py`) are the one `subprocess` use: fixed command lines carrying only their own paths, the running copy and the staged update. `/bin/sh` gets the path as an argument, never in its script; PowerShell gets both paths single-quoted with quotes doubled.
 - **File dialogs**: Filter by image extensions to prevent accidental loading of non-image files.
 - **Network**: HTTPS only. `timeout=(10, READ_TIMEOUT)` bounds the connect
   and each read but not the total. `get()`, the JSON path, waits

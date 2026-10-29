@@ -25,6 +25,8 @@ any of them is in scope:
 - **Download allowlist** — image downloads are restricted to known service
   domains (`ALLOWED_IMAGE_DOMAINS` in `api/base.py`). A way to make the app
   fetch a URL outside that list, including through a redirect, is a finding.
+  The in-app updater has its own list, `ALLOWED_RELEASE_HOSTS` in
+  `api/releases.py`; the same holds for it.
 - **Accepted image formats** — a download is decoded only if it is PNG, JPEG
   or WEBP. A way to reach another decoder is a finding.
 - **Download and image size caps** — there is a byte cap on any single
@@ -39,7 +41,9 @@ any of them is in scope:
   a serial, is drawn as image text and never evaluated.
 - **Release signatures** — each release download has a `.sig` beside it, an
   Ed25519 signature checked against the public key in `core/update_key.py`.
-  A way to get an unsigned or wrongly signed file accepted is a finding.
+  A way to get an unsigned or wrongly signed file accepted is a finding, and
+  so is any way to make the in-app updater install a file whose signature
+  does not verify.
 
 ## What is out of scope
 
