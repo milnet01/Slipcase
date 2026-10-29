@@ -236,6 +236,12 @@ which covers the source repository going public.
   the app says a new version is out and opens the release page; it
   installs nothing. Linux and Windows get the full update. Spans
   packaging, security and ui, so it gets a spec before building.
+  Spec gate (2026-10-29): review-contract ran 2 loops on
+  docs/specs/SLIP-0031-auto-update.md and stopped at a spec's cap
+  of 2, a calm cap. 17 verified findings, all fixed; 1 dismissed.
+  The last loop's 8 fixes were read by no lane, so implementation
+  is their reader. Spec status: accepted. Loop log:
+  docs/reviews/SLIP-0031-auto-update-loop-log.md. No deferred tail.
   **Layman:** The app can notice a new version, ask if you want it, and install it for you.
   Kind: feature.
   Source: user-request-2026-08-27.
