@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: SLIP=119 -->
+<!-- ants-roadmap-id-high-water: SLIP=120 -->
 
 # Slipcase — Roadmap
 
@@ -1367,6 +1367,29 @@ building.
   Kind: feature.
   Source: retrodb-comparison-2026-10-29.
   Lanes: core.
+
+- 📋 [SLIP-0120] **Add a "Match RetroDB" view so exported boxes share RetroDB's perspective.**
+  The user, 2026-10-29: "Just a button to match RetroDB so that the boxes
+  we export match."
+  Measured 2026-10-29 from the alpha silhouettes of RetroDB's 3D covers
+  (static/images/boxart_3d, up to 60 per platform and source).
+  ScreenScraper and ES-DE renders gave identical medians, so one fixed
+  camera made them all. The far right edge is 0.78 of the near edge's
+  height on every platform measured (PS1, PS2, GameCube, Mega Drive,
+  Xbox 360). Spine share of the width: 0.09 on DVD cases, 0.115 PS1,
+  0.14 Mega Drive. Near-edge height over total width: 2.0 on DVD cases,
+  1.32 PS1, 1.90 Mega Drive.
+  Slipcase at 30 degrees: far edge 0.92, PS2 ratio 1.56, spine 0.06. At
+  50 degrees the ratio reaches 1.97 but the far edge is still 0.90: the
+  far-edge shrink is a fixed _V_SHRINK_BASE minus a share of the angle
+  (core/renderer.py), so no angle reaches 0.78. The likely fix is a true
+  perspective camera (yaw plus distance) for the face corners, which
+  gives both shrinks from one setting; the preset fits yaw and distance
+  to the figures above. Measurement script: not in the repo (scratch).
+  **Layman:** One button sets the view so the boxes you export look like the 3D boxes already in RetroDB, side by side.
+  Kind: feature.
+  Source: user-request-2026-10-29.
+  Lanes: core, ui.
 
 ## Project record
 
