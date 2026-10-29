@@ -55,12 +55,12 @@
     {
       "name": "packaging",
       "summary": "Turns the source tree into the downloads attached to a release: the bundling recipe, the AppImage, Windows and macOS build scripts and the workflow that runs them. Reviewed for pinned, checksum-verified tools and for a self-check on every build.",
-      "sourcePaths": ["packaging/slipcase.spec", "packaging/linux/AppRun", "packaging/linux/slipcase.desktop", "scripts/build-appimage.sh", "scripts/build-windows.ps1", "scripts/build-macos.sh", ".github/workflows/release.yml"]
+      "sourcePaths": ["packaging/slipcase.spec", "packaging/linux/AppRun", "packaging/linux/slipcase.desktop", "scripts/build-appimage.sh", "scripts/build-windows.ps1", "scripts/build-macos.sh", "scripts/gen-signing-key.py", ".github/workflows/release.yml"]
     },
     {
       "name": "tests",
       "summary": "The test suite. review-code excludes this lane; review-tests is exactly this lane.",
-      "sourcePaths": ["tests/test_regressions.py", "tests/test_renderer.py", "tests/test_security.py", "tests/test_libretro.py", "tests/test_smoke.py", "tests/test_api_recordings.py", "tests/test_search_worker.py", "tests/test_single_instance.py", "tests/conftest.py", "tests/test_box_model.py", "tests/test_box_file.py", "tests/test_box_viewer.py", "tests/test_jewel.py", "tests/test_keep_cases.py", "tests/test_region.py", "tests/test_case_list.py"]
+      "sourcePaths": ["tests/test_regressions.py", "tests/test_renderer.py", "tests/test_security.py", "tests/test_libretro.py", "tests/test_smoke.py", "tests/test_api_recordings.py", "tests/test_search_worker.py", "tests/test_single_instance.py", "tests/conftest.py", "tests/test_box_model.py", "tests/test_box_file.py", "tests/test_box_viewer.py", "tests/test_jewel.py", "tests/test_keep_cases.py", "tests/test_region.py", "tests/test_case_list.py", "tests/test_release_signing.py"]
     }
   ]
 }

@@ -9,6 +9,9 @@ venv/
 build/
 dist/
 
+# The release-signing key (scripts/gen-signing-key.py); never committed
+release/
+
 # Test / tool caches
 .pytest_cache/
 .ruff_cache/

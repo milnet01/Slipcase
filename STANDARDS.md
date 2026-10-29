@@ -623,6 +623,7 @@ pins the bundler the packaged builds are made with.
 | requests >= 2.31 | HTTP client for API access |
 | opencv-python-headless >= 4.9 | Image processing support |
 | scipy >= 1.12 | Image analysis (ndimage for spine detection) |
+| cryptography >= 50 | Ed25519 signing and checking of release downloads (SLIP-0030) |
 
 The table covers pip packages. PyQt6 also needs system libraries pip does not
 install: CI installs `libegl1`, `libgl1`, `libxkbcommon0` and `libdbus-1-3`,

@@ -14,11 +14,14 @@
 #   /tmp/lock/bin/pip freeze > requirements.lock   # then restore this header
 #
 certifi==2026.7.22
+cffi==2.1.1
 charset-normalizer==3.5.1
+cryptography==50.0.2
 idna==3.19
 numpy==2.5.2
 opencv-python-headless==5.0.0.93
 pillow==12.3.0
+pycparser==3.12
 PyQt6==6.11.0
 PyQt6-Qt6==6.11.2
 PyQt6_sip==13.12.0
