@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 _log = logging.getLogger(__name__)
 
 STAGED_PREFIX = "slipcase-update-"
-SIGNATURE_BYTES = 64
+SIGNATURE_BYTES = releases.MAX_SIGNATURE_BYTES
 # A staged file this old belongs to no download still running.
 STALE_SECONDS = 60 * 60
 
@@ -49,6 +49,10 @@ class UpdateDownloadError(UpdateError):
 
 class UpdateVerificationError(UpdateError):
     """The download's signature did not verify."""
+
+
+class UpdateInstalledError(UpdateError):
+    """The new copy is in place, but Slipcase could not restart into it."""
 
 
 @dataclass(frozen=True)
@@ -185,9 +189,9 @@ def download_and_verify(offer: UpdateOffer, installer: Installer, *,
         del data
         if isinstance(installer, AppImageInstaller) and os.name == "posix":
             verified.chmod(0o755)
-        for path in (asset_tmp, sig_tmp):
-            path.unlink()
-            staged.remove(path)
+        # Best effort: a scanner holding a temp open must not cost a verified
+        # update. A temp left here goes at the next start (§ 4.10).
+        _remove([asset_tmp, sig_tmp])
         return verified
     except UpdateError:
         _remove(staged)

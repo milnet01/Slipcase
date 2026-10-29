@@ -18,7 +18,7 @@ from PyQt6.QtWidgets import (
 
 from api import releases
 from core.update_installer import Installer
-from core.updater import UpdateOffer
+from core.updater import UpdateInstalledError, UpdateOffer
 from core.version import __version__
 from ui.workers import UpdateDownloadWorker
 
@@ -146,6 +146,15 @@ class UpdateDialog(QDialog):
             return
         try:
             self._installer.apply(new_file, self._window.shutdown_for_update)
+        except UpdateInstalledError as e:
+            # The new copy is already in place: offering it again would
+            # download and install the same version twice.
+            self._worker = None
+            self.progress_bar.hide()
+            self.status_label.setText("")
+            if self.update_button is not None:
+                self.update_button.setEnabled(False)
+            QMessageBox.information(self, self.tr("Update installed"), str(e))
         except Exception as e:
             # UpdateError, or anything else: an exception escaping a Qt slot
             # ends the process.

@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import NoReturn, Protocol
 
 from core.config import config_dir
-from core.updater import UpdateError
+from core.updater import UpdateError, UpdateInstalledError
 
 _log = logging.getLogger(__name__)
 
@@ -168,7 +168,8 @@ class AppImageInstaller(_FileInstaller):
             )
         except OSError as e:
             _log.debug("relaunch failed: %s", e)
-            raise UpdateError("Slipcase was updated. Close it and open it again.") from None
+            raise UpdateInstalledError(
+                "Slipcase was updated. Close it and open it again.") from None
         finally:
             if log is not None:
                 log.close()

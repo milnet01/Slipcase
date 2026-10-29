@@ -2,6 +2,7 @@
 
 import multiprocessing
 import os
+from collections.abc import Callable
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
@@ -464,6 +465,21 @@ class UpdateCheckWorker(QThread):
         self.offer_ready.emit(offer)
 
 
+def _progress_steps(emit: Callable[[int, int], None]) -> Callable[[int, int], None]:
+    """`emit`, called only when the shown progress changes: each whole
+    percent of a known size, or each MiB of an unknown one. Every read
+    would otherwise queue a repaint on the window's thread."""
+    last = None
+
+    def report(received: int, total: int) -> None:
+        nonlocal last
+        step = received * 100 // total if total > 0 else received >> 20
+        if step != last:
+            last = step
+            emit(received, total)
+    return report
+
+
 class UpdateDownloadWorker(QThread):
     """Downloads and verifies an update, then hands back the verified file.
 
@@ -484,7 +500,7 @@ class UpdateDownloadWorker(QThread):
         try:
             path = download_and_verify(
                 self.offer, self.installer, download=self.download,
-                on_progress=self.progress.emit,
+                on_progress=_progress_steps(self.progress.emit),
                 should_stop=self.isInterruptionRequested,
             )
         except Exception as e:

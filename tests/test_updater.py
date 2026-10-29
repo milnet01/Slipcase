@@ -39,6 +39,7 @@ from core.update_installer import (  # noqa: E402
 from core.updater import (  # noqa: E402
     UpdateDownloadError,
     UpdateError,
+    UpdateInstalledError,
     UpdateOffer,
     UpdateVerificationError,
     check_for_update,
@@ -345,7 +346,8 @@ class TestNetwork(_TempDir):
     def test_exact_hosts(self):
         for url in ("https://api.github.com/repos/milnet01/Slipcase/releases/latest",
                     "https://github.com/milnet01/Slipcase/releases/download/v1.4.0/x",
-                    "https://release-assets.githubusercontent.com/abc"):
+                    "https://release-assets.githubusercontent.com/abc",
+                    "https://objects.githubusercontent.com/abc"):
             self.assertTrue(releases.is_allowed_release_url(url), url)
         for url in ("https://evil.github.com/x", "https://raw.githubusercontent.com/x",
                     "http://github.com/x", "https://github.com.evil.com/x",
@@ -354,7 +356,8 @@ class TestNetwork(_TempDir):
                     "https://github.com:8443/x"):
             self.assertFalse(releases.is_allowed_release_url(url), url)
         self.assertEqual(releases.ALLOWED_RELEASE_HOSTS, frozenset({
-            "api.github.com", "github.com", "release-assets.githubusercontent.com"}))
+            "api.github.com", "github.com", "release-assets.githubusercontent.com",
+            "objects.githubusercontent.com"}))
 
     def test_redirect_hops_rechecked(self):
         for location in ("https://example.com/", "http://github.com/"):
@@ -548,6 +551,18 @@ class TestVerify(_Signed):
             key.assert_not_called()
             self.assertEqual(self._staged(), [])
 
+    def test_temp_left_behind_keeps_the_update(self):
+        # A scanner holding a temp open must not cost a verified update.
+        real_unlink = Path.unlink
+
+        def unlink(path, missing_ok=False):
+            if path.name.endswith(".sig") or path != self.dir / path.name:
+                return real_unlink(path, missing_ok=missing_ok)
+            raise PermissionError("in use")
+        with patch.object(Path, "unlink", unlink):
+            path = download_and_verify(self.offer, self.installer, download=self._download())
+        self.assertEqual(path.read_bytes(), self.blob)
+
     def test_failed_download(self):
         download = _FakeDownload({self.offer.asset_url: releases.ReleaseError("dropped"),
                                   self.offer.sig_url: self.sig})
@@ -673,6 +688,17 @@ class TestDialog(_WindowTest):
         box.warning.assert_called_once()
         self.assertIn("Slipcase was updated.", box.warning.call_args.args[2])
 
+    def test_installed_but_not_restarted(self):
+        installer = _FakeInstaller(self.dir, error=UpdateInstalledError("Slipcase was updated."))
+        dialog = self._dialog(installer=installer)
+        staged = self.dir / "slipcase-update-abcd1234.AppImage"
+        staged.write_bytes(b"new")
+        with patch("ui.update_dialog.QMessageBox") as box:
+            dialog._on_ready(str(staged))
+        box.information.assert_called_once()
+        box.warning.assert_not_called()
+        self.assertFalse(dialog.update_button.isEnabled())
+
     def test_late_ready(self):
         dialog = self._dialog()
         dialog.close()
@@ -681,6 +707,19 @@ class TestDialog(_WindowTest):
         dialog._on_ready(str(staged))
         self.assertFalse(staged.exists())
         self.assertEqual(self.installer.applied, [])
+
+    def test_progress_only_on_change(self):
+        from ui.workers import _progress_steps
+        sent = []
+        report = _progress_steps(lambda r, t: sent.append((r, t)))
+        for received in range(0, 1_000_001, 1000):
+            report(received, 1_000_000)
+        self.assertLessEqual(len(sent), 101)
+        self.assertEqual(sent[-1], (1_000_000, 1_000_000))
+        sent.clear()
+        for received in range(0, 3 * 1024 * 1024 + 1, 4096):
+            report(received, 0)
+        self.assertLessEqual(len(sent), 4)
 
     def test_no_exec(self):
         source = (ROOT / "ui" / "update_dialog.py").read_text(encoding="utf-8")
@@ -849,7 +888,7 @@ class TestAppImage(_TempDir):
 
     def test_failed_spawn(self):
         spawn = _Spawn(popen_error=OSError("no sh"))
-        with self.assertRaises(UpdateError) as caught:
+        with self.assertRaises(UpdateInstalledError) as caught:
             self._apply(spawn)
         self.assertEqual(str(caught.exception), "Slipcase was updated. Close it and open it again.")
         self.assertEqual(self.target.read_bytes(), b"new")

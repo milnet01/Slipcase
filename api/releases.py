@@ -26,12 +26,15 @@ from api.base import MAX_REDIRECTS, READ_TIMEOUT, _read_body
 LATEST_RELEASE_URL = "https://api.github.com/repos/milnet01/Slipcase/releases/latest"
 
 # Exact host names, no subdomains. release-assets.githubusercontent.com is
-# where a release download redirected on 2026-10-29; the whole of
+# where a release download redirected on 2026-10-29;
+# objects.githubusercontent.com served GitHub's release downloads before
+# it, so a move back does not stop every update. The whole of
 # githubusercontent.com would also admit content any GitHub user hosts.
 ALLOWED_RELEASE_HOSTS: frozenset[str] = frozenset({
     "api.github.com",
     "github.com",
     "release-assets.githubusercontent.com",
+    "objects.githubusercontent.com",
 })
 
 MAX_RELEASE_REPLY_BYTES = 1024 * 1024

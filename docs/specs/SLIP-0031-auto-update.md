@@ -171,6 +171,7 @@ ALLOWED_RELEASE_HOSTS: frozenset[str] = frozenset({
     "api.github.com",
     "github.com",
     "release-assets.githubusercontent.com",
+    "objects.githubusercontent.com",
 })
 MAX_RELEASE_REPLY_BYTES = 1024 * 1024
 MAX_UPDATE_BYTES = 512 * 1024 * 1024
@@ -186,8 +187,11 @@ def download(url: str, dest: Path, *, max_bytes: int,
 
 - **Exact hosts, no subdomains.** `release-assets.githubusercontent.com` is
   where `https://github.com/milnet01/Slipcase/releases/download/v1.3.1/Slipcase-x86_64.AppImage`
-  redirected on 2026-10-29 (`curl -sI`, the `location:` header). A wider
-  `githubusercontent.com` would admit user-hosted content.
+  redirected on 2026-10-29 (`curl -sI`, the `location:` header).
+  `objects.githubusercontent.com` served GitHub's release downloads before
+  it, and is allowed so a move back does not stop every update (added
+  2026-10-29 from the code review; the signature still guards each file).
+  A wider `githubusercontent.com` would admit user-hosted content.
 - **`ALLOWED_IMAGE_DOMAINS` does not change.** The cover-art path cannot
   reach GitHub, and the updater cannot reach a cover-art host.
 - **It keeps `STANDARDS.md` § 10's rules, on its own list:** HTTPS only;
