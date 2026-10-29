@@ -52,12 +52,20 @@ jobs:
       - name: Build and self-check
         run: ./scripts/build-appimage.sh
 
+      # Only this step sees the signing key (SLIP-0030). An empty secret
+      # fails it, so nothing unsigned is uploaded.
+      - name: Sign the download
+        env:
+          SLIPCASE_SIGNING_KEY: ${{ secrets.SLIPCASE_SIGNING_KEY }}
+        run: build/venv/bin/python scripts/sign-release.py dist/Slipcase-x86_64.AppImage
+
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: Slipcase-x86_64.AppImage
           path: |
             dist/Slipcase-x86_64.AppImage
             dist/Slipcase-x86_64.AppImage.sha256
+            dist/Slipcase-x86_64.AppImage.sig
           if-no-files-found: error
 
       - name: Attach to the release
@@ -67,7 +75,8 @@ jobs:
           TAG: ${{ github.event.release.tag_name }}
         run: |
           gh release upload "$TAG" --clobber --repo "$GITHUB_REPOSITORY" \
-            dist/Slipcase-x86_64.AppImage dist/Slipcase-x86_64.AppImage.sha256
+            dist/Slipcase-x86_64.AppImage dist/Slipcase-x86_64.AppImage.sha256 \
+            dist/Slipcase-x86_64.AppImage.sig
 
   windows:
     name: Windows portable exe
@@ -88,12 +97,21 @@ jobs:
         shell: pwsh
         run: ./scripts/build-windows.ps1
 
+      - name: Sign the download
+        shell: pwsh
+        env:
+          SLIPCASE_SIGNING_KEY: ${{ secrets.SLIPCASE_SIGNING_KEY }}
+        run: |
+          & build\venv\Scripts\python.exe scripts\sign-release.py dist\Slipcase-windows-x64.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: Slipcase-windows-x64.exe
           path: |
             dist/Slipcase-windows-x64.exe
             dist/Slipcase-windows-x64.exe.sha256
+            dist/Slipcase-windows-x64.exe.sig
           if-no-files-found: error
 
       - name: Attach to the release
@@ -104,7 +122,8 @@ jobs:
           TAG: ${{ github.event.release.tag_name }}
         run: |
           gh release upload "$TAG" --clobber --repo "$GITHUB_REPOSITORY" \
-            dist/Slipcase-windows-x64.exe dist/Slipcase-windows-x64.exe.sha256
+            dist/Slipcase-windows-x64.exe dist/Slipcase-windows-x64.exe.sha256 \
+            dist/Slipcase-windows-x64.exe.sig
 
   macos:
     # One build per processor type: a build is for the processor of the
@@ -134,12 +153,19 @@ jobs:
       - name: Build and self-check
         run: ./scripts/build-macos.sh
 
+      - name: Sign the download
+        env:
+          SLIPCASE_SIGNING_KEY: ${{ secrets.SLIPCASE_SIGNING_KEY }}
+          ARCH: ${{ matrix.arch }}
+        run: build/venv/bin/python scripts/sign-release.py "dist/Slipcase-macos-$ARCH.dmg"
+
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: Slipcase-macos-${{ matrix.arch }}.dmg
           path: |
             dist/Slipcase-macos-${{ matrix.arch }}.dmg
             dist/Slipcase-macos-${{ matrix.arch }}.dmg.sha256
+            dist/Slipcase-macos-${{ matrix.arch }}.dmg.sig
           if-no-files-found: error
 
       - name: Attach to the release
@@ -150,4 +176,5 @@ jobs:
           ARCH: ${{ matrix.arch }}
         run: |
           gh release upload "$TAG" --clobber --repo "$GITHUB_REPOSITORY" \
-            "dist/Slipcase-macos-$ARCH.dmg" "dist/Slipcase-macos-$ARCH.dmg.sha256"
+            "dist/Slipcase-macos-$ARCH.dmg" "dist/Slipcase-macos-$ARCH.dmg.sha256" \
+            "dist/Slipcase-macos-$ARCH.dmg.sig"

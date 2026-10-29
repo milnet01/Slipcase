@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Every download on the releases page now has a signature beside it**
+  (`.sig`), made with Slipcase's release key. The coming in-app updater will
+  refuse any file whose signature does not match (SLIP-0030).
+
 - **A European PlayStation case shows "PlayStation" moulded into its top
   and bottom in the 3D view** (SLIP-0110)
   Turn the box to look at its top or bottom edge and the raised logo is

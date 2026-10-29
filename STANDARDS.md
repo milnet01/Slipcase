@@ -439,6 +439,7 @@ Results are aggregated and displayed with source attribution.
 | `test_box_viewer.py` | 3D viewer: visible faces, limits and reset, model from the render worker, transparent background |
 | `test_region.py` | Region from a cover's file name; the case a platform and region pick (SLIP-0106) |
 | `test_jewel.py` | Jewel cases: back-card strips and folds, face sources and layout, plastic colours, overlays, the window's case choice, per-file batch cases (SLIP-0106) |
+| `test_release_signing.py` | Release signing: sign and tamper, bad keys refused, no private key tracked, the secret only in the signing steps, `.sig` uploads, the public key loads, the key script (SLIP-0030) |
 
 ### Test Utilities
 

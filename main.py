@@ -49,6 +49,10 @@ def _smoke(app: QApplication, report_path: str | None) -> int:
             raise RuntimeError(CASE_COLORS_ERROR)
         if app.windowIcon().isNull():
             raise RuntimeError("the application icons are missing")
+        # The updater checks downloads against this key, and loading it needs
+        # cryptography's native part, which a bundle can lose (SLIP-0030).
+        from core.update_key import public_key
+        public_key()
 
         with tempfile.TemporaryDirectory() as scratch:
             # The batch path: a worker process that imports the renderer and

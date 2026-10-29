@@ -52,6 +52,22 @@ class TestSmoke(unittest.TestCase):
             self.assertFalse((Path(scratch) / "slipcase").exists(),
                              "the self-check created a settings folder")
 
+    def test_smoke_fails_without_the_release_key(self):
+        """SLIP-0030 INV-6: a build that cannot load the release public key
+        must not report OK, whether the import fails at start-up or inside
+        the check. The build scripts look for the OK line."""
+        wrapper = ("import runpy, sys; sys.modules['core.update_key'] = None; "
+                   f"sys.argv = ['main.py', '--smoke']; sys.path.insert(0, {str(ROOT)!r}); "
+                   f"runpy.run_path({str(ROOT / 'main.py')!r}, run_name='__main__')")
+        with tempfile.TemporaryDirectory() as scratch:
+            env = dict(os.environ, QT_QPA_PLATFORM="offscreen", APPDATA=scratch,
+                       XDG_CONFIG_HOME=scratch, XDG_RUNTIME_DIR=scratch)
+            result = subprocess.run(  # noqa: S603 -- our own interpreter
+                [sys.executable, "-c", wrapper], cwd=ROOT,
+                env=env, capture_output=True, text=True, timeout=120)
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertNotIn("slipcase smoke OK", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

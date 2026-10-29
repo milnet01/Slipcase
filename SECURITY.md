@@ -37,6 +37,9 @@ any of them is in scope:
   on.
 - **No code execution from data** — text a user supplies, such as a title or
   a serial, is drawn as image text and never evaluated.
+- **Release signatures** — each release download has a `.sig` beside it, an
+  Ed25519 signature checked against the public key in `core/update_key.py`.
+  A way to get an unsigned or wrongly signed file accepted is a finding.
 
 ## What is out of scope
 

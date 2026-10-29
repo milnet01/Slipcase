@@ -15,7 +15,7 @@
     {
       "name": "case-model",
       "summary": "The real-world measurements every render is built from, the platform-to-case mapping, and the persisted settings.",
-      "sourcePaths": ["core/case_types.py", "core/config.py", "core/version.py", "core/region.py"]
+      "sourcePaths": ["core/case_types.py", "core/config.py", "core/version.py", "core/region.py", "core/update_key.py"]
     },
     {
       "name": "api-clients",
@@ -55,7 +55,7 @@
     {
       "name": "packaging",
       "summary": "Turns the source tree into the downloads attached to a release: the bundling recipe, the AppImage, Windows and macOS build scripts and the workflow that runs them. Reviewed for pinned, checksum-verified tools and for a self-check on every build.",
-      "sourcePaths": ["packaging/slipcase.spec", "packaging/linux/AppRun", "packaging/linux/slipcase.desktop", "scripts/build-appimage.sh", "scripts/build-windows.ps1", "scripts/build-macos.sh", "scripts/gen-signing-key.py", ".github/workflows/release.yml"]
+      "sourcePaths": ["packaging/slipcase.spec", "packaging/linux/AppRun", "packaging/linux/slipcase.desktop", "scripts/build-appimage.sh", "scripts/build-windows.ps1", "scripts/build-macos.sh", "scripts/gen-signing-key.py", "scripts/sign-release.py", ".github/workflows/release.yml"]
     },
     {
       "name": "tests",

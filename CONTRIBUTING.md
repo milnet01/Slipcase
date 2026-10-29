@@ -93,8 +93,14 @@ builds the Linux AppImage, the Windows `.exe` and the two Mac disk images, runs
 each one's self-check (`--smoke`), and attaches them to that release with a
 `.sha256` file beside each. A build that fails its self-check is not attached.
 
+Each file is also signed, and its `.sig` attached beside it
+(`scripts/sign-release.py`, SLIP-0030). The signing key is the repository
+secret `SLIPCASE_SIGNING_KEY`; without it, or with a key that does not match
+`core/update_key.py`, the job stops before attaching anything.
+
 To try the builds without a release, run that workflow by hand
-(`gh workflow run release.yml`): the files stay on the run as artifacts.
+(`gh workflow run release.yml`): the files stay on the run as artifacts. A
+hand run signs them too.
 
 The build scripts are `scripts/build-appimage.sh`, `scripts/build-windows.ps1`
 and `scripts/build-macos.sh`; each can be run on a machine of its own kind.
