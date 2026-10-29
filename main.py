@@ -16,6 +16,8 @@ from PyQt6.QtWidgets import QApplication, QMessageBox
 
 from api.base import MAX_IMAGE_PIXELS
 from core.config import Config
+from core.update_installer import detect_update_mode
+from core.updater import remove_stale_staged_updates
 from ui.themes import THEMES, DEFAULT_THEME, set_active_theme, generate_stylesheet
 from ui.main_window import MainWindow
 from ui.single_instance import SingleInstance
@@ -142,6 +144,12 @@ def main():
             )
         sys.exit(0)
 
+    # After the lock, so a second copy never deletes a download the first
+    # copy is still writing (SLIP-0031 § 4.10).
+    mode = detect_update_mode()
+    if mode is not None and mode.installer is not None:
+        remove_stale_staged_updates(mode.installer)
+
     config = Config()
 
     # Apply saved theme (or default)
@@ -151,7 +159,7 @@ def main():
     theme = set_active_theme(theme_name)
     app.setStyleSheet(generate_stylesheet(theme))
 
-    window = MainWindow(config)
+    window = MainWindow(config, release_instance=instance.release)
     window_holder.append(window)
     window.show()
 

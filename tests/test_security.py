@@ -68,6 +68,14 @@ class TestUrlAllowlist(unittest.TestCase):
         ):
             self.assertFalse(_is_allowed_url(url), url)
 
+    def test_image_allowlist_holds_only_the_cover_art_hosts(self):
+        # The updater's hosts are on their own list in api/releases.py
+        # (SLIP-0031 INV-5). GitHub here would let a cover-art reply send the
+        # image downloader to it.
+        self.assertEqual(ALLOWED_IMAGE_DOMAINS, {
+            "screenscraper.fr", "thegamesdb.net", "thumbnails.libretro.com",
+        })
+
 
 class TestRedirectValidation(unittest.TestCase):
     """A redirect must not escape the allowlist or downgrade TLS.

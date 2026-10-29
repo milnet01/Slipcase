@@ -82,6 +82,12 @@ DEFAULT_CONFIG = {
         "auto_filename": False,
         "last_export_directory": "",
     },
+    # The in-app updater (SLIP-0031). Off until the user ticks it; on means
+    # exactly True.
+    "updates": {
+        "check": False,
+        "skipped_version": "",   # the version "Skip this version" stored
+    },
 }
 
 

@@ -8,7 +8,7 @@ from pathlib import Path
 
 from PIL import Image
 from PyQt6.QtCore import QByteArray, Qt, QThread, QTimer
-from PyQt6.QtGui import QAction, QCloseEvent, QKeySequence, QPixmap, QImage
+from PyQt6.QtGui import QAction, QCloseEvent, QKeySequence, QPixmap, QImage, QShowEvent
 from PyQt6.QtWidgets import (
     QApplication, QCheckBox, QColorDialog, QComboBox, QFileDialog,
     QFrame, QGroupBox, QHBoxLayout, QLabel, QLineEdit, QMainWindow,
@@ -29,18 +29,28 @@ from core.png_utils import save_optimized_png
 from core.region import detect_region
 from core.renderer import MAX_OUTPUT_WIDTH, BoxRenderer
 from core.spine_generator import CASE_COLORS_ERROR
+from core.update_installer import UpdateMode, detect_update_mode
+from core.updater import UpdateOffer
 from core.version import __version__
 from ui.animation_dialog import AnimationDialog
 from ui.box_viewer import BoxViewer
 from ui.preview_widget import BusyOverlay, PreviewWidget, pil_to_qpixmap
 from ui.settings_dialog import SettingsDialog
 from ui.search_dialog import SearchDialog
+from ui.update_dialog import UpdateDialog
 from ui.themes import (
     THEMES, generate_stylesheet, get_active_theme, set_active_theme,
     themed_generate_btn_style, themed_preview_style,
     themed_secondary_text_style, themed_split_thumb_style, themed_thumbnail_style,
 )
-from ui.workers import RenderWorker, BatchWorker, AnimationWorker
+from ui.workers import (
+    AnimationWorker, BatchWorker, RenderWorker, UpdateCheckWorker, UpdateDownloadWorker,
+)
+
+# Every worker closeEvent interrupts and waits for. _busy_worker() checks only
+# the first three: the update workers must not block an update (SLIP-0031).
+_WORKER_ATTRS = ("_render_worker", "_batch_worker", "_anim_worker",
+                 "_update_check_worker", "_update_download_worker")
 
 
 def _geometry_for_config(widget: QWidget) -> str:
@@ -77,9 +87,13 @@ def _link_label(label: QLabel, control: QWidget) -> None:
 class MainWindow(QMainWindow):
     """Main application window."""
 
-    def __init__(self, config: Config):
+    def __init__(self, config: Config,
+                 release_instance: Callable[[], None] | None = None):
+        """`release_instance` gives up the single-instance lock before an
+        update relaunches the app; None releases nothing."""
         super().__init__()
         self.config = config
+        self._release_instance = release_instance
         self.setWindowTitle("Slipcase")
         self.setMinimumSize(900, 650)
 
@@ -91,6 +105,13 @@ class MainWindow(QMainWindow):
         self._render_worker: RenderWorker | None = None
         self._batch_worker: BatchWorker | None = None
         self._anim_worker: AnimationWorker | None = None
+        # The in-app updater (SLIP-0031): one check per launch, after the
+        # window is first shown.
+        self._update_check_worker: UpdateCheckWorker | None = None
+        self._update_download_worker: UpdateDownloadWorker | None = None
+        self._update_dialog: UpdateDialog | None = None
+        self._update_mode: UpdateMode | None = None
+        self._update_check_started = False
         # Which job ("batch" or "anim") the shared progress bar belongs to;
         # only that job may hide it (SLIP-0059).
         self._progress_owner: str | None = None
@@ -811,9 +832,13 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event: QCloseEvent | None) -> None:
         self._save_state()
+        # Closing the offer first marks it dismissed, so a download that
+        # finishes during the wait below is deleted, not installed.
+        if self._update_dialog is not None:
+            self._update_dialog.close()
         # Ask every running worker to stop and wait for it.
         #
-        # quit() is NOT usable here: all three workers override run() without
+        # quit() is NOT usable here: every worker overrides run() without
         # calling exec(), so they have no event loop for quit() to reach and
         # wait() would simply time out. requestInterruption() sets a flag the
         # run() loops check.
@@ -821,7 +846,7 @@ class MainWindow(QMainWindow):
         # The reference is deliberately NOT cleared while a thread is still
         # running: dropping the last Python reference to a parentless live
         # QThread destroys the C++ object mid-run, which aborts the process.
-        for attr in ("_render_worker", "_batch_worker", "_anim_worker"):
+        for attr in _WORKER_ATTRS:
             worker = getattr(self, attr, None)
             if worker is None:
                 continue
@@ -834,7 +859,11 @@ class MainWindow(QMainWindow):
                 setattr(self, attr, None)
             except RuntimeError:
                 setattr(self, attr, None)  # already deleted by deleteLater
-        # Release image references
+        self._clear_images()
+        super().closeEvent(event)
+
+    def _clear_images(self) -> None:
+        """Release every image reference the window holds."""
         self._front_image = None
         self._front_image_path = None
         self._back_image = None
@@ -844,7 +873,53 @@ class MainWindow(QMainWindow):
         self.compare_render.clear_image()
         self._box_model = None
         self.box_viewer.set_model(None)
-        super().closeEvent(event)
+
+    # --- Updates (SLIP-0031) ---
+
+    def showEvent(self, event: QShowEvent | None) -> None:
+        super().showEvent(event)
+        if not self._update_check_started:
+            self._update_check_started = True
+            QTimer.singleShot(0, self._start_update_check)
+
+    def _start_update_check(self) -> None:
+        """Start the one check of this launch, if the user opted in and the
+        running copy can be updated at all."""
+        if self.config.get("updates", "check") is not True:
+            return
+        mode = detect_update_mode()
+        if mode is None:
+            return
+        self._update_mode = mode
+        worker = UpdateCheckWorker(self.config, mode)
+        worker.offer_ready.connect(self._on_update_offer)
+        worker.finished.connect(worker.deleteLater)
+        self._update_check_worker = worker
+        worker.start()
+
+    def _on_update_offer(self, offer: UpdateOffer | None) -> None:
+        """Show the offer. No offer, or a failed check, shows nothing."""
+        if offer is None or self._update_mode is None or self._update_dialog is not None:
+            return
+        self._update_dialog = UpdateDialog(self, offer, self._update_mode.installer)
+        self._update_dialog.show()
+
+    def start_update_download(self, worker: UpdateDownloadWorker) -> None:
+        """Own and start the offer dialog's download, so closeEvent stops it."""
+        self._update_download_worker = worker
+        worker.start()
+
+    def shutdown_for_update(self) -> None:
+        """What quitting must do before an update exits the process.
+
+        The installer leaves with os._exit, which skips closeEvent: save the
+        settings, drop the images, and give up the single-instance lock so the
+        new copy can take it.
+        """
+        self._save_state()
+        self._clear_images()
+        if self._release_instance is not None:
+            self._release_instance()
 
     # --- Platform / Case ---
 

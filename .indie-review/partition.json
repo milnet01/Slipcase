@@ -20,7 +20,7 @@
     {
       "name": "api-clients",
       "summary": "Everything that talks to a third party. Reviewed against the security invariants in CLAUDE.md and SECURITY.md: allowlist, redirect revalidation, size caps, accepted formats, credential scrubbing, TLS.",
-      "sourcePaths": ["api/base.py", "api/screenscraper.py", "api/thegamesdb.py", "api/libretro.py"]
+      "sourcePaths": ["api/base.py", "api/screenscraper.py", "api/thegamesdb.py", "api/libretro.py", "api/releases.py"]
     },
     {
       "name": "main-window",
@@ -36,6 +36,11 @@
       "name": "dialogs",
       "summary": "The screens reached from the main window, and the preview surface.",
       "sourcePaths": ["ui/search_dialog.py", "ui/settings_dialog.py", "ui/animation_dialog.py", "ui/preview_widget.py", "ui/box_viewer.py"]
+    },
+    {
+      "name": "updater",
+      "summary": "The opt-in in-app update (SLIP-0031): whether a newer release exists, verifying its signature, replacing the running copy, and the offer dialog. Reviewed against the spec's invariants; its network calls are api/releases.py, in api-clients.",
+      "sourcePaths": ["core/updater.py", "core/update_installer.py", "ui/update_dialog.py"]
     },
     {
       "name": "theming",
@@ -60,7 +65,7 @@
     {
       "name": "tests",
       "summary": "The test suite. review-code excludes this lane; review-tests is exactly this lane.",
-      "sourcePaths": ["tests/test_regressions.py", "tests/test_renderer.py", "tests/test_security.py", "tests/test_libretro.py", "tests/test_smoke.py", "tests/test_api_recordings.py", "tests/test_search_worker.py", "tests/test_single_instance.py", "tests/conftest.py", "tests/test_box_model.py", "tests/test_box_file.py", "tests/test_box_viewer.py", "tests/test_jewel.py", "tests/test_keep_cases.py", "tests/test_region.py", "tests/test_case_list.py", "tests/test_release_signing.py"]
+      "sourcePaths": ["tests/test_regressions.py", "tests/test_renderer.py", "tests/test_security.py", "tests/test_libretro.py", "tests/test_smoke.py", "tests/test_api_recordings.py", "tests/test_search_worker.py", "tests/test_single_instance.py", "tests/conftest.py", "tests/test_box_model.py", "tests/test_box_file.py", "tests/test_box_viewer.py", "tests/test_jewel.py", "tests/test_keep_cases.py", "tests/test_region.py", "tests/test_case_list.py", "tests/test_release_signing.py", "tests/test_updater.py"]
     }
   ]
 }

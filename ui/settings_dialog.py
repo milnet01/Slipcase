@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import (
 )
 
 from core.config import Config
+from core.update_installer import detect_update_mode
 from ui.themes import themed_dim_text_style
 
 
@@ -28,6 +29,7 @@ class SettingsDialog(QDialog):
         tabs.addTab(self._build_thegamesdb_tab(), "TheGamesDB")
         tabs.addTab(self._build_libretro_tab(), "libretro")
         tabs.addTab(self._build_export_tab(), self.tr("Export"))
+        tabs.addTab(self._build_updates_tab(), self.tr("Updates"))
         layout.addWidget(tabs)
 
         buttons = QDialogButtonBox(
@@ -140,6 +142,34 @@ class SettingsDialog(QDialog):
 
         return widget
 
+    def _build_updates_tab(self) -> QWidget:
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+
+        self.update_check = QCheckBox(
+            self.tr("Check for new versions when Slipcase starts"))
+        # A source run, or a frozen build outside an AppImage, has nothing
+        # to update (SLIP-0031 § 4.3).
+        if detect_update_mode() is None:
+            self.update_check.setEnabled(False)
+            self.update_check.setToolTip(
+                self.tr("Only the downloaded app can check for updates."))
+        layout.addWidget(self.update_check)
+
+        info = QLabel(
+            self.tr(
+                "Slipcase asks GitHub once per start whether a newer release is "
+                "out. On Linux and Windows it can then download it, check its "
+                "signature and install it; on a Mac it opens the download page."
+            )
+        )
+        info.setWordWrap(True)
+        info.setStyleSheet(themed_dim_text_style())
+        layout.addWidget(info)
+        layout.addStretch()
+
+        return widget
+
     def _load_values(self) -> None:
         """Load saved values into fields."""
         self.ss_devid.setText(self.config.get("api", "screenscraper", "devid", default=""))
@@ -155,6 +185,8 @@ class SettingsDialog(QDialog):
         self.box_file_enabled.setChecked(
             bool(self.config.get("export", "box_file", default=True))
         )
+        # On means exactly True (SLIP-0031 INV-1).
+        self.update_check.setChecked(self.config.get("updates", "check") is True)
 
     def _save_and_accept(self) -> None:
         """Save values to config and close."""
@@ -169,6 +201,8 @@ class SettingsDialog(QDialog):
         self.config.set("api", "thegamesdb", "api_key", self.tgdb_api_key.text().strip())
         self.config.set("api", "libretro", "enabled", self.libretro_enabled.isChecked())
         self.config.set("export", "box_file", self.box_file_enabled.isChecked())
+        if self.update_check.isEnabled():
+            self.config.set("updates", "check", self.update_check.isChecked())
         try:
             self.config.save()
         except OSError as e:

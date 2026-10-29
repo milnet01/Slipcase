@@ -8,10 +8,14 @@ from pathlib import Path
 from PIL import Image
 from PyQt6.QtCore import QThread, pyqtSignal
 
+from api import releases
 from core.box_file import box_paths, write_box_file
 from core.box_model import build_box_model
 from core.case_types import CaseType
+from core.config import Config
 from core.renderer import BoxRenderer, visible_width_mm
+from core.update_installer import Installer, UpdateMode
+from core.updater import UpdateOffer, check_for_update, download_and_verify
 
 # Most memory an animation's frames may take. Every frame is held until the
 # encoder runs, so 120 frames at 2048px wide came to several gigabytes with
@@ -434,3 +438,56 @@ class AnimationWorker(QThread):
             self.finished_signal.emit(self.output_path)
         except Exception as e:
             self.error.emit(str(e))
+
+
+class UpdateCheckWorker(QThread):
+    """Asks once whether a newer release exists (SLIP-0031 § 4.4).
+
+    Emits offer_ready with an UpdateOffer, or None for no offer or any
+    failure: a check the user did not start is never reported. `error` is
+    declared because every worker declares it (STANDARDS.md § 2); this one
+    never emits it.
+    """
+    offer_ready = pyqtSignal(object)  # UpdateOffer | None
+    error = pyqtSignal(str)
+
+    def __init__(self, config: Config, mode: UpdateMode) -> None:
+        super().__init__()
+        self.config = config
+        self.mode = mode
+
+    def run(self) -> None:
+        try:
+            offer = check_for_update(self.config, self.mode)
+        except Exception:
+            offer = None
+        self.offer_ready.emit(offer)
+
+
+class UpdateDownloadWorker(QThread):
+    """Downloads and verifies an update, then hands back the verified file.
+
+    Interruption stops the download and deletes its temps.
+    """
+    progress = pyqtSignal(int, int)  # bytes received, Content-Length or 0
+    ready = pyqtSignal(str)  # path of the verified file
+    error = pyqtSignal(str)
+
+    def __init__(self, offer: UpdateOffer, installer: Installer,
+                 download=releases.download) -> None:
+        super().__init__()
+        self.offer = offer
+        self.installer = installer
+        self.download = download
+
+    def run(self) -> None:
+        try:
+            path = download_and_verify(
+                self.offer, self.installer, download=self.download,
+                on_progress=self.progress.emit,
+                should_stop=self.isInterruptionRequested,
+            )
+        except Exception as e:
+            self.error.emit(str(e))
+            return
+        self.ready.emit(str(path))
