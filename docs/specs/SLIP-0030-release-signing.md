@@ -164,6 +164,10 @@ build venv is used because the build scripts already install
   minimum is unverified (§ 14 Q2).
 - `requirements.lock` is regenerated per its own header. The new pins are
   whatever that regeneration installs, transitive ones included.
+  Built (2026-10-29): the minimum is `cryptography>=48`. The lock pins
+  50.0.2, and 48.0.1 on Intel Macs only. From 49 on there is no Intel Mac
+  wheel; the source build there loaded the wrong OpenSSL and failed
+  `--smoke` on `macos-15-intel`. The lock's header records why.
 - `STANDARDS.md` § 14 gains a row.
 - **The packaged build must carry it.** `main.py::_smoke` gains one check:
   `core.update_key.public_key()` loads. A bundle missing the library's

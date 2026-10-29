@@ -13,10 +13,18 @@
 #   python3.12 -m venv /tmp/lock && /tmp/lock/bin/pip install -r requirements.txt
 #   /tmp/lock/bin/pip freeze > requirements.lock   # then restore this header
 #
+# and the Intel Mac cryptography line below. cryptography ships no Intel Mac
+# wheel from 49 on, so pip compiles it there against the machine's own
+# OpenSSL and the bundle loads the wrong one (the self-check failed on
+# macos-15-intel, 2026-10-29). 48.0.1 is the last with that wheel. The Intel
+# Mac build never checks a signature (SLIP-0031, notify-only), so the
+# advisories fixed in 49 and 50 (X.509 and PKCS#7 only) do not reach it.
+#
 certifi==2026.7.22
 cffi==2.1.1
 charset-normalizer==3.5.1
-cryptography==50.0.2
+cryptography==50.0.2 ; sys_platform != "darwin" or platform_machine != "x86_64"
+cryptography==48.0.1 ; sys_platform == "darwin" and platform_machine == "x86_64"
 idna==3.19
 numpy==2.5.2
 opencv-python-headless==5.0.0.93
