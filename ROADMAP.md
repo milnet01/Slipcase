@@ -202,6 +202,10 @@ which covers the source repository going public.
   2026-09-30 deferral is lifted, which broke the loop between the two
   items. The private key lives in a GitHub secret and the release
   workflow signs each file where it is built.
+  Spec gated 2026-10-29: review-contract, two loops, two lanes each,
+  capped calm at a spec's cap; 7 verified findings fixed, none deferred.
+  docs/specs/SLIP-0030-release-signing.md is accepted (2026-10-29).
+  Loop log: docs/reviews/SLIP-0030-release-signing-loop-log.md.
   **Layman:** Put a tamper-proof seal on each download so the app can tell a real release from a fake one.
   Kind: security.
   Source: user-request-2026-08-27.
