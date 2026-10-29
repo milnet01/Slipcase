@@ -198,6 +198,10 @@ which covers the source repository going public.
   do not start it, and do not ask again about where the key lives, until
   SLIP-0031 is being taken up. The three custody options put to the user
   were: a GitHub secret, this machine only, or later.
+  Decided (2026-10-29, user): take this up now with SLIP-0031; the
+  2026-09-30 deferral is lifted, which broke the loop between the two
+  items. The private key lives in a GitHub secret and the release
+  workflow signs each file where it is built.
   **Layman:** Put a tamper-proof seal on each download so the app can tell a real release from a fake one.
   Kind: security.
   Source: user-request-2026-08-27.
@@ -223,6 +227,11 @@ which covers the source repository going public.
   there is no design to copy for a .app bundle.
   Blocked-by: SLIP-0018 (a build to update into), SLIP-0030 (signatures to
   verify), SLIP-0006 (a release host to check).
+  Decided (2026-10-29, user): build it now, with SLIP-0030. SLIP-0018
+  and SLIP-0006 are shipped, so neither blocks. macOS gets notify-only:
+  the app says a new version is out and opens the release page; it
+  installs nothing. Linux and Windows get the full update. Spans
+  packaging, security and ui, so it gets a spec before building.
   **Layman:** The app can notice a new version, ask if you want it, and install it for you.
   Kind: feature.
   Source: user-request-2026-08-27.
@@ -1068,6 +1077,11 @@ building.
   shipped when right.
   The user, 2026-10-21: still checking every region's case while
   updating RetroDB's games list; will report issues as found.
+  The user, 2026-10-29: instead of checking by eye, compare against
+  RetroDB's 3D covers (RetroDB static/images/boxart_3d, ScreenScraper
+  and ES-DE renders), matched to their 2D covers in
+  static/images/boxart by game id. RetroDB's region tag is sometimes
+  wrong (Grudge Warriors is tagged USA, its cover is PAL SLES-02223).
   **Layman:** DVD-style and handheld game cases get the right size and plastic colour for each console and region.
   Kind: feature.
   Source: user-request-2026-10-21.
@@ -1209,6 +1223,8 @@ building.
   reads about 23 mm thick with two printed spine strips of about 9 mm,
   and says PAL and NTSC are the same thickness. Gemini (unsourced) gives
   24 mm. No published source found. Working figure: 24 mm, an estimate.
+  The user, 2026-10-29: no source yet for the remaining variants, and
+  low priority; the main cases matter most.
   **Layman:** Pick the exact case your copy came in, such as a silver Platinum PS2 case or a thick multi-disc case, so your rendered library matches your shelf.
   Kind: feature.
   Source: user-request-2026-10-21.
@@ -1260,6 +1276,8 @@ building.
   (judged by eye). Test:
   tests/test_jewel.py::test_clear_tray_shows_the_tray_print, seen red
   with the ribs removed. Waiting on the user's by-eye check.
+  The user, 2026-10-29: check against RetroDB's 3D covers (see
+  SLIP-0107).
   **Layman:** The thin clear border round a CD-case cover now looks like see-through plastic catching the light, as on a real case.
   Kind: enhancement.
   Source: user-request-2026-10-21.
@@ -1298,6 +1316,8 @@ building.
   Built (2026-10-21): the panel is now shaded as seen behind the clear
   lid (_behind_plastic, see SLIP-0114). Waiting on the user's by-eye
   check.
+  The user, 2026-10-29: the current render looks fine; RetroDB's 3D
+  covers (see SLIP-0107) may hold a better reference.
   **Layman:** On a see-through US Dreamcast case, the white "Sega Dreamcast" edge of the back insert now shows beside the cover, as on a real case.
   Kind: enhancement.
   Source: user-request-2026-10-21.
@@ -2314,12 +2334,20 @@ building.
   Source: user-report-2026-10-21.
   Lanes: api, ui.
 
-- 📋 [SLIP-0117] **A US PS1 front scan that includes the hinge strip is squeezed into the booklet, so "PlayStation" shows twice.**
+- ✅ [SLIP-0117] **A US PS1 front scan that includes the hinge strip is squeezed into the booklet, so "PlayStation" shows twice.**
   Seen 2026-10-21 rendering libretro's Crash Bandicoot (USA) cover on
   PS1 Jewel Case (NTSC-U): the scan is the whole case front, black
   "PlayStation" strip included, and jewel_faces resizes all of it into
   the 120 x 120 booklet area beside the drawn tray print. Needs a way to
   tell a booklet scan from a whole-front scan, and to crop the strip off.
+  Resolved (2026-10-29): the diagnosis above was wrong. libretro's
+  Crash Bandicoot (USA) scan is the 120 x 120 booklet alone; a US PS1
+  booklet prints "PlayStation" down its own left band. The second word
+  was the drawn US PS1 tray print (text "PlayStation", 77681fb), which
+  3fb12ad replaced with the ribbed band the same day. Rendered at
+  77681fb the word shows twice; at HEAD once. Locked by
+  tests/test_jewel.py::TestFaces::test_ps1_tray_print_draws_no_word,
+  red at 77681fb (strip pixel 240), green now. Never in a release.
   **Layman:** Some PS1 covers already include the black PlayStation edge, so the box shows that edge twice.
   Kind: fix.
   Source: session-2026-10-21.

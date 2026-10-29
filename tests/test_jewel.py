@@ -292,6 +292,20 @@ class TestFaces(unittest.TestCase):
         s, _ = strip(pal, _card(CASE_TYPES[pal], [RED, GREEN, BLUE]))
         self.assertTrue(np.all(s == CASE_TYPES[pal].plastic))
 
+    def test_ps1_tray_print_draws_no_word(self):
+        """SLIP-0117: a US PS1 booklet already prints "PlayStation" down its
+        own left band, so a word drawn in the hinge strip beside it showed
+        the name twice (libretro's Crash Bandicoot (USA), 2026-10-21). The
+        hinge strip holds dark ribs on black and no light lettering."""
+        booklet = Image.new("RGB", (1200, 1200), (128, 128, 128))
+        for case in ("PS1 Jewel Case (NTSC-U)", "PS1 Jewel Case (NTSC-J)"):
+            with self.subTest(case=case):
+                front = _faces(booklet, None, case).front
+                px = front.width / CASE_TYPES[case].width
+                strip = np.asarray(front.convert("L"))[
+                    round(5 * px):round(120 * px), round(1 * px):round(18 * px)]
+                self.assertLess(strip.max(), 150)
+
     def test_rendered_top_stands_apart_from_the_border(self):
         """A render's top face is lit lighter than the front's plastic border,
         so the two do not merge into one thick band (the user, 2026-10-21)."""
