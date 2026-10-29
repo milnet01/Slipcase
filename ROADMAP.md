@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: SLIP=117 -->
+<!-- ants-roadmap-id-high-water: SLIP=119 -->
 
 # Slipcase — Roadmap
 
@@ -1082,6 +1082,12 @@ building.
   and ES-DE renders), matched to their 2D covers in
   static/images/boxart by game id. RetroDB's region tag is sometimes
   wrong (Grudge Warriors is tagged USA, its cover is PAL SLES-02223).
+  RetroDB comparison (2026-10-29), PS2, GameCube and Xbox 360 keep
+  cases: size and shape match the references. The PAL PS2 case's blue
+  edge is not seen in the references, whose plastic reads dark; they
+  are templated renders, so this is not evidence either way. The
+  references are mostly PAL covers whatever their region tag. The
+  spine differences went to a new item (generated spines).
   **Layman:** DVD-style and handheld game cases get the right size and plastic colour for each console and region.
   Kind: feature.
   Source: user-request-2026-10-21.
@@ -1278,6 +1284,11 @@ building.
   with the ribs removed. Waiting on the user's by-eye check.
   The user, 2026-10-29: check against RetroDB's 3D covers (see
   SLIP-0107).
+  RetroDB comparison (2026-10-29), PS1: the references' clear-lid
+  border reads as thin lit plastic, close to Slipcase's. Differences
+  found were in the spine (new item, generated spines). PAL Dreamcast:
+  the references print "Dreamcast" legibly in the front hinge strip;
+  Slipcase's reads faint.
   **Layman:** The thin clear border round a CD-case cover now looks like see-through plastic catching the light, as on a real case.
   Kind: enhancement.
   Source: user-request-2026-10-21.
@@ -1318,9 +1329,44 @@ building.
   check.
   The user, 2026-10-29: the current render looks fine; RetroDB's 3D
   covers (see SLIP-0107) may hold a better reference.
+  RetroDB comparison (2026-10-29): no better US example there. The
+  Dreamcast covers tagged USA that were checked (Shenmue, Spider-Man)
+  are PAL covers with ELSPA badges, shown on PAL cases.
   **Layman:** On a see-through US Dreamcast case, the white "Sega Dreamcast" edge of the back insert now shows beside the cover, as on a real case.
   Kind: enhancement.
   Source: user-request-2026-10-21.
+
+- 📋 [SLIP-0118] **Draw generated spines the way real printed spines look.**
+  Seen 2026-10-29 comparing Slipcase against RetroDB's ScreenScraper
+  and ES-DE 3D renders (PS1, PS2, Dreamcast, GameCube, Xbox 360).
+  Their spines come from real scans: platform logo at the top, title in
+  bold capitals, serial at the foot (e.g. SCES 00657 on Time Crisis).
+  Slipcase's generated spine (core/spine_generator.py) prints a short
+  name ("PS", "GCN"), the title in thin grey type, and on jewel cases
+  ridges over the whole spine, so it reads hazy. GameCube spines are
+  drawn purple (resources/case_colors.json brand #6A0DAD); no reference
+  spine is purple. RetroDB holds serials (games.disc_serial).
+  Only the no-back-image path changes; a loaded wrap or back card
+  already supplies the real spine.
+  **Layman:** When there is no spine picture, the spine Slipcase draws looks like a real one: console logo at the top, the title in bold white capitals, the serial at the bottom.
+  Kind: enhancement.
+  Source: retrodb-comparison-2026-10-29.
+  Lanes: core.
+
+- 📋 [SLIP-0119] **Tell a cover's region from its artwork, not only its file name.**
+  core/region.py detect_region reads the file name only and falls
+  back to NTSC-U. Scraped files rarely carry a region in their name
+  (RetroDB's are "<id>_ss_boxart.webp"), so every PAL cover there gets
+  the US case. In the 2026-10-29 comparison, PAL covers were rendered
+  on US cases for Time Crisis (PS1), Shenmue and Spider-Man
+  (Dreamcast), and others. The covers carry clear marks: the white
+  "PAL" box under the PS1 logo, "NTSC U/C", PEGI, ELSPA and USK badges
+  against ESRB. Open: which marks to detect, and how sure a match must
+  be before it overrides the NTSC-U default.
+  **Layman:** A European cover gets the European case even when its file name does not say "Europe".
+  Kind: feature.
+  Source: retrodb-comparison-2026-10-29.
+  Lanes: core.
 
 ## Project record
 
