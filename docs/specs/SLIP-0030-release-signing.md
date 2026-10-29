@@ -110,13 +110,20 @@ runs it, reads the key file, or sees the secret. The user then loads the
 secret with `gh secret set SLIPCASE_SIGNING_KEY < release/slipcase-signing.key`,
 keeps a copy off this machine (§ 14 Q1), and deletes the file.
 
+**Landing order.** The real public key exists only once the user has run
+this script, and INV-6 fails on a placeholder. So the change lands in two
+commits. The first carries this script, the dependency (§ 4.6) and the
+`.gitignore` line. The user then runs the script. The second carries
+`core/update_key.py` with the real key, and the rest of this spec.
+`public_key()` has no path for a missing key.
+
 ### 4.4 Signing — `scripts/sign-release.py`
 
 New. Usage: `sign-release.py <file>`.
 
-1. Read the seed from the environment variable `SLIPCASE_SIGNING_KEY`.
-   Missing, not base64, or not 32 bytes → exit 1 with a message that
-   never contains the value.
+1. Read the seed from the environment variable `SLIPCASE_SIGNING_KEY`,
+   with surrounding whitespace stripped. Missing, not base64, or not 32
+   bytes → exit 1 with a message that never contains the value.
 2. Sign the file's bytes. Write `<file>.sig`.
 3. **Verify the new signature with `core.update_key.public_key()`.** A
    failure deletes `<file>.sig` and exits 1. This catches a secret that
@@ -141,8 +148,10 @@ The Windows step runs `build\venv\Scripts\python.exe` under `pwsh`. The
 build venv is used because the build scripts already install
 `requirements.lock` into it, and that now includes `cryptography`.
 
-- **The secret reaches this step only.** The build step installs and runs
-  third-party packages; it never sees the key.
+- **The secret reaches this step only.** The build step's environment
+  never holds it. Code the build step ran can still change the runner, the
+  venv included, before this step runs. Signing in the job that builds the
+  file accepts that (§ 3).
 - **Both uploads gain the `.sig`:** the `upload-artifact` paths and the
   `gh release upload` file list.
 - **No secret, no release.** An empty `SLIPCASE_SIGNING_KEY` fails the step,
@@ -206,10 +215,12 @@ build venv is used because the build scripts already install
   *Breaks when:* a job signs but uploads only the asset and `.sha256`.
 
 - **INV-6** — `RELEASE_PUBLIC_KEY_B64` decodes to a valid 32-byte Ed25519
-  public key, and `--smoke` reports FAIL when it cannot be loaded.
+  public key, and `--smoke` does not report OK when it cannot be loaded.
   *Test:* `tests/test_release_signing.py::TestKeyCustody::test_public_key_loads`;
   and `tests/test_smoke.py` gains a case that runs `--smoke` with
-  `core.update_key` made to raise on import and expects `slipcase smoke FAIL`.
+  `core.update_key` made to raise on import. It expects a non-zero exit and
+  no `slipcase smoke OK` line. The build scripts check for that line, so
+  this holds whether the import fails at start-up or inside `_smoke`.
   *Breaks when:* the constant is a placeholder or truncated, or `_smoke`
   skips the key check.
 
@@ -247,8 +258,8 @@ build venv is used because the build scripts already install
 All in a new `tests/test_release_signing.py`, as `unittest.TestCase`
 classes (`STANDARDS.md` § 9). They run offline, generate a throwaway key per
 test, and never read the real secret. Each must be seen failing against the
-unchanged tree before the change lands: the scripts and `core/update_key.py`
-do not exist yet, so every case fails on import first. The breaking case
+unchanged tree before the change lands: `sign-release.py` and
+`core/update_key.py` do not exist yet, so every case fails on import first. The breaking case
 each one names under *Breaks when* is the second run.
 
 | Test | Locks |
