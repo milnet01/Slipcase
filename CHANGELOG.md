@@ -16,8 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   download page. Skip this version stops that version being offered again.
 
 - **Every download on the releases page now has a signature beside it**
-  (`.sig`), made with Slipcase's release key. The coming in-app updater will
-  refuse any file whose signature does not match (SLIP-0030).
+  (SLIP-0030)
+  A `.sig` file, made with Slipcase's release key. The in-app updater refuses
+  any file whose signature does not match.
 
 - **A European PlayStation case shows "PlayStation" moulded into its top
   and bottom in the 3D view** (SLIP-0110)
@@ -26,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   files gain top and bottom pictures for cases that have them.
 
 - **PlayStation and Dreamcast games now look like their real jewel cases**
-  (SLIP-0106)
+  (SLIP-0106, SLIP-0114, SLIP-0115)
   The front booklet sits beside a strip of bare tray plastic under a clear
   lid with a soft shine. A loaded back insert's two printed edges go on the
   case's two sides. Each case has its tray's real colour, and a European
@@ -36,10 +37,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The strip beside the booklet on a US Dreamcast case, and on a US or
   Japanese PlayStation case, is a clear window. It looks through to the
   print inside the back of the case, "Sega Dreamcast" or a ribbed band, and
-  that print shifts as you change the view angle (SLIP-0114, SLIP-0115).
+  that print shifts as you change the view angle. A European Dreamcast case
+  shows "Dreamcast" moulded into its blue strip (SLIP-0112).
 
 - **SNES and N64 boxes lie landscape, as the US and European boxes do**
-  (SLIP-0108)
+  (part of SLIP-0108)
   A Japanese cover gets the tall Super Famicom or Japanese N64 box.
 
 - **Turn the box in 3D, and save it for RetroDB** (SLIP-0104)
@@ -47,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   under the preview, or Ctrl+3, to open it. Turn it with the mouse or
   the arrow keys, zoom with the wheel, or let Auto-spin turn it. Exports and
   batch renders now also save a box file beside each PNG, ready for RetroDB's
-  planned importer. A setting under Settings, Export turns the box file off.
+  importer. A setting under Settings, Export turns the box file off.
 
 - **The About box and the README now say who owns the cover art**
   Covers belong to their publishers, and Slipcase is not affiliated with any
@@ -61,7 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   together. A service that cannot start no longer stops the others.
 
 - **Each console now has its own DVD, Blu-ray or handheld case, in its real
-  size and plastic** (SLIP-0107)
+  size and plastic** (part of SLIP-0107)
   "DVD Case" and "Blu-ray Case" become one case per console, such as "PS2
   DVD Case" and "PS4 Blu-ray Case". A European PS2 or DS game, or a Japanese
   GameCube game, gets its region's case from the file name. Coloured cases
@@ -77,6 +79,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Dreamcast ones.
 
 ### Fixed
+
+- **A cover search typed in lower case now finds the cover without an
+  account** (SLIP-0116)
+  With no cover-art service set up, libretro needs the exact title. A title
+  typed all in lower case is now also tried with capitals, and "No results
+  found" says to try the full title.
 
 - **A ScreenScraper search with no match no longer lists a nameless game**
   An empty or partial reply from ScreenScraper or TheGamesDB now gives no

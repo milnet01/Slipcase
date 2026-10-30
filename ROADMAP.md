@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: SLIP=122 -->
+<!-- ants-roadmap-id-high-water: SLIP=123 -->
 
 # Slipcase — Roadmap
 
@@ -179,7 +179,7 @@ which covers the source repository going public.
   Kind: package.
   Source: user-request-2026-08-27.
 
-- 📋 [SLIP-0030] **Sign release assets so an update can be verified.**
+- ✅ [SLIP-0030] **Sign release assets so an update can be verified.**
   Prerequisite for the in-app updater, and separate work: it changes how a
   release is published rather than what the app does.
   Generate an Ed25519 keypair, embed the public half in the app, and have the
@@ -213,12 +213,14 @@ which covers the source repository going public.
   release build 40950313461: all four jobs signed; each downloaded file's
   .sig verified against core/update_key.py. Ships in the next release;
   § 7.1's check then runs on the release itself.
+  Ships in 1.4.0. The user, 2026-10-30: same-job signing stays; the
+  separate-job option is not taken.
   **Layman:** Put a tamper-proof seal on each download so the app can tell a real release from a fake one.
   Kind: security.
   Source: user-request-2026-08-27.
   Lanes: packaging, security.
 
-- 📋 [SLIP-0031] **Offer an opt-in in-app auto-update, modelled on finbreak.**
+- ✅ [SLIP-0031] **Offer an opt-in in-app auto-update, modelled on finbreak.**
   Port the design used by the finbreak app, whose contract is documented in tests/features/auto_update/spec.md within that project.
   Shape of it: off by default and enabled in Settings; a background check asks
   the release host for the newest tag; on a newer, signed, non-skipped version
@@ -257,10 +259,22 @@ which covers the source repository going public.
   SLIP-0122. Suite 323 passed, 2 skipped. Not yet run: § 7.1's manual
   N -> N+1 update on Linux and Windows, which needs the release after the
   one that ships this (user decision 2026-10-29).
+  Ships in 1.4.0. § 7.1's manual N -> N+1 update is still to run, on the
+  release after this one; tracked separately on the roadmap. The user,
+  2026-10-30: the no-review ruling for few-line changes still stands,
+  which covers objects.githubusercontent.com in ALLOWED_RELEASE_HOSTS.
   **Layman:** The app can notice a new version, ask if you want it, and install it for you.
   Kind: feature.
   Source: user-request-2026-08-27.
   Lanes: core, ui, security.
+
+- 📋 [SLIP-0123] **Run SLIP-0031 § 7.1's real update from 1.4.0 to the next release, on Linux and Windows.**
+  1.4.0 is the first release that can update itself, so the check needs the
+  release after it. Windows runs on `ssh wintest`. Blocked until that release
+  exists; cut it before relying on the updater's install path.
+  **Layman:** Prove the in-app update really works, once there is a newer release to update to.
+  Kind: test.
+  Source: spec-SLIP-0031-2026-10-30.
 
 ## Quality and tooling
 
@@ -1260,7 +1274,7 @@ building.
   Kind: feature.
   Source: user-request-2026-10-21.
 
-- 🚧 [SLIP-0114] **Show a jewel case's clear lid margin round the booklet as lit plastic, not black.**
+- ✅ [SLIP-0114] **Show a jewel case's clear lid margin round the booklet as lit plastic, not black.**
   The user, 2026-10-21, shared a downloaded Ridge Racer Type 4 render
   "showing how it shows plastic". Their own PAL photo ("Front of case")
   settled what to copy: the lid margin above, right of and below the
@@ -1314,11 +1328,18 @@ building.
   found were in the spine (new item, generated spines). PAL Dreamcast:
   the references print "Dreamcast" legibly in the front hinge strip;
   Slipcase's reads faint.
+  The user, 2026-10-30, with a drawing: the strip is a window into a
+  hollow compartment and the print lies flat on the inside of the back.
+  Built: core/jewel.py _through_window (86ae095, 3367eb8, ad1d027): far
+  wall carrying the paper, inner wall and floor, moving with the view
+  angle; a box file draws it at DEFAULT_VIEW_ANGLE. Fine ridges are PAL
+  only. Depth is 1.3 x the case's, by eye. Approved by the user's eye
+  2026-10-30. Ships in 1.4.0.
   **Layman:** The thin clear border round a CD-case cover now looks like see-through plastic catching the light, as on a real case.
   Kind: enhancement.
   Source: user-request-2026-10-21.
 
-- 🚧 [SLIP-0115] **Show the back card's hinge strip through a clear jewel tray's front hinge strip.**
+- ✅ [SLIP-0115] **Show the back card's hinge strip through a clear jewel tray's front hinge strip.**
   The user's US Dreamcast photos (~/Pictures/Dreamcast Cases/,
   2026-10-21) show the back card's "Sega Dreamcast" strip through the
   clear tray, filling the front's hinge strip; Slipcase drew it pale
@@ -1357,6 +1378,10 @@ building.
   RetroDB comparison (2026-10-29): no better US example there. The
   Dreamcast covers tagged USA that were checked (Shenmue, Spider-Man)
   are PAL covers with ELSPA badges, shown on PAL cases.
+  Built with SLIP-0114's compartment (2026-10-30). The lettering is near
+  black on white, placed by the user on a trial picture. Reference:
+  LaunchBox Sonic Adventure Limited Edition Box - 3D. Approved by the
+  user's eye 2026-10-30. Ships in 1.4.0.
   **Layman:** On a see-through US Dreamcast case, the white "Sega Dreamcast" edge of the back insert now shows beside the cover, as on a real case.
   Kind: enhancement.
   Source: user-request-2026-10-21.
@@ -2442,6 +2467,8 @@ building.
   77681fb the word shows twice; at HEAD once. Locked by
   tests/test_jewel.py::TestFaces::test_ps1_tray_print_draws_no_word,
   red at 77681fb (strip pixel 240), green now. Never in a release.
+  Release note (1.4.0): no CHANGELOG entry. The defect was never in a
+  release.
   **Layman:** Some PS1 covers already include the black PlayStation edge, so the box shows that edge twice.
   Kind: fix.
   Source: session-2026-10-21.
