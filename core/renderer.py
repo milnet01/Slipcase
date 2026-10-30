@@ -169,6 +169,7 @@ class BoxRenderer:
                 spine_left_offset=spine_left_offset,
                 spine_right_offset=spine_right_offset,
                 full_cover=full_cover, back_strips=back_strips,
+                view_angle=self.angle,
             )
             front_image, back_image = faces.front, faces.back
             extracted_spine = faces.hinge

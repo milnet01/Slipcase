@@ -282,8 +282,6 @@ class TestFaces(unittest.TestCase):
 
         for case in cases[1:]:
             with self.subTest(case=case):
-                spine, _ = strip(case, None, 1, 5)
-                self.assertLess(spine.mean(), 20)
                 band, px = strip(case, None, 8, 9)
                 down = band.mean(axis=(1, 2))
                 # Bold enough to read through the lid (the user's DuckStation
@@ -296,6 +294,53 @@ class TestFaces(unittest.TestCase):
         pal = "PS1 Jewel Case (PAL)"
         s, _ = strip(pal, _card(CASE_TYPES[pal], [RED, GREEN, BLUE]))
         self.assertTrue(np.all(s == CASE_TYPES[pal].plastic))
+
+    def test_tray_print_sits_at_the_back_of_a_hollow_strip(self):
+        """The front's hinge strip is a window onto the back card's inside,
+        a case's depth behind it (the user's drawing, 2026-10-30). Turning
+        the box slides the print towards the spine by depth * tan(angle), and
+        the inner wall by the booklet takes the room it leaves."""
+        booklet = Image.new("RGB", (1200, 1200), (128, 128, 128))
+        case = "Dreamcast Jewel Case (NTSC-U)"
+        ct = CASE_TYPES[case]
+
+        def row_of_ink(angle):
+            front = _faces(booklet, None, case, view_angle=angle).front
+            px = front.width / ct.width
+            strip = np.asarray(front.convert("L"))[
+                round(5 * px):round(120 * px), :round(19 * px)]
+            cols = np.flatnonzero((strip < 90).mean(axis=0) > 0.01)
+            return cols.mean() / px, strip, px
+
+        at_10, _, _ = row_of_ink(10)
+        at_40, strip_40, px = row_of_ink(40)
+        depth = ct.depth - jewel._WINDOW_INSET_MM
+        expected = depth * (np.tan(np.radians(40)) - np.tan(np.radians(10)))
+        self.assertAlmostEqual(at_10 - at_40, expected, delta=0.5)
+        # Next to the booklet the wall shows and the paper does not.
+        wall = strip_40[:, round(18 * px):]
+        self.assertLess(wall.std(axis=0).max(), 2)
+
+        # The renderer turns the print with its own angle.
+        def rendered(angle):
+            r = BoxRenderer(ct, output_width=800, angle=angle,
+                            show_reflection=False, show_shadow=False)
+            return np.asarray(r.render(booklet, title="T", platform="Dreamcast"))
+        with patch.object(renderer, "jewel_faces", wraps=jewel_faces) as faces:
+            rendered(40)
+        self.assertEqual(faces.call_args.kwargs["view_angle"], 40)
+
+    def test_ps1_ribs_fill_the_window(self):
+        """The ribbed band runs the width of the window, not a narrow column
+        (the user, on the trial picture, 2026-10-30)."""
+        booklet = Image.new("RGB", (1200, 1200), (128, 128, 128))
+        front = _faces(booklet, None, "PS1 Jewel Case (NTSC-U)").front
+        px = front.width / 142
+        grey = np.asarray(front.convert("L"), dtype=float)[round(5 * px):round(120 * px)]
+        for x_mm in (4, 12):
+            with self.subTest(x_mm=x_mm):
+                down = grey[:, round(x_mm * px)]
+                self.assertGreater(down.max() - down.min(), 25)
 
     def test_fine_ridges_only_on_the_pal_ps1_strip(self):
         """The fine vertical lines belong to the PAL case's black hinge strip.

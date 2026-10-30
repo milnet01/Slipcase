@@ -455,8 +455,10 @@ shows.
 
 - **INV-6** — A jewel front is `plastic` in the hinge strip and the booklet
   in the booklet area. Amended by SLIP-0115: on a case with a `tray_print`,
-  the hinge strip shows that printed panel instead, whatever was loaded,
-  shaded as seen behind the clear lid
+  the hinge strip is a window onto that printed panel, whatever was loaded,
+  at the back card's depth: the view angle slides it towards the spine and
+  the inner wall by the booklet fills the room it leaves. A box file draws
+  it at `DEFAULT_VIEW_ANGLE`
   (`tests/test_jewel.py::test_clear_tray_shows_the_tray_print`).
   Top, bottom and edge colours are
   `case_color or plastic`, never sampled from the art.

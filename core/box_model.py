@@ -14,7 +14,7 @@ from core.case_texture import (
 )
 from core.case_types import CaseType
 from core.image_utils import case_edge_colours, is_full_cover, split_full_cover
-from core.jewel import jewel_faces
+from core.jewel import DEFAULT_VIEW_ANGLE, jewel_faces
 from core.spine_generator import generate_spine
 
 # Longest edge of any face picture. A 1600 x 1600 noise picture saves to
@@ -153,7 +153,8 @@ def _jewel_model(
     **face_args,
 ) -> BoxModel:
     """build_box_model for a jewel case (SLIP-0106 § 4.5)."""
-    faces = jewel_faces(front_image, back_image, case_type, **face_args)
+    faces = jewel_faces(front_image, back_image, case_type,
+                        view_angle=DEFAULT_VIEW_ANGLE, **face_args)
     plastic = case_color or case_type.plastic
 
     face_aspect = case_type.width / case_type.height

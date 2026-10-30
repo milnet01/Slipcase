@@ -33,10 +33,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   PlayStation case is thicker. Slipcase picks the US, European or Japanese
   case from the cover's file name, such as "(Europe)", and you can pick
   another in the case list. Box files gain the opening side's picture.
-  A US Dreamcast case's clear tray shows its printed "Sega Dreamcast"
-  panel beside the booklet, and a US or Japanese PlayStation case its
-  printed ribbed band, both as seen behind the clear plastic (SLIP-0114,
-  SLIP-0115).
+  The strip beside the booklet on a US Dreamcast case, and on a US or
+  Japanese PlayStation case, is a clear window. It looks through to the
+  print inside the back of the case, "Sega Dreamcast" or a ribbed band, and
+  that print shifts as you change the view angle (SLIP-0114, SLIP-0115).
 
 - **SNES and N64 boxes lie landscape, as the US and European boxes do**
   (SLIP-0108)

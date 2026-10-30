@@ -148,7 +148,7 @@ def tray_print_panel(tray: TrayPrint, size_mm: tuple[float, float], p: float) ->
     """A clear tray's printed panel, `size_mm` across and down at `p` px/mm:
     `tray.paper` with `tray.text` in `tray.ink`, `tray.length` mm long and
     centred, running along the strip. A swirl goes after the first word.
-    `tray.ribs` adds a band of printed ribs."""
+    `tray.ribs` adds a band of printed ribs. `tray.across` places the text."""
     w, h = max(1, round(size_mm[0] * p)), max(1, round(size_mm[1] * p))
     panel = Image.new("RGBA", (w, h), (*tray.paper, 255))
     if tray.ribs is not None:
@@ -171,7 +171,8 @@ def tray_print_panel(tray: TrayPrint, size_mm: tuple[float, float], p: float) ->
     lying = Image.new("RGBA", (h, w), (0, 0, 0, 0))
     draw = ImageDraw.Draw(lying)
     x = (h - sum(word_w) - swirl_w) / 2
-    y = w / 2
+    across = w / 2 if tray.across is None else tray.across * p
+    y = across if tray.reads_up else w - across
     draw.text((x, y), words[0], font=font, fill=(*tray.ink, 255), anchor="lm")
     if tray.swirl:
         radius = font.size * _SWIRL_SHARE / 2
@@ -216,33 +217,34 @@ def _printed_ribs(panel: Image.Image, tray: TrayPrint, p: float) -> Image.Image:
     return out
 
 
-# How a panel behind the clear front reads: barely dimmed, shadowed by the
-# spine wall and by the lid's top and bottom rims, with a soft band of shine.
-# All judged by eye against the user's photos (2026-10-21) and LaunchBox box
-# (2026-10-30); clear plastic does not grey the print behind it.
+# A clear tray's front hinge strip is a window onto the back card's inside
+# (the user's drawing, 2026-10-30). Lid and back card take this much off the
+# case's depth, and the shading is judged by eye on the user's trial picture.
+_WINDOW_INSET_MM = 1.4
+# A box file's front is one flat picture, so its window is drawn from here.
+DEFAULT_VIEW_ANGLE = 30.0
 _BEHIND_DIM = 0.97
-_WALL_SHADOW = (3.0, 0.45)   # mm wide, darkest multiplier at the wall
-_RIM_SHADOW = (1.5, 0.7)
-_SHEEN = (0.7, 0.15, 0.14)   # centre and width as shares of the strip; alpha
+_SPINE_SHADOW = (4.0, 0.55)   # mm wide, darkest multiplier beside the spine
+_WALL_DARK = 0.55             # the inner wall's multiplier at the back card
 
 
-def _behind_plastic(panel: Image.Image, p: float) -> Image.Image:
-    """`panel` as seen through a clear lid, a case's depth behind it."""
+def _through_window(panel: Image.Image, tray: TrayPrint, depth: float, angle: float,
+                    p: float) -> Image.Image:
+    """`panel`, printed `depth` mm behind the window, seen at `angle` degrees
+    from the spine's side: it slides towards the spine, and the inner wall by
+    the booklet fills the room it leaves."""
     w, h = panel.size
-    x = (np.arange(w) + 0.5)[None, :] / p
-    y = (np.arange(h) + 0.5)[:, None] / p
-    wall_w, wall_dark = _WALL_SHADOW
-    rim_w, rim_dark = _RIM_SHADOW
-    light = (_BEHIND_DIM
-             * (wall_dark + (1 - wall_dark) * np.clip(x / wall_w, 0, 1))
-             * (rim_dark + (1 - rim_dark) * np.clip(np.minimum(y, h / p - y) / rim_w, 0, 1)))
-    centre, width, alpha = _SHEEN
-    sheen = alpha * np.exp(-(((x / (w / p)) - centre) / width) ** 2)
-    rgba = np.asarray(panel, dtype=float)
-    rgb = rgba[..., :3] * light[..., None]
-    rgb = rgb + (255 - rgb) * sheen[..., None]
-    out = np.dstack([rgb, rgba[..., 3]])
-    return Image.fromarray(np.round(out).astype(np.uint8), "RGBA")
+    shift = min(w, round(depth * math.tan(math.radians(angle)) * p))
+    seen = w - shift
+    rgb = np.empty((h, w, 3))
+    shadow_w, shadow_dark = _SPINE_SHADOW
+    x = (np.arange(seen) + 0.5) / p
+    light = _BEHIND_DIM * (shadow_dark + (1 - shadow_dark) * np.clip(x / shadow_w, 0, 1))
+    rgb[:, :seen] = np.asarray(panel.convert("RGB"), dtype=float)[:, shift:] * light[None, :, None]
+    # From the back card's dark edge up to the lid.
+    rise = np.linspace(_WALL_DARK, 1, shift)[None, :, None]
+    rgb[:, seen:] = np.array(tray.wall, dtype=float) * rise
+    return Image.fromarray(np.round(rgb).astype(np.uint8), "RGB").convert("RGBA")
 
 
 def jewel_faces(
@@ -258,6 +260,7 @@ def jewel_faces(
     spine_right_offset: int,
     full_cover: bool | None,
     back_strips: bool | None,
+    view_angle: float = DEFAULT_VIEW_ANGLE,
 ) -> JewelFaces:
     """Build a jewel case's faces from the loaded front and back.
 
@@ -269,6 +272,7 @@ def jewel_faces(
     right strip, else the wrap's spine, else a generated spine; opening from
     the card's left strip, else a generated spine. A scan is seen from
     behind, where the hinge is on the right, so its right strip is the hinge.
+    `view_angle` is the render's, for what a clear tray's window shows.
     """
     jewel = case_type.jewel
     plastic = case_type.plastic or (0, 0, 0)
@@ -329,9 +333,9 @@ def jewel_faces(
     if case_type.tray_print is not None:
         # A clear tray shows the back card's printed panel through the
         # front's hinge strip. Scans do not carry it, so it is drawn.
+        panel = tray_print_panel(case_type.tray_print, (W - margin - booklet_w, card_h), p)
         front.alpha_composite(
-            _behind_plastic(
-                tray_print_panel(case_type.tray_print, (W - margin - booklet_w, card_h), p), p),
+            _through_window(panel, case_type.tray_print, D - _WINDOW_INSET_MM, view_angle, p),
             (0, round((H - card_h) / 2 * p)),
         )
     return JewelFaces(

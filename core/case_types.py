@@ -25,6 +25,10 @@ class TrayPrint:
     # mm across the strip, from its outer edge, of a band of printed ribs in
     # `ink` fading into `paper`; None for no ribs.
     ribs: tuple[float, float] | None = None
+    # mm from the strip's outer edge to the text's centre; None centres it.
+    across: float | None = None
+    # The clear tray's inner wall beside the booklet, seen through the lid.
+    wall: tuple[int, int, int] = (0, 0, 0)
 
 
 @dataclass(frozen=True)
@@ -87,13 +91,14 @@ _GREEN_TINT = (0x2E, 0x9E, 0x3A)
 # photos; and on PS1, black with a printed ribbed band, measured from the
 # inside of Crash Bandicoot's back card. The user asked for that band on every
 # NTSC PS1 case until a case can be opened (2026-10-21). Ink levels follow the
-# user's DuckStation PS1 covers and LaunchBox Sonic Adventure box (2026-10-30).
+# user's DuckStation PS1 covers and LaunchBox Sonic Adventure box; the band's
+# width and the lettering's place are the user's, on a trial picture (2026-10-30).
 _PS1_NTSC_TRAY_PRINT = TrayPrint(text="", paper=(0x00, 0x00, 0x00),
                                  ink=(0x78, 0x78, 0x7C), length=0, reads_up=True,
-                                 ribs=(6.1, 18.5))
+                                 ribs=(3.0, 34.0), wall=(0x38, 0x38, 0x3C))
 _DREAMCAST_US_TRAY_PRINT = TrayPrint(text="Sega Dreamcast", paper=(0xF4, 0xF4, 0xF2),
                                      ink=(0x18, 0x18, 0x18), length=67, reads_up=True,
-                                     swirl=True)
+                                     swirl=True, across=11.75, wall=(0xC8, 0xCC, 0xD0))
 
 CASE_TYPES: dict[str, CaseType] = {
     # Keep cases: one printed sheet wraps back + spine + front under a clear
