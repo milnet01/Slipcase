@@ -1,7 +1,8 @@
 <!-- ants-spec-format: 1 -->
 # SLIP-0107 — Give keep cases and handheld cases their real size and plastic, per region
 
-**Status:** implemented (2026-10-21); waiting on the user's by-eye check.
+**Status:** implemented (2026-10-21); amended 2026-10-30 (plastic rim, clear
+edges); waiting on the user's by-eye check.
 **Kind:** feature.
 **Source:** ROADMAP SLIP-0107 (user-request-2026-10-21). Phase 2 of
 SLIP-0106. Research:
@@ -19,9 +20,9 @@ case.
 ## 1. Goal
 
 Each disc keep case and handheld case renders at its real size, with its
-real plastic. An opaque case's top, bottom and opening edge are its
-plastic colour. A clear or tinted case shows the cover through the
-plastic, with a soft shine on the front. Each console has its own entry
+real plastic. A case's top, bottom and opening edge are its plastic
+colour, and a plastic rim frames the cover. A clear or tinted case also
+has a soft shine on the front. Each console has its own entry
 in the case list, and a region variant where the region's case differs.
 The console picks its case and the cover's file name picks the region,
 as for jewel cases.
@@ -52,9 +53,14 @@ as for jewel cases.
 - **Opaque cases: real plastic edges.** User, 2026-10-21: the top, bottom
   and opening edge take the plastic colour, as jewel cases do. Case Color
   still overrides.
-- **Clear cases: cover colour plus shine.** User, 2026-10-21: the edges
-  keep the colour sampled from the cover, which a real clear case shows
-  through its plastic, and the front gets a soft shine.
+- **Clear cases: plastic edges plus shine.** User, 2026-10-30, on PS5: "only
+  really have the cover provided instead of a plastic case". This replaces
+  the 2026-10-21 decision to sample the edges from the cover. The front keeps
+  its soft shine.
+- **Every keep case has a plastic rim.** LaunchBox's Box - 3D images frame
+  the art in plastic on the top, bottom and opening side
+  ([`../research/SLIP-0108-cartridge-boxes.md`](../research/SLIP-0108-cartridge-boxes.md)
+  § LaunchBox survey). The art shrinks to fit, so nothing is cropped.
 - **One entry per console.** User, 2026-10-21: names such as "PS2 DVD
   Case" and "DS Case (PAL)", like the PS1 jewel cases. The console picks
   its case and the region its variant.
@@ -77,8 +83,7 @@ as for jewel cases.
     # Overlay family for the wrap layout: "dvd", "bluray", "switch", "ds",
     # "psp", "cardboard", or None for no overlay.
     texture: str | None = None
-    # Clear or tinted plastic: the cover shows through, so edges keep the
-    # cover's colour, tinted by `plastic` when set, and the front shines.
+    # Clear or tinted plastic: the front shines. Edges are still plastic.
     clear: bool = False
 ```
 
@@ -130,11 +135,10 @@ def case_edge_colours(front_image, case_type, case_color
 ```
 
 - `case_color` set: all three are `case_color`.
-- Opaque case with `plastic` (jewel or wrap): all three are `plastic`.
-- Clear case: top and bottom are `extract_dominant_edge_color` of the
-  front at that edge, mixed `CLEAR_TINT` (0.3, working value) toward
-  `plastic` when set; the opening edge is the top's colour.
-- No `plastic` and not clear: as today, sampled, opening edge = top.
+- A case with `plastic` (jewel or wrap, clear or not): all three are
+  `plastic`.
+- Clear with no `plastic`: all three are `CLEAR_RIM`.
+- No `plastic` and not clear: sampled, opening edge = top.
 
 The jewel path keeps `render`'s `_JEWEL_EDGE_LIFT` on top of this.
 
@@ -197,8 +201,6 @@ is written.
 
 - **A working colour is wrong.** The user picks Case Color, and the
   table is corrected from their report.
-- **A clear case's cover edge is a poor colour.** It is today's sampled
-  colour; Case Color overrides.
 - **A ROM tagged "(Europe)" for a console with no PAL variant.** `case_for`
   falls back to the console's default, as today.
 

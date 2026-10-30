@@ -13,7 +13,7 @@ from core.case_texture import (
     generate_front_texture, generate_moulded_edge, generate_spine_texture,
 )
 from core.case_types import CaseType
-from core.image_utils import case_edge_colours, is_full_cover, split_full_cover
+from core.image_utils import case_edge_colours, inset_in_rim, is_full_cover, split_full_cover
 from core.jewel import DEFAULT_VIEW_ANGLE, jewel_faces
 from core.spine_generator import generate_spine
 
@@ -125,6 +125,12 @@ def build_box_model(
             serial=serial,
             bg_color=spine_color,
         ).convert("RGBA")
+
+    # Seen from behind, the opening side is on the left.
+    front = inset_in_rim(front, case_type, case_color, opening="right")
+    spine = inset_in_rim(spine, case_type, case_color, opening=None)
+    if back is not None:
+        back = inset_in_rim(back, case_type, case_color, opening="left")
 
     if show_texture:
         front = Image.alpha_composite(

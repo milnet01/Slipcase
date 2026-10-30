@@ -31,6 +31,12 @@ class TrayPrint:
     wall: tuple[int, int, int] = (0, 0, 0)
 
 
+# A keep case's sheet sits under a clear sleeve inside a plastic lip. Width
+# judged from LaunchBox's Box - 3D images (2026-10-30); a real case is unmeasured.
+KEEP_RIM_MM = 2.5
+_KEEP_TEXTURES = frozenset({"dvd", "bluray", "switch", "ds", "psp"})
+
+
 @dataclass(frozen=True)
 class CaseType:
     """A game case type with real-world dimensions in millimeters."""
@@ -58,14 +64,21 @@ class CaseType:
     # Overlay family for the wrap layout: "dvd", "bluray", "switch", "ds",
     # "psp", "cardboard", or None for no overlay (SLIP-0107).
     texture: str | None = None
-    # Clear or tinted plastic: the cover shows through, so the edges keep
-    # the cover's colour, tinted by `plastic` when set, and the front shines.
+    # Clear or tinted plastic: the front shines. The edges are still plastic,
+    # `plastic` when set, and a neutral clear otherwise.
     clear: bool = False
 
     @property
     def layout(self) -> str:
         """Either "wrap" (back + spine + front) or "jewel" (booklet and back card)."""
         return "wrap" if self.jewel is None else "jewel"
+
+    @property
+    def rim_mm(self) -> float:
+        """Width of the plastic lip framing the printed sheet, 0 for none."""
+        if self.layout == "wrap" and self.texture in _KEEP_TEXTURES:
+            return KEEP_RIM_MM
+        return 0.0
 
     @property
     def aspect_ratio(self) -> float:

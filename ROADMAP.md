@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: SLIP=123 -->
+<!-- ants-roadmap-id-high-water: SLIP=124 -->
 
 # Slipcase — Roadmap
 
@@ -1127,6 +1127,16 @@ building.
   are templated renders, so this is not evidence either way. The
   references are mostly PAL covers whatever their region tag. The
   spine differences went to a new item (generated spines).
+  The user, 2026-10-30, on PS5: "only really have the cover provided
+  instead of a plastic case", and "probably the same for many different
+  cases". LaunchBox's Box - 3D images confirm it: every keep case frames its
+  art in plastic on the top, bottom and opening side (survey in
+  docs/research/SLIP-0108-cartridge-boxes.md).
+  Built 2026-10-30: inset_in_rim in core/image_utils.py, used by the render
+  and the 3D box. A 2.5 mm rim, judged from those images; the art shrinks,
+  so nothing is cropped. Clear cases' edges are now plastic, not the cover's
+  colour, which replaces the 2026-10-21 ruling. Test:
+  tests/test_keep_cases.py TestRim. Next: the user's eye on a real export.
   **Layman:** DVD-style and handheld game cases get the right size and plastic colour for each console and region.
   Kind: feature.
   Source: user-request-2026-10-21.
@@ -1154,6 +1164,11 @@ building.
   (SNES) for how a landscape box should be shown: seen slightly from
   below, so the long bottom edge, printed with the title and publisher,
   shows under the front, not the short left end.
+  LaunchBox survey, 2026-10-30, in the research file. New for this item:
+  Genesis and Master System cases show a hanging tab above the top edge, and
+  the Game Boy box looks close to square against Slipcase's narrow 79 x 112.
+  Order set 2026-10-30: Genesis and Master System plastic, then cardboard
+  sizes and the SNES view from below.
   **Layman:** Cartridge game boxes (NES, SNES, N64, Game Boy and others) get the right size and shape for each region.
   Kind: feature.
   Source: user-request-2026-10-21.
@@ -1448,6 +1463,19 @@ building.
   Kind: feature.
   Source: user-request-2026-10-29.
   Lanes: core, ui.
+
+- 📋 [SLIP-0124] **Give Saturn and Sega CD their own cases, and add the consoles that have none.**
+  The user, 2026-10-30: "Let's get all of these sorted." Saturn still uses
+  the generic CD Jewel Case; LaunchBox shows a wide hinge strip, and a tall
+  black PAL case. Sega CD has no entry and uses a similar jewel style, PAL
+  double-thick. No entry either: Wii U, Game Gear, Famicom, Atari 2600,
+  TurboGrafx-16, Neo Geo AES. Sizes are in docs/research/SLIP-0108-cartridge-boxes.md;
+  Saturn's and Sega CD's still need sourcing. The PAL readings rest on one
+  small sample each.
+  **Layman:** Saturn and Sega CD games get cases that look like theirs, and consoles with no case yet get one.
+  Kind: feature.
+  Source: user-request-2026-10-30.
+  Lanes: core.
 
 ## Project record
 

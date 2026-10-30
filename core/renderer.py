@@ -20,6 +20,7 @@ from core.image_utils import (
     case_edge_colours,
     generate_reflection,
     generate_shadow,
+    inset_in_rim,
     is_full_cover,
     split_full_cover,
 )
@@ -254,6 +255,9 @@ class BoxRenderer:
         if from_behind:
             front = ImageOps.mirror(front)
             spine = ImageOps.mirror(spine)
+        # Both views lay the opening side out on the right.
+        front = inset_in_rim(front, self.case_type, case_color, opening="right")
+        spine = inset_in_rim(spine, self.case_type, case_color, opening=None)
 
         # Compute 3D projection points
         angle_rad = math.radians(self.angle)

@@ -223,6 +223,27 @@ Quotes and sources:
   https://nostos.market/guides/neo-geo-aes-vs-mvs-buyers-guide .
   The AES insert layout is U.
 
+## LaunchBox survey
+
+Looked at 2026-10-30: LaunchBox's public `Metadata.zip`, its `Box - 3D`
+images, a seeded sample per console and region, from
+`https://images.launchbox-app.com/`. These are renders from community
+templates, so they show how collectors expect a case to look, not
+measurements.
+
+| Family | What the images show |
+|---|---|
+| Keep cases | Art inside a plastic rim on the top, bottom and opening side; none on the hinge side. PS4, PS5, Vita and Wii U blue; Xbox family green; PS3, PSP and Switch clear grey; Wii and 3DS white; GameCube, PC and US PS2 black; PAL PS2 blue |
+| Genesis, Master System | Black plastic case with a hanging tab above the top edge |
+| Game Gear | Tall cardboard box with a hanging tab |
+| Saturn | US and JP jewel-style cases with a wide hinge strip; PAL tall and black |
+| Sega CD | Jewel-style with a wide hinge strip; PAL double-thick |
+| NES, SNES, N64, Game Boy | Printed cardboard to the edge; no plastic |
+| SNES, N64 | US and PAL landscape; JP portrait |
+| Game Boy | Close to square, against Slipcase's narrow 79 × 112 |
+
+The PAL Saturn and Sega CD readings are from one small sample each.
+
 ## Not found
 
 Face-by-face print on the top and bottom of any Nintendo carton; the

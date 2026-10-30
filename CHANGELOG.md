@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   RetroDB already has. Slipcase remembers the setting. SNES boxes still differ:
   RetroDB shows those from below.
 
+### Changed
+
+- **DVD, Blu-ray and handheld cases now look like plastic cases, not printed cards** (SLIP-0107)
+  The cover sits inside a plastic rim in the console's colour: blue on PS5, green on Xbox, white on Wii, clear on Switch. The art shrinks slightly to fit, so nothing is cut off. The top and bottom of a clear case are now plastic too, not the cover's colour. Case Color still overrides all of it.
+
 ## [1.4.0] - 2026-10-30
 
 **Theme:** In-app updates, signed downloads and real cases for each console.

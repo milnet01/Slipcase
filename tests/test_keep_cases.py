@@ -11,8 +11,8 @@ from PIL import Image, ImageDraw
 import core.case_texture as case_texture
 from core.box_model import build_box_model
 from core.case_texture import generate_front_texture, generate_spine_texture
-from core.case_types import CASE_TYPES
-from core.image_utils import case_edge_colours
+from core.case_types import CASE_TYPES, KEEP_RIM_MM
+from core.image_utils import CLEAR_RIM, case_edge_colours, inset_in_rim
 from core.renderer import BoxRenderer
 
 BLACK, WHITE = (0x14, 0x14, 0x14), (0xEE, 0xEE, 0xEE)
@@ -65,19 +65,17 @@ class TestCaseData(unittest.TestCase):
 class TestEdgeColours(unittest.TestCase):
 
     def test_edge_colour_rules(self):
-        """§ 4.2: case colour wins; opaque plastic all round; clear samples
-        the cover, tinted."""
+        """Case colour wins; a case's plastic goes all round, clear or not;
+        a case with no plastic samples the cover (SLIP-0107, amended)."""
         cover = _cover()
-        ps2, switch, ps4 = (CASE_TYPES[n] for n in
-                            ("PS2 DVD Case", "Switch Case", "PS4 Blu-ray Case"))
+        ps2, switch, ps4, nes = (CASE_TYPES[n] for n in (
+            "PS2 DVD Case", "Switch Case", "PS4 Blu-ray Case", "NES Cartridge Box"))
         self.assertEqual(case_edge_colours(cover, ps2, (9, 8, 7)), ((9, 8, 7),) * 3)
         self.assertEqual(case_edge_colours(cover, ps2, None), (BLACK,) * 3)
-        self.assertEqual(case_edge_colours(cover, switch, None),
+        self.assertEqual(case_edge_colours(cover, ps4, None), (BLUE_TINT,) * 3)
+        self.assertEqual(case_edge_colours(cover, switch, None), (CLEAR_RIM,) * 3)
+        self.assertEqual(case_edge_colours(cover, nes, None),
                          ((200, 0, 0), (0, 0, 200), (200, 0, 0)))
-        # 200 + (0x2A - 200) * 0.3 = 152.6, and so on.
-        top, _bottom, edge = case_edge_colours(cover, ps4, None)
-        self.assertEqual(top, (153, 32, 62))
-        self.assertEqual(edge, top)
 
     def test_edge_colours_agree(self):
         """INV-3: render's top colour and the box model's top agree."""
@@ -99,6 +97,136 @@ class TestEdgeColours(unittest.TestCase):
                     expected = case_edge_colours(cover, ct, case_color)
                     self.assertEqual(faces.call_args.kwargs["top_color"], expected[0])
                     self.assertEqual(model.top, expected[0])
+
+
+class TestRim(unittest.TestCase):
+    """A keep case's plastic rim frames the cover on the top, bottom and
+    opening side; a cardboard box and a jewel case have none."""
+
+    RED = (200, 0, 0)
+
+    def _model(self, name, *, case_color=None, back=False):
+        cover = Image.new("RGB", (540, 760), self.RED)
+        return build_box_model(
+            cover, cover if back else None, CASE_TYPES[name], title="Game",
+            serial="", platform="PS5", spine_color=(200, 0, 0),
+            case_color=case_color, spine_left_offset=0, spine_right_offset=0,
+            full_cover=False, show_texture=False,
+        )
+
+    def _rim_px(self, face, name):
+        return round(KEEP_RIM_MM * face.height / CASE_TYPES[name].height)
+
+    def test_every_keep_case_has_a_rim(self):
+        names = [*TABLE, "PS2 Platinum Case (PAL)", "PS2 DVD Case (clear)"]
+        for name in names:
+            with self.subTest(case=name):
+                self.assertEqual(CASE_TYPES[name].rim_mm, KEEP_RIM_MM)
+
+    def test_boxes_and_jewel_cases_have_no_rim(self):
+        for name in ("NES Cartridge Box", "SNES Cartridge Box", "Universal Cart Case",
+                     "PS1 Jewel Case (PAL)", "CD Jewel Case"):
+            with self.subTest(case=name):
+                self.assertEqual(CASE_TYPES[name].rim_mm, 0)
+
+    def test_front_rim_on_three_sides_only(self):
+        name = "PS5 Blu-ray Case"
+        front = self._model(name).front.convert("RGB")
+        w, h = front.size
+        self.assertEqual(front.getpixel((w // 2, 0)), BLUE_TINT)
+        self.assertEqual(front.getpixel((w // 2, h - 1)), BLUE_TINT)
+        self.assertEqual(front.getpixel((w - 1, h // 2)), BLUE_TINT)
+        # The hinge side has no lip: the art runs to the spine.
+        self.assertEqual(front.getpixel((0, h // 2)), self.RED)
+        rim = self._rim_px(front, name)
+        self.assertEqual(front.getpixel((w // 2, rim + 2)), self.RED)
+        self.assertEqual(front.getpixel((w - rim - 3, h // 2)), self.RED)
+
+    def test_back_rim_is_on_its_opening_side(self):
+        """Seen from behind, the opening side is on the left."""
+        back = self._model("PS5 Blu-ray Case", back=True).back.convert("RGB")
+        w, h = back.size
+        self.assertEqual(back.getpixel((0, h // 2)), BLUE_TINT)
+        self.assertEqual(back.getpixel((w - 1, h // 2)), self.RED)
+
+    def test_spine_rim_on_top_and_bottom_only(self):
+        spine = self._model("PS5 Blu-ray Case").spine.convert("RGB")
+        w, h = spine.size
+        self.assertEqual(spine.getpixel((w // 2, 0)), BLUE_TINT)
+        self.assertEqual(spine.getpixel((w // 2, h - 1)), BLUE_TINT)
+        # Neither side has a lip: the spine's own art reaches both.
+        self.assertNotEqual(spine.getpixel((0, h // 2)), BLUE_TINT)
+        self.assertNotEqual(spine.getpixel((w - 1, h // 2)), BLUE_TINT)
+
+    def test_art_is_shrunk_into_the_rim_not_cropped(self):
+        """Marks narrower than the rim, at the top, bottom and far edges, all
+        survive; drawing the lip over the art, or cropping, would lose them."""
+        ct = CASE_TYPES["PS5 Blu-ray Case"]
+        cover = Image.new("RGB", (540, 760), self.RED)
+        cover.paste((0, 255, 0), (536, 0, 540, 760))
+        cover.paste((0, 255, 0), (0, 0, 540, 4))
+        cover.paste((0, 255, 0), (0, 756, 540, 760))
+        framed = np.array(inset_in_rim(cover.convert("RGBA"), ct, None, "right"))
+        rim = round(KEEP_RIM_MM * 760 / ct.height)
+        inner = framed[rim:760 - rim, :540 - rim]
+        for label, band in (("far", inner[100:-100, -2:]), ("top", inner[:2, 100:-100]),
+                            ("bottom", inner[-2:, 100:-100])):
+            with self.subTest(edge=label):
+                self.assertTrue((band[..., 1] > band[..., 0]).all())
+
+    def test_lip_has_an_inner_wall_in_shade(self):
+        ct = CASE_TYPES["PS5 Blu-ray Case"]
+        framed = inset_in_rim(Image.new("RGBA", (540, 760), (*self.RED, 255)), ct, None, "right")
+        rim = round(KEEP_RIM_MM * 760 / ct.height)
+        wall = framed.getpixel((270, rim - 1))[:3]
+        self.assertEqual(wall, tuple(round(c * 0.6) for c in BLUE_TINT))
+
+    def test_transparent_art_leaves_no_hole_in_the_frame(self):
+        """A cover with clear corners: the case behind it is still solid."""
+        ct = CASE_TYPES["PS5 Blu-ray Case"]
+        clear = inset_in_rim(Image.new("RGBA", (540, 760), (0, 0, 0, 0)), ct, None, "right")
+        self.assertEqual(np.array(clear)[..., 3].min(), 255)
+
+    def test_a_tiny_face_keeps_its_plastic_colour(self):
+        ct = CASE_TYPES["PS5 Blu-ray Case"]
+        tiny = inset_in_rim(Image.new("RGBA", (40, 50), (*self.RED, 255)), ct, None, "right")
+        self.assertEqual(tiny.getpixel((20, 0))[:3], BLUE_TINT)
+        self.assertEqual(tiny.getpixel((20, 25))[:3], self.RED)
+        # Too small for any art inside the lip: left alone, not blanked.
+        sliver = Image.new("RGBA", (10, 2), (*self.RED, 255))
+        self.assertIs(inset_in_rim(sliver, ct, None, "right"), sliver)
+
+    def test_case_colour_paints_the_rim(self):
+        front = self._model("PS5 Blu-ray Case", case_color=(9, 8, 7)).front.convert("RGB")
+        self.assertEqual(front.getpixel((front.width // 2, 0)), (9, 8, 7))
+
+    def test_a_box_keeps_its_art_to_the_edge(self):
+        front = self._model("NES Cartridge Box").front.convert("RGB")
+        self.assertEqual(front.getpixel((front.width // 2, 0)), self.RED)
+        self.assertEqual(front.getpixel((front.width - 1, front.height // 2)), self.RED)
+
+    def test_render_draws_the_rim_on_the_far_edge(self):
+        """The flat render, front and back: the opening side reads as plastic."""
+        cover = Image.new("RGB", (540, 760), self.RED)
+        renderer = BoxRenderer(CASE_TYPES["PS5 Blu-ray Case"], angle=30, output_width=512,
+                               show_reflection=False, show_shadow=False, show_texture=False)
+        front = np.array(renderer.render(cover, title="Game", full_cover=False))
+        back = np.array(renderer.render(cover, back_image=cover, view="back", title="Game",
+                                        full_cover=False))
+        for label, image, column in (("front", front, -3), ("back", back, 2)):
+            with self.subTest(view=label):
+                r, _, b, _ = image[image.shape[0] // 2, column]
+                self.assertGreater(int(b), int(r))
+
+    def test_render_frames_front_and_spine_with_the_case_colour(self):
+        ct = CASE_TYPES["PS5 Blu-ray Case"]
+        renderer = BoxRenderer(ct, angle=30, output_width=128, show_reflection=False,
+                               show_shadow=False, show_texture=False)
+        with patch("core.renderer.inset_in_rim", wraps=inset_in_rim) as framed:
+            renderer.render(Image.new("RGB", (540, 760), self.RED), title="Game",
+                            full_cover=False, case_color=(9, 8, 7))
+        self.assertEqual([c.args[1:] + (c.kwargs["opening"],) for c in framed.call_args_list],
+                         [(ct, (9, 8, 7), "right"), (ct, (9, 8, 7), None)])
 
 
 class TestOverlays(unittest.TestCase):

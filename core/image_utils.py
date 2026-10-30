@@ -210,9 +210,24 @@ def extract_dominant_edge_color(
     return (int(r), int(g), int(b))
 
 
-# How far a clear case's tint pulls the cover's colour seen through it.
-# Judged by eye at build (SLIP-0107 § 4.2).
-CLEAR_TINT = 0.3
+# Clear plastic with no tint of its own, as LaunchBox's Switch and PSP boxes
+# show it. Judged by eye (2026-10-30).
+CLEAR_RIM = (0xD8, 0xDC, 0xE0)
+# How much the lip's inner wall darkens the plastic, and its share of the lip.
+_RIM_WALL_SHADE = 0.6
+_RIM_WALL_SHARE = 0.25
+
+
+def _case_plastic(
+    case_type: CaseType,
+    case_color: tuple[int, int, int] | None,
+) -> tuple[int, int, int] | None:
+    """The colour a case's bare plastic shows; None for a printed box."""
+    if case_color is not None:
+        return case_color
+    if case_type.plastic is not None:
+        return case_type.plastic
+    return CLEAR_RIM if case_type.clear else None
 
 
 def case_edge_colours(
@@ -222,26 +237,57 @@ def case_edge_colours(
 ) -> tuple[tuple[int, int, int], tuple[int, int, int], tuple[int, int, int]]:
     """A case's top, bottom and opening-edge colours (SLIP-0107 § 4.2).
 
-    The user's case colour wins. An opaque case with a plastic colour is
-    that plastic all round. Otherwise the top and bottom are sampled from
-    the front at those edges, as the cover shows through a clear case,
-    tinted CLEAR_TINT toward a clear case's plastic; the opening edge takes
-    the top's colour.
+    A case with plastic is that plastic all round, clear or not; a clear one
+    no longer takes the cover's colour (the user, 2026-10-30). A printed box
+    has no plastic: its top and bottom are sampled from the front at those
+    edges, and its opening edge takes the top's colour.
     """
-    if case_color is not None:
-        return case_color, case_color, case_color
-    if case_type.plastic is not None and not case_type.clear:
-        return case_type.plastic, case_type.plastic, case_type.plastic
+    plastic = _case_plastic(case_type, case_color)
+    if plastic is not None:
+        return plastic, plastic, plastic
+    top = extract_dominant_edge_color(front_image, edge="top")
+    return top, extract_dominant_edge_color(front_image, edge="bottom"), top
 
-    def sampled(edge: str) -> tuple[int, int, int]:
-        colour = extract_dominant_edge_color(front_image, edge=edge)
-        if case_type.plastic is None:
-            return colour
-        return tuple(round(c + (t - c) * CLEAR_TINT)
-                     for c, t in zip(colour, case_type.plastic, strict=True))
 
-    top = sampled("top")
-    return top, sampled("bottom"), top
+def inset_in_rim(
+    face: Image.Image,
+    case_type: CaseType,
+    case_color: tuple[int, int, int] | None,
+    opening: str | None,
+) -> Image.Image:
+    """Shrink a printed face into its case's plastic lip; RGBA.
+
+    The lip runs along the top and bottom, and down the side named by
+    `opening` ("left" or "right"; None for a spine, which has neither). The
+    hinge side has none, so the art runs on to the spine. The art is shrunk,
+    not cropped, as a logo often sits at its very edge. A case with no rim
+    returns `face` untouched.
+    """
+    if not case_type.rim_mm:
+        return face
+    width, height = face.size
+    rim = max(1, round(case_type.rim_mm * height / case_type.height))
+    if height <= 2 * rim:
+        return face
+    plastic = _case_plastic(case_type, case_color)
+    framed = Image.new("RGBA", face.size, (*plastic, 255))
+
+    left = rim if opening == "left" else 0
+    right = width - rim if opening == "right" else width
+    # The lip's inner wall, in shade, so the sheet reads as sunk below it. A
+    # one-pixel lip has no room for one and must still read as the plastic.
+    wall = round(rim * _RIM_WALL_SHARE) if rim > 1 else 0
+    if wall:
+        shade = tuple(round(c * _RIM_WALL_SHADE) for c in plastic)
+        framed.paste((*shade, 255), (
+            max(0, left - wall), rim - wall,
+            min(width, right + wall), height - rim + wall,
+        ))
+    art = face if face.mode == "RGBA" else face.convert("RGBA")
+    art = art.resize((max(1, right - left), height - 2 * rim), Image.Resampling.LANCZOS)
+    # Over the frame, not pasted: a transparent corner must not punch a hole.
+    framed.alpha_composite(art, (left, rim))
+    return framed
 
 
 def wrap_panels_mm(case_type: CaseType) -> tuple[float, float, float, float]:

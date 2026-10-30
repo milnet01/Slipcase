@@ -182,15 +182,17 @@ configurable within that bound, not unbounded.
    the paper's widths for a jewel case
 3. **Cover splitting** - If full cover: geometric + image-analysis spine detection
 4. **Spine generation** - Platform-branded text with title, serial, colour
-5. **Texture overlay** - Procedural case-type-specific emboss/deboss details
-6. **Shading** - Uniform + directional gradient, applied after texture
-7. **Perspective transform** - OpenCV `warpPerspective` where cv2 is present;
+5. **Plastic rim** - A keep case's art shrinks into its plastic lip on the top,
+   bottom and opening side (`inset_in_rim`); boxes and jewel cases have none
+6. **Texture overlay** - Procedural case-type-specific emboss/deboss details
+7. **Shading** - Uniform + directional gradient, applied after texture
+8. **Perspective transform** - OpenCV `warpPerspective` where cv2 is present;
    PIL `PERSPECTIVE` with coefficient solving is the fallback
-8. **Face compositing** - Front, spine, top, bottom faces onto canvas
-9. **Edge highlights** - Subtle light/dark edge lines for depth
-10. **Effects** - Shadow (optional), reflection (optional)
-11. **Background** - Transparent, white, or black
-12. **Downscale** - 2x supersampled to final resolution via LANCZOS
+9. **Face compositing** - Front, spine, top, bottom faces onto canvas
+10. **Edge highlights** - Subtle light/dark edge lines for depth
+11. **Effects** - Shadow (optional), reflection (optional)
+12. **Background** - Transparent, white, or black
+13. **Downscale** - 2x supersampled to final resolution via LANCZOS
 
 ### Anti-Aliasing
 

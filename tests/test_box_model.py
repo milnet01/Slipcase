@@ -8,7 +8,7 @@ from PIL import Image, ImageOps
 from core.box_model import build_box_model
 from core.case_texture import generate_front_texture, generate_spine_texture
 from core.case_types import CASE_TYPES
-from core.image_utils import split_full_cover
+from core.image_utils import CLEAR_RIM, inset_in_rim, split_full_cover
 from core.spine_generator import generate_spine
 
 
@@ -32,6 +32,12 @@ def _scaled(image: Image.Image, size: tuple[int, int]) -> Image.Image:
     return image.convert("RGBA").resize(size, Image.Resampling.LANCZOS)
 
 
+def _in_rim(image: Image.Image, size: tuple[int, int], case: str,
+            opening: str | None) -> Image.Image:
+    """A source picture scaled, then framed by its case's plastic lip."""
+    return inset_in_rim(_scaled(image, size), CASE_TYPES[case], None, opening)
+
+
 def _on(image: Image.Image, colour: tuple[int, int, int]) -> Image.Image:
     """`image` flattened onto `colour`: the generated spine is partly
     transparent, and § 4.2 lays such faces on the edge colour."""
@@ -46,6 +52,9 @@ class TestFaceSelection(unittest.TestCase):
         self.assertEqual(a.size, b.size)
         self.assertTrue(np.array_equal(np.array(a), np.array(b)))
 
+    def assertFramed(self, face, picture, case, opening) -> None:
+        self.assertSamePixels(face, _in_rim(picture, face.size, case, opening).convert("RGB"))
+
     def test_full_cover_faces(self):
         ct = CASE_TYPES["PS2 DVD Case"]
         cover = _noise(568, 380, seed=1)  # back + spine + front, to scale
@@ -53,21 +62,21 @@ class TestFaceSelection(unittest.TestCase):
         back, spine, front = split_full_cover(
             cover, ct, left_offset=6, right_offset=-4,
         )
-        self.assertSamePixels(model.front, _scaled(front, model.front.size).convert("RGB"))
-        self.assertSamePixels(model.spine, _scaled(spine, model.spine.size).convert("RGB"))
-        self.assertSamePixels(model.back, _scaled(back, model.back.size).convert("RGB"))
+        self.assertFramed(model.front, front, ct.name, "right")
+        self.assertFramed(model.spine, spine, ct.name, None)
+        self.assertFramed(model.back, back, ct.name, "left")
 
         # A loaded back cover wins over the split one.
         loaded = _noise(270, 380, seed=2)
         model = _build(cover, back=loaded, spine_left_offset=6, spine_right_offset=-4)
-        self.assertSamePixels(model.back, _scaled(loaded, model.back.size).convert("RGB"))
+        self.assertFramed(model.back, loaded, ct.name, "left")
 
     def test_front_only_faces(self):
         ct = CASE_TYPES["PS2 DVD Case"]
         cover = _noise(270, 380, seed=3)
         model = _build(cover, full_cover=False, spine_color=(10, 20, 30))
         self.assertIsNone(model.back)
-        self.assertSamePixels(model.front, _scaled(cover, model.front.size).convert("RGB"))
+        self.assertFramed(model.front, cover, ct.name, "right")
 
         # The spine is generated at the front height's scale.
         h = model.front.size[1]
@@ -76,11 +85,11 @@ class TestFaceSelection(unittest.TestCase):
             title="Game", spine_width=model.spine.size[0], spine_height=h,
             platform="PS2", serial="SLUS-00001", bg_color=(10, 20, 30),
         )
-        self.assertSamePixels(model.spine, _on(expected, model.edge))
+        self.assertSamePixels(model.spine, _on(inset_in_rim(expected, ct, None, None), model.edge))
 
         loaded = _noise(270, 380, seed=4)
         model = _build(cover, back=loaded, full_cover=False)
-        self.assertSamePixels(model.back, _scaled(loaded, model.back.size).convert("RGB"))
+        self.assertFramed(model.back, loaded, ct.name, "left")
 
 
 class TestCaseDetails(unittest.TestCase):
@@ -94,17 +103,19 @@ class TestCaseDetails(unittest.TestCase):
 
         w, h = model.front.size
         front_tex = generate_front_texture(ct, w, h)
-        expected_front = Image.alpha_composite(_scaled(grey, (w, h)), front_tex)
+        framed_front = _in_rim(grey, (w, h), ct.name, "right")
+        expected_front = Image.alpha_composite(framed_front, front_tex)
         self.assertTrue(np.array_equal(np.array(model.front),
                                        np.array(expected_front.convert("RGB"))))
         self.assertFalse(np.array_equal(np.array(model.front),
-                                        np.array(_scaled(grey, (w, h)).convert("RGB"))),
+                                        np.array(framed_front.convert("RGB"))),
                          "the overlay changed no pixel, so this test proves nothing")
 
         bw, bh = model.back.size
         back_tex = generate_front_texture(ct, bw, bh)
-        mirrored = Image.alpha_composite(_scaled(grey, (bw, bh)), ImageOps.mirror(back_tex))
-        unmirrored = Image.alpha_composite(_scaled(grey, (bw, bh)), back_tex)
+        framed_back = _in_rim(grey, (bw, bh), ct.name, "left")
+        mirrored = Image.alpha_composite(framed_back, ImageOps.mirror(back_tex))
+        unmirrored = Image.alpha_composite(framed_back, back_tex)
         self.assertFalse(np.array_equal(np.array(mirrored), np.array(unmirrored)),
                          "the front overlay is symmetric, so mirroring is untested")
         self.assertTrue(np.array_equal(np.array(model.back),
@@ -113,7 +124,8 @@ class TestCaseDetails(unittest.TestCase):
         sw, sh = model.spine.size
         plain_spine = generate_spine(title="Game", spine_width=sw, spine_height=sh,
                                      platform="PS2", serial="SLUS-00001")
-        expected_spine = Image.alpha_composite(plain_spine.convert("RGBA"),
+        framed_spine = inset_in_rim(plain_spine, ct, None, None)
+        expected_spine = Image.alpha_composite(framed_spine,
                                                generate_spine_texture(ct, sw, sh))
         self.assertTrue(np.array_equal(np.array(model.spine),
                                        np.array(_on(expected_spine, model.edge))))
@@ -122,21 +134,24 @@ class TestCaseDetails(unittest.TestCase):
         plain = _build(grey, back=grey.copy(), case="PS3 Blu-ray Case",
                        full_cover=False, show_texture=False)
         self.assertTrue(np.array_equal(np.array(plain.front),
-                                       np.array(_scaled(grey, (w, h)).convert("RGB"))))
+                                       np.array(framed_front.convert("RGB"))))
         self.assertTrue(np.array_equal(np.array(plain.back),
-                                       np.array(_scaled(grey, (bw, bh)).convert("RGB"))))
+                                       np.array(framed_back.convert("RGB"))))
         self.assertTrue(np.array_equal(np.array(plain.spine),
-                                       np.array(_on(plain_spine, plain.edge))))
+                                       np.array(_on(framed_spine, plain.edge))))
 
 
 class TestColours(unittest.TestCase):
-    """§ 4.1: top and bottom come from the front's edges unless case_color is set."""
+    """§ 4.1: plastic is its own colour; a printed box's top and bottom come
+    from the front's edges; case_color beats both."""
 
     def test_colours(self):
         cover = Image.new("RGB", (270, 380), (200, 0, 0))
         cover.paste((0, 0, 200), (0, 190, 270, 380))
-        # A clear, untinted case shows the cover's own colours (SLIP-0107).
         model = _build(cover, case="Switch Case", full_cover=False)
+        self.assertEqual((model.top, model.bottom, model.edge), (CLEAR_RIM,) * 3)
+
+        model = _build(cover, case="NES Cartridge Box", full_cover=False)
         self.assertEqual(model.top, (200, 0, 0))
         self.assertEqual(model.bottom, (0, 0, 200))
         self.assertEqual(model.edge, model.top)
