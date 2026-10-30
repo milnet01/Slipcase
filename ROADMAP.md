@@ -1100,7 +1100,7 @@ building.
   Kind: feature.
   Source: user-request-2026-10-21.
 
-- 🚧 [SLIP-0107] **Give keep cases and handheld cases their real size and plastic, per region.**
+- ✅ [SLIP-0107] **Give keep cases and handheld cases their real size and plastic, per region.**
   Phase 2 of SLIP-0106, split out because each phase gets its own spec
   (SLIP-0106 spec § 15). Sourced sizes and colours are in
   docs/research/SLIP-0106-real-cases.md: e.g. Switch 1 cases are clear,
@@ -1140,6 +1140,7 @@ building.
   The user, 2026-10-30, on the sample images: the rim is "a little big" on
   cases such as PC and PS2. Now 2 mm on PS2 and 1.5 mm on PC, from LaunchBox's
   opening edge; the other keep cases stay at 2.5 mm.
+  The user, 2026-10-30, on the narrower rims: "Much better now."
   **Layman:** DVD-style and handheld game cases get the right size and plastic colour for each console and region.
   Kind: feature.
   Source: user-request-2026-10-21.

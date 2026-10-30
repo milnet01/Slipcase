@@ -2,7 +2,7 @@
 # SLIP-0107 — Give keep cases and handheld cases their real size and plastic, per region
 
 **Status:** implemented (2026-10-21); amended 2026-10-30 (plastic rim, clear
-edges); waiting on the user's by-eye check.
+edges); the user approved the rims by eye on 2026-10-30.
 **Kind:** feature.
 **Source:** ROADMAP SLIP-0107 (user-request-2026-10-21). Phase 2 of
 SLIP-0106. Research:
