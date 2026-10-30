@@ -121,7 +121,24 @@ class TestRim(unittest.TestCase):
         names = [*TABLE, "PS2 Platinum Case (PAL)", "PS2 DVD Case (clear)"]
         for name in names:
             with self.subTest(case=name):
-                self.assertEqual(CASE_TYPES[name].rim_mm, KEEP_RIM_MM)
+                self.assertGreater(CASE_TYPES[name].rim_mm, 0)
+
+    def test_narrow_rims_are_narrower_than_the_rest(self):
+        """PS2 and PC keep the narrower lip the user asked for, editions too."""
+        expected = {"PS2 DVD Case": 2.0, "PS2 DVD Case (PAL)": 2.0,
+                    "PS2 Platinum Case (PAL)": 2.0, "PC DVD Case": 1.5,
+                    "Wii DVD Case": KEEP_RIM_MM, "Switch Case": KEEP_RIM_MM}
+        for name, rim in expected.items():
+            with self.subTest(case=name):
+                self.assertEqual(CASE_TYPES[name].rim_mm, rim)
+
+    def test_a_narrower_rim_shows_more_of_the_art(self):
+        cover = Image.new("RGBA", (540, 760), (*self.RED, 255))
+        y = round(2.2 * 760 / 190)  # inside a 2.5 mm lip, past a 2.0 mm one
+        wide = inset_in_rim(cover, CASE_TYPES["Wii DVD Case"], None, "right")
+        narrow = inset_in_rim(cover, CASE_TYPES["PS2 DVD Case"], None, "right")
+        self.assertNotEqual(wide.getpixel((270, y))[:3], self.RED)
+        self.assertEqual(narrow.getpixel((270, y))[:3], self.RED)
 
     def test_boxes_and_jewel_cases_have_no_rim(self):
         for name in ("NES Cartridge Box", "SNES Cartridge Box", "Universal Cart Case",

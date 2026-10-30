@@ -34,6 +34,10 @@ class TrayPrint:
 # A keep case's sheet sits under a clear sleeve inside a plastic lip. Width
 # judged from LaunchBox's Box - 3D images (2026-10-30); a real case is unmeasured.
 KEEP_RIM_MM = 2.5
+# The user found these too wide at 2.5 mm (2026-10-30). LaunchBox's opening edge
+# measures about 2 mm on PS2 and a little over 1 mm on PC.
+_PS2_RIM_MM = 2.0
+_PC_RIM_MM = 1.5
 _KEEP_TEXTURES = frozenset({"dvd", "bluray", "switch", "ds", "psp"})
 
 
@@ -67,6 +71,8 @@ class CaseType:
     # Clear or tinted plastic: the front shines. The edges are still plastic,
     # `plastic` when set, and a neutral clear otherwise.
     clear: bool = False
+    # Width of a keep case's plastic lip; `rim_mm` says whether it has one.
+    keep_rim: float = KEEP_RIM_MM
 
     @property
     def layout(self) -> str:
@@ -77,7 +83,7 @@ class CaseType:
     def rim_mm(self) -> float:
         """Width of the plastic lip framing the printed sheet, 0 for none."""
         if self.layout == "wrap" and self.texture in _KEEP_TEXTURES:
-            return KEEP_RIM_MM
+            return self.keep_rim
         return 0.0
 
     @property
@@ -122,13 +128,13 @@ CASE_TYPES: dict[str, CaseType] = {
         name="PS2 DVD Case",
         width=135, height=190, depth=14,
         platforms=("PS2",),
-        plastic=_BLACK_KEEP, texture="dvd",
+        plastic=_BLACK_KEEP, texture="dvd", keep_rim=_PS2_RIM_MM,
     ),
     "PS2 DVD Case (PAL)": CaseType(
         name="PS2 DVD Case (PAL)",
         width=135, height=190, depth=14,
         platforms=(),
-        plastic=(0x1F, 0x4E, 0xA8), texture="dvd",
+        plastic=(0x1F, 0x4E, 0xA8), texture="dvd", keep_rim=_PS2_RIM_MM,
     ),
     "Wii DVD Case": CaseType(
         name="Wii DVD Case",
@@ -152,7 +158,7 @@ CASE_TYPES: dict[str, CaseType] = {
         name="PC DVD Case",
         width=135, height=190, depth=14,
         platforms=("PC",),
-        plastic=_BLACK_KEEP, texture="dvd",
+        plastic=_BLACK_KEEP, texture="dvd", keep_rim=_PC_RIM_MM,
     ),
     "Xbox Case": CaseType(
         name="Xbox Case",

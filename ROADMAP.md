@@ -1137,6 +1137,9 @@ building.
   so nothing is cropped. Clear cases' edges are now plastic, not the cover's
   colour, which replaces the 2026-10-21 ruling. Test:
   tests/test_keep_cases.py TestRim. Next: the user's eye on a real export.
+  The user, 2026-10-30, on the sample images: the rim is "a little big" on
+  cases such as PC and PS2. Now 2 mm on PS2 and 1.5 mm on PC, from LaunchBox's
+  opening edge; the other keep cases stay at 2.5 mm.
   **Layman:** DVD-style and handheld game cases get the right size and plastic colour for each console and region.
   Kind: feature.
   Source: user-request-2026-10-21.
@@ -1472,6 +1475,10 @@ building.
   TurboGrafx-16, Neo Geo AES. Sizes are in docs/research/SLIP-0108-cartridge-boxes.md;
   Saturn's and Sega CD's still need sourcing. The PAL readings rest on one
   small sample each.
+  Colours checked 2026-10-30. Wii U is bright blue: Wikipedia's keep case table
+  says "Bright cerulean", with red, green and yellow editions, and LaunchBox's
+  images measure #007DC6 to #2D9FC2. Switch 2 also has no entry: red, at Switch
+  size. Some late Switch reprints are red too (OpenCritic).
   **Layman:** Saturn and Sega CD games get cases that look like theirs, and consoles with no case yet get one.
   Kind: feature.
   Source: user-request-2026-10-30.
