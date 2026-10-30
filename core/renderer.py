@@ -32,6 +32,14 @@ _MAX_TOP_ANGLE = 8.0          # Maximum top face angle in degrees
 _V_SHRINK_BASE = 0.96         # Vertical shrink base (far edge foreshortening)
 _V_SHRINK_ANGLE_FACTOR = 0.12 # Additional shrink per 90 degrees of angle
 
+# The camera behind RetroDB's 3D boxes, fitted to their silhouettes
+# (SLIP-0120). ScreenScraper and ES-DE renders share it: the far edge is 0.775
+# of the near edge whatever the box's width, so the distance scales with the
+# width, and it is given in front widths. Top and bottom slope equally, so the
+# camera is level with the box's middle and sees neither face.
+RETRODB_ANGLE = 35
+RETRODB_CAMERA_DISTANCE = 1.98
+
 # Largest output width the renderer will honour. The working canvas is
 # output_width * supersample wide and roughly 1.3x that tall in RGBA, with
 # several layers alive at once, so 8192 reached about 1.4 GB per layer.
@@ -72,10 +80,28 @@ _DARK_EDGE_ALPHA = 0.15
 _JEWEL_EDGE_LIFT = 0.3
 
 
-def visible_width_mm(case_type: CaseType, angle: float) -> float:
+def _camera_scales(
+    width: float, depth: float, angle: float, camera_distance: float | None,
+) -> tuple[float, float]:
+    """How much smaller the far edges of the front and the spine look than
+    the near edge. No camera distance means no perspective scaling."""
+    if camera_distance is None:
+        return 1.0, 1.0
+    a = math.radians(angle)
+    distance = camera_distance * width
+    return (distance / (distance + width * math.sin(a)),
+            distance / (distance + depth * math.cos(a)))
+
+
+def visible_width_mm(
+    case_type: CaseType, angle: float, camera_distance: float | None = None,
+) -> float:
     """Front plus spine as seen from `angle` degrees, in millimetres."""
     a = math.radians(angle)
-    return case_type.width * math.cos(a) + case_type.depth * math.sin(a)
+    front_scale, spine_scale = _camera_scales(
+        case_type.width, case_type.depth, angle, camera_distance)
+    return (case_type.width * math.cos(a) * front_scale
+            + case_type.depth * math.sin(a) * spine_scale)
 
 
 class BoxRenderer:
@@ -92,13 +118,18 @@ class BoxRenderer:
         supersample: int = 2,
         background: str = "transparent",
         fit_angle: float | None = None,
+        camera_distance: float | None = None,
     ):
         """`fit_angle` sizes the box as it is sized at that angle rather than
         its own. An animation passes its widest angle, so every frame shares
-        one scale and the box does not grow as it turns (SLIP-0105)."""
+        one scale and the box does not grow as it turns (SLIP-0105).
+
+        `camera_distance`, in front widths, draws the box through a level,
+        true perspective camera instead of the default view (SLIP-0120)."""
         self.case_type = case_type
         self.angle = angle
         self.fit_angle = angle if fit_angle is None else fit_angle
+        self.camera_distance = camera_distance
         self.output_width = min(max(int(output_width), 1), MAX_OUTPUT_WIDTH)
         self.show_reflection = show_reflection
         self.show_shadow = show_shadow
@@ -233,9 +264,13 @@ class BoxRenderer:
         sin_a = math.sin(angle_rad)
 
         # Projected widths
-        proj_front_w = int(front_w * cos_a)
-        proj_spine_w = int(spine_w * sin_a)
-        proj_top_h = int(spine_w * math.sin(top_angle_rad) * cos_a)
+        front_scale, spine_scale = _camera_scales(
+            front_w, spine_w, self.angle, self.camera_distance)
+        proj_front_w = int(front_w * cos_a * front_scale)
+        proj_spine_w = int(spine_w * sin_a * spine_scale)
+        # A level camera sees neither the top nor the bottom.
+        proj_top_h = (0 if self.camera_distance is not None
+                      else int(spine_w * math.sin(top_angle_rad) * cos_a))
 
         # A zero-width projection makes a destination quad with two identical
         # corners. numpy's solve then raises LinAlgError and OpenCV silently
@@ -264,9 +299,11 @@ class BoxRenderer:
         # The width this canvas would have at fit_angle. The final downscale
         # fits that width, not this one, to output_width (SLIP-0105).
         fit_rad = math.radians(self.fit_angle)
+        fit_front_scale, fit_spine_scale = _camera_scales(
+            front_w, spine_w, self.fit_angle, self.camera_distance)
         fit_w = (total_w - proj_spine_w - proj_front_w
-                 + int(front_w * math.cos(fit_rad))
-                 + int(spine_w * math.sin(fit_rad)))
+                 + int(front_w * math.cos(fit_rad) * fit_front_scale)
+                 + int(spine_w * math.sin(fit_rad) * fit_spine_scale))
         total_h = front_h + proj_top_h * 2 + _CANVAS_PAD * scale + shadow_h
         reflection_space = front_h // 3 if self.show_reflection else 0
         canvas_h = total_h + reflection_space
@@ -304,12 +341,16 @@ class BoxRenderer:
         # How far each far edge (the spine's left, the front's right) is
         # pulled in at top and bottom.
         far_shrink = int(front_h * (1 - v_shrink) / 2)
+        spine_shrink = far_shrink
+        if self.camera_distance is not None:
+            far_shrink = int(front_h * (1 - front_scale) / 2)
+            spine_shrink = int(front_h * (1 - spine_scale) / 2)
         spine_args = dict(
             image=spine_shaded, src_w=spine_w, src_h=front_h,
-            dst_tl=(ox, oy + far_shrink),
+            dst_tl=(ox, oy + spine_shrink),
             dst_tr=(ox + proj_spine_w, oy),
             dst_br=(ox + proj_spine_w, oy + front_h),
-            dst_bl=(ox, oy + front_h - far_shrink),
+            dst_bl=(ox, oy + front_h - spine_shrink),
             canvas_size=(total_w, canvas_h),
         )
         front_args = dict(
@@ -361,7 +402,8 @@ class BoxRenderer:
 
         # --- Edge highlights ---
         canvas = self._add_edge_lines(canvas, ox, oy, proj_spine_w, proj_front_w,
-                                       front_h, far_shrink, proj_top_h, scale)
+                                       front_h, far_shrink, spine_shrink,
+                                       proj_top_h, scale)
 
         # --- Back view: flip the finished box back the right way round ---
         # Before the shadow and reflection, so both still fall right and down.
@@ -393,6 +435,14 @@ class BoxRenderer:
             refl_canvas = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
             refl_canvas.paste(reflection, (0, box_bottom + 2 * scale))
             del reflection
+            if self.camera_distance is not None:
+                edge_xs = [ox, ox + proj_spine_w, ox + proj_spine_w + proj_front_w]
+                rises = [spine_shrink, 0, far_shrink]
+                if from_behind:
+                    # Where the mirroring and its crop above moved the box.
+                    edge_xs = [total_w - 1 - shadow_w - x for x in reversed(edge_xs)]
+                    rises.reverse()
+                refl_canvas = self._lift_reflection(refl_canvas, edge_xs, rises)
             canvas = Image.alpha_composite(canvas, refl_canvas)
             del refl_canvas
 
@@ -423,11 +473,31 @@ class BoxRenderer:
 
         return canvas
 
+    @staticmethod
+    def _lift_reflection(
+        reflection: Image.Image, edge_xs: list[int], rises: list[int],
+    ) -> Image.Image:
+        """Slide each column of a reflection layer up to a sloping bottom edge.
+
+        The reflection is flipped about the box's lowest line. Where the
+        bottom edge has risen above that line by `rises[i]` at `edge_xs[i]`,
+        the mirrored edge sits as far below it, so the column moves twice that.
+        """
+        pixels = np.asarray(reflection)
+        height, width = pixels.shape[:2]
+        columns = np.arange(width)
+        lift = np.rint(2 * np.interp(columns, edge_xs, rises)).astype(int)
+        rows = np.arange(height)[:, None] + lift
+        lifted = pixels[np.minimum(rows, height - 1), columns]
+        lifted[rows >= height] = 0
+        return Image.fromarray(lifted, "RGBA")
+
     def _compute_box_dimensions(self, target_width: int, angle: float) -> dict:
         """Compute pixel dimensions for box faces, fitting the box as seen at
         `angle` to the target width."""
         ct = self.case_type
-        pixels_per_mm = (target_width * 0.85) / visible_width_mm(ct, angle)
+        pixels_per_mm = (target_width * 0.85) / visible_width_mm(
+            ct, angle, self.camera_distance)
 
         front_w = int(ct.width * pixels_per_mm)
         front_h = int(ct.height * pixels_per_mm)
@@ -567,7 +637,7 @@ class BoxRenderer:
         self, canvas: Image.Image,
         ox: int, oy: int,
         proj_spine_w: int, proj_front_w: int,
-        front_h: int, far_shrink: int, proj_top_h: int,
+        front_h: int, far_shrink: int, spine_shrink: int, proj_top_h: int,
         scale: int,
     ) -> Image.Image:
         """Draw subtle edge lines for definition."""
@@ -589,8 +659,12 @@ class BoxRenderer:
             fill=dark_edge, width=max(1, scale),
         )
 
-        # Bottom edge lines
-        spine_bot_l = (ox, oy + front_h - far_shrink + proj_top_h)
+        # Bottom edge lines. They belong on the bottom face; with none to sit
+        # on they would cut a see-through line across the cover, since drawing
+        # replaces a pixel's alpha.
+        if self.camera_distance is not None:
+            return canvas
+        spine_bot_l = (ox, oy + front_h - spine_shrink + proj_top_h)
         spine_bot_r = (ox + proj_spine_w, oy + front_h + proj_top_h)
         front_bot_r = (ox + proj_spine_w + proj_front_w, oy + front_h - far_shrink + proj_top_h)
 

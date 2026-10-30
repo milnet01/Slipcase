@@ -57,6 +57,7 @@ DEFAULT_CONFIG = {
     },
     "rendering": {
         "angle": 30.0,
+        "match_retrodb": False,
         "output_width": 512,
         "background": "transparent",
         "reflection": True,

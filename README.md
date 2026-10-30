@@ -118,7 +118,9 @@ keep the project somewhere other than where it is now.
    such as "(Europe)" or "(Japan)", and picks that region's case. A name
    with no tag counts as USA. Pick another case in the list to override it.
 3. **Adjust the angle** if you want. The default is 30 degrees, which is the
-   LaunchBox look; you can go anywhere from 5 to 60.
+   LaunchBox look; you can go anywhere from 5 to 60. To match the 3D boxes
+   already in RetroDB, press **Match RetroDB** instead. It sets the view for
+   you, and the slider takes over again when you turn it off.
 4. **Export.** For RetroArch, keep the width at or under 512 pixels. For
    LaunchBox, somewhere between 800 and 1200 works well.
 

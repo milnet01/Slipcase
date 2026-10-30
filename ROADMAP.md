@@ -1418,7 +1418,7 @@ building.
   Source: retrodb-comparison-2026-10-29.
   Lanes: core.
 
-- 📋 [SLIP-0120] **Add a "Match RetroDB" view so exported boxes share RetroDB's perspective.**
+- 🚧 [SLIP-0120] **Add a "Match RetroDB" view so exported boxes share RetroDB's perspective.**
   The user, 2026-10-29: "Just a button to match RetroDB so that the boxes
   we export match."
   Measured 2026-10-29 from the alpha silhouettes of RetroDB's 3D covers
@@ -1436,6 +1436,14 @@ building.
   perspective camera (yaw plus distance) for the face corners, which
   gives both shrinks from one setting; the preset fits yaw and distance
   to the figures above. Measurement script: not in the repo (scratch).
+  Built 2026-10-30. Re-measured first: far edge 0.775 on most platforms,
+  top and bottom slopes equal, so the camera is level. Fitted yaw 35
+  degrees, distance 1.98 front widths: a PS2 DVD case gives far edge
+  0.775, height over width 2.03. Slipcase keeps real case sizes, so a
+  case whose RetroDB model is thicker or narrower keeps its own
+  proportions. Not matched: SNES (RetroDB shows that box from below,
+  SLIP-0108); the 3D View tab keeps its own camera. Next: the user's eye
+  on a real export, then flip to shipped.
   **Layman:** One button sets the view so the boxes you export look like the 3D boxes already in RetroDB, side by side.
   Kind: feature.
   Source: user-request-2026-10-29.

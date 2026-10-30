@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A Match RetroDB button draws your box from the same view as RetroDB's 3D
+  boxes** (SLIP-0120)
+  Press it beside the Angle slider, and pictures, batch renders and animations
+  come out with the same strong perspective, so they sit well next to the boxes
+  RetroDB already has. Slipcase remembers the setting. SNES boxes still differ:
+  RetroDB shows those from below.
+
 ## [1.4.0] - 2026-10-30
 
 **Theme:** In-app updates, signed downloads and real cases for each console.

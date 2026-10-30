@@ -212,6 +212,10 @@ configurable within that bound, not unbounded.
 - Default: **30 degrees** (LaunchBox convention)
 - User-adjustable: 5-60 degrees
 - Angle affects perspective foreshortening of front face and spine visibility
+- **Match RetroDB** replaces the slider with `RETRODB_ANGLE` and
+  `RETRODB_CAMERA_DISTANCE`: a level, true perspective camera that shows no top
+  or bottom face (SLIP-0120). With no `camera_distance`, the default view stays
+  as it was
 
 ---
 
@@ -352,8 +356,8 @@ api/
   thegamesdb/{api_key}
   libretro/{enabled}
 rendering/
-  {angle, output_width, background, reflection, shadow, texture, supersample,
-   compress_level}
+  {angle, match_retrodb, output_width, background, reflection, shadow, texture,
+   supersample, compress_level}
 export/
   {box_file}
 updates/

@@ -185,6 +185,7 @@ class BatchWorker(QThread):
                               if case_types is not None else {})
         self._renderer_kwargs = {
             "angle": renderer.angle,
+            "camera_distance": renderer.camera_distance,
             "output_width": renderer.output_width,
             "show_reflection": renderer.show_reflection,
             "show_shadow": renderer.show_shadow,
@@ -307,6 +308,7 @@ class AnimationWorker(QThread):
         supersample: int = 2,
         full_cover: bool | None = None,
         back_strips: bool | None = None,
+        camera_distance: float | None = None,
     ):
         super().__init__()
         self.case_type = case_type
@@ -334,6 +336,7 @@ class AnimationWorker(QThread):
         self.supersample = supersample
         self.full_cover = full_cover
         self.back_strips = back_strips
+        self.camera_distance = camera_distance
 
     def run(self) -> None:
         """Render each angle of the sweep and write the animated file."""
@@ -355,7 +358,8 @@ class AnimationWorker(QThread):
             # Every frame is sized as the widest one is, so the box keeps one
             # size as it turns (SLIP-0105).
             fit_angle = max(
-                angles, key=lambda a: visible_width_mm(self.case_type, a)
+                angles,
+                key=lambda a: visible_width_mm(self.case_type, a, self.camera_distance),
             )
 
             for i, angle in enumerate(angles):
@@ -373,6 +377,7 @@ class AnimationWorker(QThread):
                     supersample=self.supersample,
                     background=self.background,
                     fit_angle=fit_angle,
+                    camera_distance=self.camera_distance,
                 )
                 frame = renderer.render(
                     front_image=self.front_image,

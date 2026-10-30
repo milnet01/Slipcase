@@ -27,7 +27,12 @@ from core.jewel import (
 )
 from core.png_utils import save_optimized_png
 from core.region import detect_region
-from core.renderer import MAX_OUTPUT_WIDTH, BoxRenderer
+from core.renderer import (
+    MAX_OUTPUT_WIDTH,
+    RETRODB_ANGLE,
+    RETRODB_CAMERA_DISTANCE,
+    BoxRenderer,
+)
 from core.spine_generator import CASE_COLORS_ERROR
 from core.update_installer import UpdateMode, detect_update_mode
 from core.updater import UpdateOffer
@@ -623,6 +628,14 @@ class MainWindow(QMainWindow):
             lambda v: self.angle_label.setText(self.tr("{0}°").format(v))
         )
         angle_row.addWidget(self.angle_label)
+        self.match_retrodb_btn = QPushButton(self.tr("Match RetroDB"))
+        self.match_retrodb_btn.setCheckable(True)
+        self.match_retrodb_btn.setToolTip(self.tr(
+            "Draw the box from the same view as the 3D boxes in RetroDB, so "
+            "exported boxes match them. Turn off to use the Angle slider."
+        ))
+        self.match_retrodb_btn.toggled.connect(self._on_match_retrodb_toggled)
+        angle_row.addWidget(self.match_retrodb_btn)
         controls.addLayout(angle_row)
 
         size_row = QHBoxLayout()
@@ -752,6 +765,8 @@ class MainWindow(QMainWindow):
             self.case_combo.setCurrentIndex(idx)
 
         self.angle_slider.setValue(self._cfg("rendering", "angle", 30, int))
+        self.match_retrodb_btn.setChecked(
+            self._cfg("rendering", "match_retrodb", False, bool))
         self.width_spin.setValue(self._cfg("rendering", "output_width", 512, int))
         self.reflection_check.setChecked(self._cfg("rendering", "reflection", True, bool))
         self.shadow_check.setChecked(self._cfg("rendering", "shadow", True, bool))
@@ -783,6 +798,7 @@ class MainWindow(QMainWindow):
         self.config.set("ui", "last_platform", self.platform_combo.currentText())
         self.config.set("ui", "last_case_type", self.case_combo.currentText())
         self.config.set("rendering", "angle", self.angle_slider.value())
+        self.config.set("rendering", "match_retrodb", self.match_retrodb_btn.isChecked())
         self.config.set("rendering", "output_width", self.width_spin.value())
         self.config.set("rendering", "reflection", self.reflection_check.isChecked())
         self.config.set("rendering", "shadow", self.shadow_check.isChecked())
@@ -1317,12 +1333,24 @@ class MainWindow(QMainWindow):
         except (TypeError, ValueError):
             return 6
 
+    def _on_match_retrodb_toggled(self, checked: bool) -> None:
+        """Hand the view to RetroDB's camera. The slider keeps its value, so
+        turning the button off returns to the angle the user had."""
+        self.angle_slider.setEnabled(not checked)
+        angle = RETRODB_ANGLE if checked else self.angle_slider.value()
+        self.angle_label.setText(self.tr("{0}°").format(angle))
+
+    def _camera_distance(self) -> float | None:
+        return RETRODB_CAMERA_DISTANCE if self.match_retrodb_btn.isChecked() else None
+
     def _get_renderer(self) -> BoxRenderer:
         case_name = self.case_combo.currentText()
         case_type = CASE_TYPES[case_name]
+        matched = self.match_retrodb_btn.isChecked()
         return BoxRenderer(
             case_type=case_type,
-            angle=self.angle_slider.value(),
+            angle=RETRODB_ANGLE if matched else self.angle_slider.value(),
+            camera_distance=self._camera_distance(),
             output_width=self.width_spin.value(),
             show_reflection=self.reflection_check.isChecked(),
             show_shadow=self.shadow_check.isChecked(),
@@ -1763,6 +1791,7 @@ class MainWindow(QMainWindow):
             spine_right_offset=self.spine_right_slider.value(),
             full_cover=self._full_cover_choice(),
             back_strips=self._back_strips_choice(),
+            camera_distance=self._camera_distance(),
             output_path=path,
             output_width=params["output_width"],
             start_angle=params["start_angle"],
