@@ -147,8 +147,9 @@ class TestCaseData(unittest.TestCase):
         self.assertLessEqual(abs(back.getpixel((ridge, y))[3] - back.getpixel((beside, y))[3]), 3)
 
     def test_ps1_hinge_strip_is_ridged(self):
-        """A PS1 case's hinge strip carries fine vertical ridges on the
-        front (the user, 2026-10-21); other jewel cases and the back do not."""
+        """A PAL PS1 case's black hinge strip carries fine vertical ridges on
+        the front (the user, 2026-10-21); clear NTSC lids, other jewel cases
+        and the back do not (the user, 2026-10-30)."""
         row = range(4, 30)  # at 2 px/mm: across the hinge strip, short of its ridge lines
         y = 125
 
@@ -156,13 +157,11 @@ class TestCaseData(unittest.TestCase):
             alphas = [overlay.getpixel((x, y))[3] for x in row]
             return max(alphas) - min(alphas)
 
-        for name in ("PS1 Jewel Case (NTSC-U)", "PS1 Jewel Case (PAL)",
-                     "PS1 Jewel Case (NTSC-J)"):
-            with self.subTest(case=name):
-                ct = CASE_TYPES[name]
-                self.assertGreater(spread(generate_front_texture(ct, 284, 250)), 20)
-                self.assertLess(spread(generate_front_texture(ct, 284, 250, back=True)), 10)
-        for name in ("CD Jewel Case", "Dreamcast Jewel Case (NTSC-J)"):
+        pal = CASE_TYPES["PS1 Jewel Case (PAL)"]
+        self.assertGreater(spread(generate_front_texture(pal, 284, 250)), 20)
+        self.assertLess(spread(generate_front_texture(pal, 284, 250, back=True)), 10)
+        for name in ("PS1 Jewel Case (NTSC-U)", "PS1 Jewel Case (NTSC-J)",
+                     "CD Jewel Case", "Dreamcast Jewel Case (NTSC-J)"):
             with self.subTest(case=name):
                 self.assertLess(spread(generate_front_texture(CASE_TYPES[name], 284, 250)), 10)
 
@@ -271,7 +270,11 @@ class TestFaces(unittest.TestCase):
 
         s, _ = strip(cases[0], None)
         grey = s.mean(axis=2)
-        self.assertGreater((grey > 150).mean(), 0.5)
+        # White paper and near-black lettering, as on the LaunchBox Sonic
+        # Adventure box the user sent (2026-10-30): a grey wash read as
+        # printed on the front.
+        self.assertGreater((grey > 215).mean(), 0.5)
+        self.assertLess(grey.min(), 60)
         ink = grey < 120
         rows, cols = np.flatnonzero(ink.any(axis=1)), np.flatnonzero(ink.any(axis=0))
         self.assertGreater(len(rows), 0)
@@ -283,7 +286,9 @@ class TestFaces(unittest.TestCase):
                 self.assertLess(spine.mean(), 20)
                 band, px = strip(case, None, 8, 9)
                 down = band.mean(axis=(1, 2))
-                self.assertGreater(down.max() - down.min(), 15)
+                # Bold enough to read through the lid (the user's DuckStation
+                # covers, 2026-10-30).
+                self.assertGreater(down.max() - down.min(), 50)
                 # The ribs repeat at their pitch.
                 pitch = round(6.8 * px)
                 self.assertLess(np.abs(down[pitch:] - down[:-pitch]).mean(), 3)
@@ -291,6 +296,23 @@ class TestFaces(unittest.TestCase):
         pal = "PS1 Jewel Case (PAL)"
         s, _ = strip(pal, _card(CASE_TYPES[pal], [RED, GREEN, BLUE]))
         self.assertTrue(np.all(s == CASE_TYPES[pal].plastic))
+
+    def test_fine_ridges_only_on_the_pal_ps1_strip(self):
+        """The fine vertical lines belong to the PAL case's black hinge strip.
+        A US or Japanese lid is clear there (the user, 2026-10-30)."""
+        ridged = {name for name, ct in CASE_TYPES.items() if ct.ridged_hinge_strip}
+        self.assertEqual(ridged, {"PS1 Jewel Case (PAL)"})
+
+    def test_lid_lines_show_on_a_white_tray_print(self):
+        """The lid's two lines by the booklet are dark over white paper, or
+        they vanish and the strip reads as flat print (Sonic Adventure's
+        LaunchBox box, 2026-10-30)."""
+        case = CASE_TYPES["Dreamcast Jewel Case (NTSC-U)"]
+        texture = generate_front_texture(case, 1420, 1250)
+        booklet_x = round((case.width - 2.5 - 120) * 10)
+        line = np.asarray(texture)[600, booklet_x - 3]
+        self.assertLess(line[:3].max(), 100)
+        self.assertGreater(line[3], 80)
 
     def test_ps1_tray_print_draws_no_word(self):
         """SLIP-0117: a US PS1 booklet already prints "PlayStation" down its

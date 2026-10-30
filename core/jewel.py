@@ -216,10 +216,11 @@ def _printed_ribs(panel: Image.Image, tray: TrayPrint, p: float) -> Image.Image:
     return out
 
 
-# How a panel behind the clear front reads: dimmed, shadowed by the spine
-# wall and by the lid's top and bottom rims, with a soft band of shine.
-# All judged by eye against the user's photos (2026-10-21).
-_BEHIND_DIM = 0.85
+# How a panel behind the clear front reads: barely dimmed, shadowed by the
+# spine wall and by the lid's top and bottom rims, with a soft band of shine.
+# All judged by eye against the user's photos (2026-10-21) and LaunchBox box
+# (2026-10-30); clear plastic does not grey the print behind it.
+_BEHIND_DIM = 0.97
 _WALL_SHADOW = (3.0, 0.45)   # mm wide, darkest multiplier at the wall
 _RIM_SHADOW = (1.5, 0.7)
 _SHEEN = (0.7, 0.15, 0.14)   # centre and width as shares of the strip; alpha

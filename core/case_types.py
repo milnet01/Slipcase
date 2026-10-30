@@ -42,7 +42,7 @@ class CaseType:
     # A jewel lid clear only over the booklet: the hinge strip is the tray's
     # matte plastic, so the lid's gloss stops at the booklet's side.
     matte_hinge_strip: bool = False
-    # Fine vertical ridges across the lid's hinge strip, on the front.
+    # Fine vertical ridges across a black hinge strip, on the front (PAL PS1).
     ridged_hinge_strip: bool = False
     # A see-through jewel tray: the front's hinge strip shows this panel of
     # the back card through it (SLIP-0115).
@@ -83,15 +83,16 @@ _WHITE_KEEP = (0xEE, 0xEE, 0xEE)
 _BLUE_TINT = (0x2A, 0x6C, 0xD0)
 _GREEN_TINT = (0x2E, 0x9E, 0x3A)
 # What the user's US cases show through the clear tray (photos, 2026-10-21):
-# six Dreamcast games' grey "Sega Dreamcast" on white, length estimated from
-# those photos; and on PS1, black with a printed ribbed band, measured from
-# the inside of Crash Bandicoot's back card. The user asked for that band on
-# every NTSC PS1 case until a case can be opened (2026-10-21).
+# six Dreamcast games' "Sega Dreamcast" on white, length estimated from those
+# photos; and on PS1, black with a printed ribbed band, measured from the
+# inside of Crash Bandicoot's back card. The user asked for that band on every
+# NTSC PS1 case until a case can be opened (2026-10-21). Ink levels follow the
+# user's DuckStation PS1 covers and LaunchBox Sonic Adventure box (2026-10-30).
 _PS1_NTSC_TRAY_PRINT = TrayPrint(text="", paper=(0x00, 0x00, 0x00),
-                                 ink=(0x3C, 0x3C, 0x40), length=0, reads_up=True,
+                                 ink=(0x78, 0x78, 0x7C), length=0, reads_up=True,
                                  ribs=(6.1, 18.5))
 _DREAMCAST_US_TRAY_PRINT = TrayPrint(text="Sega Dreamcast", paper=(0xF4, 0xF4, 0xF2),
-                                     ink=(0x50, 0x50, 0x50), length=67, reads_up=True,
+                                     ink=(0x18, 0x18, 0x18), length=67, reads_up=True,
                                      swirl=True)
 
 CASE_TYPES: dict[str, CaseType] = {
@@ -197,7 +198,7 @@ CASE_TYPES: dict[str, CaseType] = {
         name="PS1 Jewel Case (NTSC-U)",
         width=142, height=125, depth=10.4,
         platforms=("PS1",),
-        jewel=_STANDARD_PAPER, plastic=_BLACK_TRAY, ridged_hinge_strip=True,
+        jewel=_STANDARD_PAPER, plastic=_BLACK_TRAY,
         tray_print=_PS1_NTSC_TRAY_PRINT,
     ),
     # Only thicker than the standard case. Its back card is measured from a
@@ -215,7 +216,7 @@ CASE_TYPES: dict[str, CaseType] = {
         name="PS1 Jewel Case (NTSC-J)",
         width=142, height=125, depth=10,
         platforms=(),
-        jewel=_STANDARD_PAPER, plastic=_BLACK_TRAY, ridged_hinge_strip=True,
+        jewel=_STANDARD_PAPER, plastic=_BLACK_TRAY,
         tray_print=_PS1_NTSC_TRAY_PRINT,
     ),
     "Dreamcast Jewel Case (NTSC-U)": CaseType(

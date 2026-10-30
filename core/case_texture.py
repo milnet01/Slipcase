@@ -163,6 +163,8 @@ JEWEL_RIDGE_GAP_MM = 1.5    # between those two lines
 JEWEL_CAP_MM = 3.0          # the tray's end caps over the hinge, top and bottom
 _RIM_ALPHA = 70
 _RIDGE_ALPHA = 55
+_CLEAR_LINE_DARK = (0x30, 0x34, 0x3C)
+_CLEAR_LINE_ALPHA = 130
 _MARGIN_ALPHA = 110
 # A PS1 lid's ribbed hinge strip, as in the downloaded Ridge Racer Type 4
 # render the user chose (2026-10-21); sizes and alpha judged by eye.
@@ -206,9 +208,14 @@ def _draw_jewel_front(draw: ImageDraw.ImageDraw, case_type: CaseType,
             draw.rectangle([(round(x), rim), (round(x) + rib - 1, h - 1 - rim)],
                            fill=(255, 255, 255, _RIB_ALPHA))
             x += pitch
+    # A clear lid's lines show dark over a white printed panel and light over
+    # a black one; judged by eye against the user's references (2026-10-30).
+    line = (255, 255, 255, _RIDGE_ALPHA)
+    if case_type.tray_print is not None:
+        light_paper = sum(case_type.tray_print.paper) > 3 * 128
+        line = (*(_CLEAR_LINE_DARK if light_paper else (255, 255, 255)), _CLEAR_LINE_ALPHA)
     for x in (booklet_x - ridge, outer_ridge_x):
-        draw.rectangle([(round(x), rim), (round(x) + ridge - 1, h - 1 - rim)],
-                       fill=(255, 255, 255, _RIDGE_ALPHA))
+        draw.rectangle([(round(x), rim), (round(x) + ridge - 1, h - 1 - rim)], fill=line)
 
 
 def _booklet_x(case_type: CaseType, p: float) -> float:
