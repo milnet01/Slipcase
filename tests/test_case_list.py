@@ -3,9 +3,18 @@
 import os
 import tempfile
 import unittest
+from dataclasses import replace
 
+import numpy as np
+from PIL import Image
+
+from api.libretro import LIBRETRO_SYSTEMS
+from api.screenscraper import SCREENSCRAPER_SYSTEMS
+from api.thegamesdb import THEGAMESDB_PLATFORMS
+from core.case_texture import generate_front_texture, generate_lid_shine
 from core.case_types import (ALL_PLATFORMS, CASE_TYPES, PLATFORM_CASE_MAP,
                              REGIONAL_CASES, cases_for_platform)
+from core.renderer import RETRODB_ANGLE, RETRODB_CAMERA_DISTANCE, BoxRenderer
 
 
 class TestCasesForPlatform(unittest.TestCase):
@@ -52,6 +61,108 @@ class TestCartridgeBoxShape(unittest.TestCase):
         self.assertEqual((sfc.width, sfc.height, sfc.depth), (105, 190, 30))
         n64j = case_for("N64", "NTSC-J")
         self.assertEqual((n64j.width, n64j.height, n64j.depth), (138, 190, 30))
+
+
+class TestSegaClamshells(unittest.TestCase):
+    """SLIP-0108: Genesis, Mega Drive and Master System games came in the same
+    black plastic case, with a hanging tab above the top edge."""
+
+    CASES = ("Genesis Clamshell", "Master System Case")
+
+    def _render(self, name, **kw):
+        args = dict(output_width=400, show_reflection=False, show_shadow=False)
+        args.update(kw)
+        return BoxRenderer(CASE_TYPES[name], **args).render(
+            Image.new("RGB", (300, 420), (200, 40, 40)), title="Game")
+
+    def test_size_and_plastic(self):
+        for name in self.CASES:
+            with self.subTest(case=name):
+                ct = CASE_TYPES[name]
+                self.assertEqual((ct.width, ct.height, ct.depth), (128, 179, 26))
+                self.assertEqual(ct.plastic, (0x14, 0x14, 0x14))
+                self.assertFalse(ct.clear)
+                self.assertGreater(ct.rim_mm, 0)
+                self.assertTrue(ct.hanging_tab)
+
+    def test_platforms(self):
+        self.assertEqual(PLATFORM_CASE_MAP["Master System"], "Master System Case")
+        self.assertEqual(PLATFORM_CASE_MAP["Mega Drive"], "Genesis Clamshell")
+        self.assertIn("Universal Cart Case", cases_for_platform("Master System"))
+
+    def test_master_system_can_be_searched(self):
+        self.assertEqual(LIBRETRO_SYSTEMS["Master System"],
+                         "Sega - Master System - Mark III")
+        self.assertEqual(SCREENSCRAPER_SYSTEMS["Master System"], 2)
+        self.assertEqual(THEGAMESDB_PLATFORMS["Master System"], 35)
+
+    def test_tab_stands_above_the_box(self):
+        with_tab = self._render("Genesis Clamshell")
+        without = BoxRenderer(
+            replace(CASE_TYPES["Genesis Clamshell"], hanging_tab=False),
+            output_width=400, show_reflection=False, show_shadow=False,
+        ).render(Image.new("RGB", (300, 420), (200, 40, 40)), title="Game")
+        self.assertEqual(with_tab.width, without.width)
+        self.assertGreater(with_tab.height, without.height)
+        # The box below the tab is unchanged in size.
+        added = with_tab.height - without.height
+        tab = np.asarray(with_tab)[:added, :, 3] > 128
+        columns = np.where(tab.any(axis=0))[0]
+        # About 50 of the case's 128 mm wide, so a good part of the render.
+        self.assertGreater(columns.size, with_tab.width * 0.2)
+        self.assertLess(columns.size, with_tab.width * 0.5)
+
+    def test_tab_has_a_slot_to_hang_from(self):
+        image = np.asarray(self._render("Genesis Clamshell"))[:, :, 3] > 128
+        without = BoxRenderer(
+            replace(CASE_TYPES["Genesis Clamshell"], hanging_tab=False),
+            output_width=400, show_reflection=False, show_shadow=False,
+        ).render(Image.new("RGB", (300, 420), (200, 40, 40)), title="Game")
+        tab = image[:image.shape[0] - without.height]
+        columns = np.where(tab.any(axis=0))[0]
+        middle = image[:, (columns[0] + columns[-1]) // 2]
+        solid = np.where(middle)[0]
+        # A gap in the middle column, between the tab's top and the box below.
+        self.assertLess(middle[solid[0]:solid[-1] + 1].sum(), solid[-1] + 1 - solid[0])
+
+    def test_tab_takes_the_case_colour(self):
+        ct = CASE_TYPES["Genesis Clamshell"]
+        cover = Image.new("RGB", (300, 420), (200, 40, 40))
+
+        def tab_red(**kw):
+            """The red of the tab's top rows, the first solid ones down."""
+            image = np.asarray(BoxRenderer(
+                ct, output_width=400, show_reflection=False, show_shadow=False,
+            ).render(cover, title="Game", **kw))
+            solid = np.where((image[:, :, 3] > 200).any(axis=1))[0][:3]
+            rows = image[solid]
+            return rows[rows[:, :, 3] > 200][:, 0].mean()
+
+        self.assertLess(tab_red(), 40)
+        self.assertGreater(tab_red(case_color=(220, 30, 30)), 120)
+
+    def test_match_retrodb_draws_no_tab(self):
+        """RetroDB's own Sega boxes have none, so they stay side by side."""
+        camera = dict(angle=RETRODB_ANGLE, camera_distance=RETRODB_CAMERA_DISTANCE)
+        with_tab = self._render("Genesis Clamshell", **camera)
+        without = BoxRenderer(
+            replace(CASE_TYPES["Genesis Clamshell"], hanging_tab=False),
+            output_width=400, show_reflection=False, show_shadow=False, **camera,
+        ).render(Image.new("RGB", (300, 420), (200, 40, 40)), title="Game")
+        self.assertEqual(with_tab.size, without.size)
+        self.assertEqual(with_tab.tobytes(), without.tobytes())
+
+    def test_other_cases_have_no_tab(self):
+        tabbed = {name for name, ct in CASE_TYPES.items() if ct.hanging_tab}
+        self.assertEqual(tabbed, set(self.CASES))
+
+    def test_clear_sleeve_shines_without_cardboard_folds(self):
+        for name in self.CASES:
+            with self.subTest(case=name):
+                sleeve = generate_front_texture(CASE_TYPES[name], 200, 280)
+                expected = Image.new("RGBA", (200, 280), (0, 0, 0, 0))
+                expected.alpha_composite(generate_lid_shine(200, 280))
+                self.assertEqual(sleeve.tobytes(), expected.tobytes())
 
 
 class TestEditionCases(unittest.TestCase):

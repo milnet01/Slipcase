@@ -54,6 +54,7 @@ PLATFORM_BRANDING: dict[str, dict] = {
     "GameCube": {"logo": "Nintendo", "name": "GCN", "strip_pct": 0.15},
     "Genesis": {"logo": "SEGA", "name": "GENESIS", "strip_pct": 0.15},
     "Mega Drive": {"logo": "SEGA", "name": "MEGA DRIVE", "strip_pct": 0.15},
+    "Master System": {"logo": "SEGA", "name": "MASTER SYSTEM", "strip_pct": 0.15},
     "Saturn": {"logo": "SEGA", "name": "SATURN", "strip_pct": 0.15},
     "Dreamcast": {"logo": "SEGA", "name": "DREAMCAST", "strip_pct": 0.15},
     "Game Boy": {"logo": "Nintendo", "name": "GAME BOY", "strip_pct": 0.15},

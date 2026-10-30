@@ -239,6 +239,7 @@ SCREENSCRAPER_SYSTEMS: dict[str, int] = {
     "Switch": 225,
     "Genesis": 1,
     "Mega Drive": 1,
+    "Master System": 2,
     "Saturn": 22,
     "Dreamcast": 23,
     "PS1": 57,

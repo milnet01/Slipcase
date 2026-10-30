@@ -18,6 +18,7 @@
     "GameCube": {"brand": "#6A0DAD", "spine": "#3A0060", "accent": "#FFFFFF"},
     "Genesis": {"brand": "#000000", "spine": "#1A1A1A", "accent": "#FFFFFF"},
     "Mega Drive": {"brand": "#000000", "spine": "#1A1A1A", "accent": "#FFFFFF"},
+    "Master System": {"brand": "#000000", "spine": "#1A1A1A", "accent": "#FFFFFF"},
     "Saturn": {"brand": "#4B4B4B", "spine": "#2B2B2B", "accent": "#FFFFFF"},
     "Dreamcast": {"brand": "#FF6600", "spine": "#FFFFFF", "accent": "#000000"},
     "Game Boy": {"brand": "#8B8B8B", "spine": "#6B6B6B", "accent": "#000000"},

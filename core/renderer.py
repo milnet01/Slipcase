@@ -51,6 +51,16 @@ MAX_OUTPUT_WIDTH = 2048
 # Layout spacing (multiplied by supersample scale)
 _CANVAS_PAD = 20              # Horizontal/vertical canvas padding
 _CANVAS_TOP_PAD = 5           # Extra top padding for face overhang
+
+# The hanging tab, judged from LaunchBox's Genesis images; a real one is
+# unmeasured. Outline and slot are (across, up), each from 0 to 1.
+_TAB_WIDTH_MM = 50
+_TAB_HEIGHT_MM = 13
+_TAB_SHADE = 0.8              # As the top face it stands on
+_TAB_OUTLINE = ((0, 0), (0, 0.85), (0.02, 0.95), (0.06, 1), (0.94, 1),
+                (0.98, 0.95), (1, 0.85), (1, 0))
+_TAB_SLOT = ((0.2, 0.08), (0.2, 0.28), (0.24, 0.36), (0.4, 0.36), (0.44, 0.52),
+             (0.56, 0.52), (0.6, 0.36), (0.76, 0.36), (0.8, 0.28), (0.8, 0.08))
 _EDGE_PAD = 6                 # Edge padding for perspective transform anti-aliasing
 
 # Shadow parameters
@@ -308,7 +318,10 @@ class BoxRenderer:
         fit_w = (total_w - proj_spine_w - proj_front_w
                  + int(front_w * math.cos(fit_rad) * fit_front_scale)
                  + int(spine_w * math.sin(fit_rad) * fit_spine_scale))
-        total_h = front_h + proj_top_h * 2 + _CANVAS_PAD * scale + shadow_h
+        # RetroDB's boxes have no hanging tab, so a level camera draws none.
+        tab_h = (round(_TAB_HEIGHT_MM * front_h / self.case_type.height)
+                 if self.case_type.hanging_tab and self.camera_distance is None else 0)
+        total_h = front_h + proj_top_h * 2 + tab_h + _CANVAS_PAD * scale + shadow_h
         reflection_space = front_h // 3 if self.show_reflection else 0
         canvas_h = total_h + reflection_space
 
@@ -339,7 +352,7 @@ class BoxRenderer:
 
         # Offset for shadow/reflection space
         ox = (_CANVAS_PAD // 2) * scale
-        oy = proj_top_h + _CANVAS_TOP_PAD * scale
+        oy = proj_top_h + tab_h + _CANVAS_TOP_PAD * scale
 
         # --- Warp spine and front in parallel (both release the GIL) ---
         # How far each far edge (the spine's left, the front's right) is
@@ -379,6 +392,14 @@ class BoxRenderer:
         del spine_dst
         canvas = Image.alpha_composite(canvas, front_dst)
         del front_dst
+
+        if tab_h:
+            top_color, _, _ = case_edge_colours(front_image, self.case_type, case_color)
+            self._draw_hanging_tab(
+                canvas, top_color, tab_h,
+                left=ox + proj_spine_w, width=proj_front_w,
+                base_y=oy - proj_top_h, drop=far_shrink, front_h=front_h,
+            )
 
         # --- Top and bottom faces (drawn on single layer to save an allocation) ---
         if proj_top_h > 3:
@@ -584,6 +605,33 @@ class BoxRenderer:
         B = np.array([c for pt in src_points for c in pt], dtype=np.float64)
         coeffs = np.linalg.solve(A, B)
         return list(coeffs)
+
+    def _draw_hanging_tab(
+        self,
+        canvas: Image.Image,
+        color: tuple[int, int, int],
+        tab_h: int,
+        left: int, width: int,
+        base_y: int, drop: int, front_h: int,
+    ) -> None:
+        """Draw a slotted tab, in perspective, on the top face's back edge.
+
+        `left` and `width` are the front's projected span. The back edge falls
+        by `drop` across that span, and the tab shortens with it.
+        """
+        share = _TAB_WIDTH_MM / self.case_type.width
+        start = (1 - share) / 2
+
+        def point(across: float, up: float) -> tuple[float, float]:
+            along = start + across * share
+            height = tab_h * (1 - along * 2 * drop / front_h)
+            return (left + along * width, base_y + along * drop - up * height)
+
+        draw = ImageDraw.Draw(canvas)
+        shade = tuple(int(c * _TAB_SHADE) for c in color)
+        draw.polygon([point(*p) for p in _TAB_OUTLINE], fill=(*shade, 255))
+        # Writes clear pixels: the slot shows what is behind the box.
+        draw.polygon([point(*p) for p in _TAB_SLOT], fill=(0, 0, 0, 0))
 
     def _render_faces(
         self,

@@ -38,7 +38,9 @@ KEEP_RIM_MM = 2.5
 # measures about 2 mm on PS2 and a little over 1 mm on PC.
 _PS2_RIM_MM = 2.0
 _PC_RIM_MM = 1.5
-_KEEP_TEXTURES = frozenset({"dvd", "bluray", "switch", "ds", "psp"})
+# Judged from LaunchBox's Genesis and Master System images (2026-10-30).
+_CLAMSHELL_RIM_MM = 1.5
+_KEEP_TEXTURES = frozenset({"dvd", "bluray", "switch", "ds", "psp", "clamshell"})
 
 
 @dataclass(frozen=True)
@@ -66,8 +68,11 @@ class CaseType:
     # Text moulded into the plastic of the top and bottom edges (SLIP-0110).
     moulded_logo: str | None = None
     # Overlay family for the wrap layout: "dvd", "bluray", "switch", "ds",
-    # "psp", "cardboard", or None for no overlay (SLIP-0107).
+    # "psp", "cardboard", "clamshell" (SLIP-0108), or None for no overlay
+    # (SLIP-0107).
     texture: str | None = None
+    # A slotted tab stands above the top edge, for a shop's peg (SLIP-0108).
+    hanging_tab: bool = False
     # Clear or tinted plastic: the front shines. The edges are still plastic,
     # `plastic` when set, and a neutral clear otherwise.
     clear: bool = False
@@ -299,11 +304,22 @@ CASE_TYPES: dict[str, CaseType] = {
         platforms=(),
         texture="cardboard",
     ),
+    # One clamshell for both consoles; the size is a box protector's, as no
+    # measured case was found. Sega Retro: Mega Drive boxes "use the same
+    # dimensions as Western Master System games".
     "Genesis Clamshell": CaseType(
         name="Genesis Clamshell",
-        width=135, height=195, depth=23,
+        width=128, height=179, depth=26,
         platforms=("Genesis", "Mega Drive"),
-        texture="cardboard",
+        plastic=_BLACK_KEEP, texture="clamshell", keep_rim=_CLAMSHELL_RIM_MM,
+        hanging_tab=True,
+    ),
+    "Master System Case": CaseType(
+        name="Master System Case",
+        width=128, height=179, depth=26,
+        platforms=("Master System",),
+        plastic=_BLACK_KEEP, texture="clamshell", keep_rim=_CLAMSHELL_RIM_MM,
+        hanging_tab=True,
     ),
     "Game Boy Box": CaseType(
         name="Game Boy Box",
@@ -431,7 +447,7 @@ def case_for(platform: str, region: str) -> CaseType | None:
 
 
 _CARTRIDGE_PLATFORMS = ("NES", "SNES", "N64", "Genesis", "Mega Drive",
-                        "Game Boy", "Game Boy Color", "GBA")
+                        "Master System", "Game Boy", "Game Boy Color", "GBA")
 
 # platform -> cases picked only by hand, beyond its default and regional
 # cases (SLIP-0113), editions included.

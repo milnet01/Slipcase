@@ -48,7 +48,7 @@ Case (NTSC-J) · PC DVD Case · Xbox Case · Xbox 360 Case · PS3, PS4 and PS5
 Blu-ray Cases · Xbox One Case · Xbox Series X Case · CD Jewel Case · PS1 Jewel Case (NTSC-U, PAL and
 NTSC-J) · Dreamcast Jewel Case (NTSC-U, PAL and NTSC-J) · NES Cartridge Box ·
 SNES Cartridge Box · Super Famicom Cartridge Box · N64 Cartridge Box (US
-and NTSC-J) · Genesis Clamshell · Game Boy Box ·
+and NTSC-J) · Genesis Clamshell · Master System Case · Game Boy Box ·
 GBA Box · DS Case (US and PAL) · 3DS Case · PSP Case · PS Vita Case · Switch Case ·
 Universal Cart Case
 

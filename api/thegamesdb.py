@@ -142,6 +142,7 @@ THEGAMESDB_PLATFORMS: dict[str, int] = {
     "Switch": 4971,
     "Genesis": 18,
     "Mega Drive": 36,
+    "Master System": 35,
     "Saturn": 17,
     "Dreamcast": 16,
     "PS1": 10,

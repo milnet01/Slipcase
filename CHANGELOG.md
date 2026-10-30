@@ -15,8 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   come out with the same strong perspective, so they sit well next to the boxes
   RetroDB already has. Slipcase remembers the setting. SNES boxes still differ:
   RetroDB shows those from below.
+- **Master System is now a platform, with its own case and cover search** (SLIP-0108)
 
 ### Changed
+
+- **Genesis and Mega Drive cases are now black plastic, not cardboard** (SLIP-0108)
+  They take their real size, a thin plastic rim, and the slotted hanging tab above the top edge. Master System cases match. The tab is left out of the Match RetroDB view, because RetroDB's boxes have none, and out of the 3D View tab.
 
 - **DVD, Blu-ray and handheld cases now look like plastic cases, not printed cards** (SLIP-0107)
   The cover sits inside a plastic rim in the console's colour: blue on PS5, green on Xbox, white on Wii, clear on Switch. The art shrinks slightly to fit, so nothing is cut off. The top and bottom of a clear case are now plastic too, not the cover's colour. Case Color still overrides all of it.

@@ -1173,6 +1173,17 @@ building.
   the Game Boy box looks close to square against Slipcase's narrow 79 x 112.
   Order set 2026-10-30: Genesis and Master System plastic, then cardboard
   sizes and the SNES view from below.
+  Built 2026-10-30: Genesis Clamshell and a new Master System Case, 128
+  x 179 x 26 (a protector's size), black plastic, 1.5 mm rim, clear
+  sleeve shine. A new Master System platform searches libretro,
+  ScreenScraper (2) and TheGamesDB (35). A slotted hanging tab, 50 x 13
+  mm judged from LaunchBox, stands above the top edge in the normal
+  view. Not drawn: in Match RetroDB, as RetroDB's Sega boxes have none,
+  and in the 3D View tab. Japanese Master System games came in cardboard
+  (Sega Retro); that case is not built, its size being unsourced. Test:
+  tests/test_case_list.py TestSegaClamshells. Sample:
+  /mnt/Games/.slipcase-scratch/sega/sega_cases.png. Next: cardboard
+  sizes and the SNES view from below.
   **Layman:** Cartridge game boxes (NES, SNES, N64, Game Boy and others) get the right size and shape for each region.
   Kind: feature.
   Source: user-request-2026-10-21.

@@ -130,6 +130,7 @@ LIBRETRO_SYSTEMS: dict[str, str] = {
     "Switch": "Nintendo - Switch",
     "Genesis": "Sega - Mega Drive - Genesis",
     "Mega Drive": "Sega - Mega Drive - Genesis",
+    "Master System": "Sega - Master System - Mark III",
     "Saturn": "Sega - Saturn",
     "Dreamcast": "Sega - Dreamcast",
     "PS1": "Sony - PlayStation",

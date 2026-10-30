@@ -55,6 +55,9 @@ def generate_front_texture(case_type: CaseType, width: int, height: int,
         _draw_ds_front(draw, width, height)
     elif texture == "psp":
         _draw_psp_front(draw, width, height)
+    elif texture == "clamshell":
+        # The cover sits under a clear sleeve (SLIP-0108).
+        overlay.alpha_composite(generate_lid_shine(width, height))
 
     # A clear keep case shines as a jewel lid does (SLIP-0107 § 4.3).
     if case_type.clear and case_type.layout == "wrap":
@@ -78,7 +81,7 @@ def generate_spine_texture(case_type: CaseType, width: int, height: int) -> Imag
         _draw_bluray_spine(draw, width, height)
     elif texture == "cardboard":
         _draw_cardboard_spine(draw, width, height)
-    elif texture in ("switch", "ds", "psp"):
+    elif texture in ("switch", "ds", "psp", "clamshell"):
         _draw_keepcase_spine(draw, width, height)
 
     return overlay
