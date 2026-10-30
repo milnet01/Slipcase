@@ -217,33 +217,53 @@ def _printed_ribs(panel: Image.Image, tray: TrayPrint, p: float) -> Image.Image:
     return out
 
 
-# A clear tray's front hinge strip is a window onto the back card's inside
-# (the user's drawing, 2026-10-30). Lid and back card take this much off the
-# case's depth, and the shading is judged by eye on the user's trial picture.
-_WINDOW_INSET_MM = 1.4
+# A clear tray's front hinge strip is a window into a hollow compartment, with
+# the back card's paper flat against its far wall (the user's drawing and
+# comments, 2026-10-30). A case's true depth read as "just a little bit in",
+# so the depth is deepened; this and all the shading are judged by eye.
+_WINDOW_DEPTH_SCALE = 1.3
 # A box file's front is one flat picture, so its window is drawn from here.
 DEFAULT_VIEW_ANGLE = 30.0
+_FLOOR_SHARE = 0.35           # the floor's height, as a share of the depth
 _BEHIND_DIM = 0.97
-_SPINE_SHADOW = (4.0, 0.55)   # mm wide, darkest multiplier beside the spine
-_WALL_DARK = 0.55             # the inner wall's multiplier at the back card
+_CORNER_SHADOW = (3.0, 0.5)   # mm wide, darkest multiplier where the paper meets a wall
+_WALL_DARK = 0.5              # the inner wall's multiplier at the back card
+_FLOOR_DARK = 0.65            # the floor's; it catches more light
 
 
 def _through_window(panel: Image.Image, tray: TrayPrint, depth: float, angle: float,
                     p: float) -> Image.Image:
-    """`panel`, printed `depth` mm behind the window, seen at `angle` degrees
-    from the spine's side: it slides towards the spine, and the inner wall by
-    the booklet fills the room it leaves."""
+    """The compartment behind the window, its far wall carrying `panel`,
+    `depth` mm back and seen at `angle` degrees from the spine's side and
+    from above. The paper slides towards the spine and up; the inner wall by
+    the booklet and the floor fill the room it leaves, meeting in a mitre."""
     w, h = panel.size
-    shift = min(w, round(depth * math.tan(math.radians(angle)) * p))
-    seen = w - shift
+    wall_w = min(w, round(depth * math.tan(math.radians(angle)) * p))
+    floor_h = min(h, round(depth * _FLOOR_SHARE * p))
+    far_w, far_h = w - wall_w, h - floor_h
+
+    x = (np.arange(w) + 0.5)[None, :]
+    y = (np.arange(h) + 0.5)[:, None]
+    along_wall = np.clip((x - far_w) / max(wall_w, 1), 0, 1)    # 0 at the paper, 1 at the lid
+    along_floor = np.clip((y - far_h) / max(floor_h, 1), 0, 1)
+    on_floor = (along_floor > along_wall) & (along_floor > 0)
+    on_wall = (along_wall > 0) & ~on_floor
+
+    colour = np.array(tray.wall, dtype=float)
     rgb = np.empty((h, w, 3))
-    shadow_w, shadow_dark = _SPINE_SHADOW
-    x = (np.arange(seen) + 0.5) / p
-    light = _BEHIND_DIM * (shadow_dark + (1 - shadow_dark) * np.clip(x / shadow_w, 0, 1))
-    rgb[:, :seen] = np.asarray(panel.convert("RGB"), dtype=float)[:, shift:] * light[None, :, None]
-    # From the back card's dark edge up to the lid.
-    rise = np.linspace(_WALL_DARK, 1, shift)[None, :, None]
-    rgb[:, seen:] = np.array(tray.wall, dtype=float) * rise
+    rgb[on_wall] = colour * (_WALL_DARK + (1 - _WALL_DARK) * np.broadcast_to(
+        along_wall, (h, w))[on_wall])[:, None]
+    rgb[on_floor] = colour * (_FLOOR_DARK + (1 - _FLOOR_DARK) * np.broadcast_to(
+        along_floor, (h, w))[on_floor])[:, None]
+
+    # The paper, flat on the far wall, darkest in the corners it makes.
+    shadow_w, shadow_dark = _CORNER_SHADOW
+    to_corner = np.minimum.reduce(
+        np.broadcast_arrays(x / p, y / p, (far_w - x) / p, (far_h - y) / p))
+    light = _BEHIND_DIM * (shadow_dark + (1 - shadow_dark) * np.clip(to_corner / shadow_w, 0, 1))
+    paper = np.asarray(panel.convert("RGB"), dtype=float)[floor_h:, wall_w:]
+    far = ~(on_wall | on_floor)
+    rgb[far] = (paper * light[:far_h, :far_w, None]).reshape(-1, 3)
     return Image.fromarray(np.round(rgb).astype(np.uint8), "RGB").convert("RGBA")
 
 
@@ -335,7 +355,7 @@ def jewel_faces(
         # front's hinge strip. Scans do not carry it, so it is drawn.
         panel = tray_print_panel(case_type.tray_print, (W - margin - booklet_w, card_h), p)
         front.alpha_composite(
-            _through_window(panel, case_type.tray_print, D - _WINDOW_INSET_MM, view_angle, p),
+            _through_window(panel, case_type.tray_print, D * _WINDOW_DEPTH_SCALE, view_angle, p),
             (0, round((H - card_h) / 2 * p)),
         )
     return JewelFaces(

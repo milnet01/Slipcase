@@ -268,7 +268,8 @@ class TestFaces(unittest.TestCase):
                 s, _ = strip(case, _card(ct, [RED, GREEN, BLUE]))
                 self.assertTrue(np.array_equal(s, strip(case, None)[0]))
 
-        s, _ = strip(cases[0], None)
+        # On the far wall, clear of its corners and the wall beside the booklet.
+        s, _ = strip(cases[0], None, 4, 10)
         grey = s.mean(axis=2)
         # White paper and near-black lettering, as on the LaunchBox Sonic
         # Adventure box the user sent (2026-10-30): a grey wash read as
@@ -299,7 +300,8 @@ class TestFaces(unittest.TestCase):
         """The front's hinge strip is a window onto the back card's inside,
         a case's depth behind it (the user's drawing, 2026-10-30). Turning
         the box slides the print towards the spine by depth * tan(angle), and
-        the inner wall by the booklet takes the room it leaves."""
+        the inner wall by the booklet takes the room it leaves, the floor
+        showing below the paper."""
         booklet = Image.new("RGB", (1200, 1200), (128, 128, 128))
         case = "Dreamcast Jewel Case (NTSC-U)"
         ct = CASE_TYPES[case]
@@ -314,12 +316,18 @@ class TestFaces(unittest.TestCase):
 
         at_10, _, _ = row_of_ink(10)
         at_40, strip_40, px = row_of_ink(40)
-        depth = ct.depth - jewel._WINDOW_INSET_MM
+        depth = ct.depth * jewel._WINDOW_DEPTH_SCALE
         expected = depth * (np.tan(np.radians(40)) - np.tan(np.radians(10)))
         self.assertAlmostEqual(at_10 - at_40, expected, delta=0.5)
         # Next to the booklet the wall shows and the paper does not.
-        wall = strip_40[:, round(18 * px):]
+        wall = strip_40[:round(90 * px), round(18 * px):]
         self.assertLess(wall.std(axis=0).max(), 2)
+
+        # Below the paper the floor shows: no lettering, and a plain surface.
+        front = np.asarray(_faces(booklet, None, case).front.convert("L"))
+        floor_mm = ct.depth * jewel._WINDOW_DEPTH_SCALE * jewel._FLOOR_SHARE
+        bottom = round((121.5 - floor_mm / 2) * px)
+        self.assertLess(front[bottom, round(2 * px):round(8 * px)].std(), 3)
 
         # The renderer turns the print with its own angle.
         def rendered(angle):
@@ -337,7 +345,7 @@ class TestFaces(unittest.TestCase):
         front = _faces(booklet, None, "PS1 Jewel Case (NTSC-U)").front
         px = front.width / 142
         grey = np.asarray(front.convert("L"), dtype=float)[round(5 * px):round(120 * px)]
-        for x_mm in (4, 12):
+        for x_mm in (4, 9):
             with self.subTest(x_mm=x_mm):
                 down = grey[:, round(x_mm * px)]
                 self.assertGreater(down.max() - down.min(), 25)

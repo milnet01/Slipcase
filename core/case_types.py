@@ -98,7 +98,7 @@ _PS1_NTSC_TRAY_PRINT = TrayPrint(text="", paper=(0x00, 0x00, 0x00),
                                  ribs=(3.0, 34.0), wall=(0x38, 0x38, 0x3C))
 _DREAMCAST_US_TRAY_PRINT = TrayPrint(text="Sega Dreamcast", paper=(0xF4, 0xF4, 0xF2),
                                      ink=(0x18, 0x18, 0x18), length=67, reads_up=True,
-                                     swirl=True, across=11.75, wall=(0xC8, 0xCC, 0xD0))
+                                     swirl=True, across=14.5, wall=(0xC8, 0xCC, 0xD0))
 
 CASE_TYPES: dict[str, CaseType] = {
     # Keep cases: one printed sheet wraps back + spine + front under a clear
