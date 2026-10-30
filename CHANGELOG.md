@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-30
+
+**Theme:** In-app updates, signed downloads and real cases for each console.
+
 ### Added
 
 - **Slipcase can tell you when a new version is out** (SLIP-0031)
