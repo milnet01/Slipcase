@@ -26,7 +26,7 @@ from core.jewel import (
     back_has_strips, card_case, detect_strip_folds, fold_reach, split_back_card,
 )
 from core.png_utils import save_optimized_png
-from core.region import detect_region
+from core.region import artwork_can_tell, cover_region, detect_region
 from core.renderer import (
     MAX_OUTPUT_WIDTH,
     RETRODB_ANGLE,
@@ -949,23 +949,25 @@ class MainWindow(QMainWindow):
         self.case_combo.blockSignals(False)
         self._update_back_strips()
         if self._front_image_path:
-            self._detect_case(self._front_image_path)
+            self._detect_case(self._front_image_path, self._front_image)
         self._case_by_hand = False
 
     def _on_case_activated(self, _index: int) -> None:
         self._case_by_hand = True
 
-    def _detect_case(self, path: str) -> str | None:
+    def _detect_case(self, path: str, image: Image.Image | None = None) -> str | None:
         """Show the case for the platform and the region `path`'s file name
-        declares, and clear any hand choice. Returns a status note naming
-        the region, or None when the platform has no case.
+        declares or, when it declares none, `image`'s artwork shows, and clear
+        any hand choice. Returns a status note naming the region, or None when
+        the platform has no case.
 
         Runs before _set_front_image, whose full-cover test depends on the
         case shown.
         """
         self._case_by_hand = False
-        region = detect_region(Path(path).name)
-        case = case_for(self.platform_combo.currentText(), region)
+        platform = self.platform_combo.currentText()
+        region = cover_region(Path(path).name, image, platform)
+        case = case_for(platform, region)
         if case is None:
             return None
         idx = self.case_combo.findText(case.name)
@@ -995,6 +997,12 @@ class MainWindow(QMainWindow):
             return [shown] * len(files)
         platform = self.platform_combo.currentText()
         return [case_for(platform, detect_region(Path(f).name)) or shown for f in files]
+
+    def _batch_artwork_platform(self) -> str | None:
+        """The platform whose covers the batch worker should read for region
+        marks: none when the case was picked by hand or there are no marks."""
+        platform = self.platform_combo.currentText()
+        return platform if not self._case_by_hand and artwork_can_tell(platform) else None
 
     # --- Image loading ---
 
@@ -1038,7 +1046,7 @@ class MainWindow(QMainWindow):
         """Make `img`, read from `path`, the front cover: detect its case,
         add it to the recent list and fill an empty title from its name."""
         self._front_image_path = path
-        note = self._detect_case(path)
+        note = self._detect_case(path, img)
         self._set_front_image(img)
         self._show_case_note(note)
         self._add_to_recent(path)
@@ -1635,6 +1643,7 @@ class MainWindow(QMainWindow):
         self._batch_worker = BatchWorker(
             files, output_dir, renderer, compress_level=self._compress_level(),
             box_file=self._box_file_enabled(), case_types=self._batch_cases(files),
+            artwork_platform=self._batch_artwork_platform(),
         )
         self._batch_worker.progress.connect(self._on_batch_progress)
         self._batch_worker.finished_signal.connect(self._on_batch_done)

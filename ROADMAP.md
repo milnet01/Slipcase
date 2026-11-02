@@ -1442,7 +1442,7 @@ building.
   Source: retrodb-comparison-2026-10-29.
   Lanes: core.
 
-- 📋 [SLIP-0119] **Tell a cover's region from its artwork, not only its file name.**
+- 🚧 [SLIP-0119] **Tell a cover's region from its artwork, not only its file name.**
   core/region.py detect_region reads the file name only and falls
   back to NTSC-U. Scraped files rarely carry a region in their name
   (RetroDB's are "<id>_ss_boxart.webp"), so every PAL cover there gets
@@ -1452,6 +1452,9 @@ building.
   "PAL" box under the PS1 logo, "NTSC U/C", PEGI, ELSPA and USK badges
   against ESRB. Open: which marks to detect, and how sure a match must
   be before it overrides the NTSC-U default.
+  Built 2026-11-02: core/region.py region_from_artwork, used when a file name declares no region; the name still wins. Two marks, both PAL: the PS1 black footer with the PlayStation wordmark, and the Dreamcast blue head band with wordmark and swirl box. Each compares a column profile of the wordmark, so no OCR and no logo image ships. A wrong override is no better than the default, so thresholds sit above every US and Japanese cover sampled.
+  Tested on libretro covers, whose file names label the region, sampled evenly (RetroDB's stored region and serial are unreliable: most "USA" covers there are PAL art). PS1: PAL on 52 of 60 Europe, 0 of 60 USA, 0 of 60 Japan. Dreamcast: 36 of 60, 0 of 60, 0 of 60. Europe misses have no mark, or carry US art. On RetroDB, every hit read by eye: PS1 116 of 225, Dreamcast 21 of 36. One PS1 hit, Darklight Conflict, has no wordmark but is PAL. Time Crisis, Shenmue and Spider-Man now get PAL.
+  Not built, by decision: PS2, as European covers share no one mark and each country's rating badge differs; Japanese marks, as the PS1 corner logo fired on 3 of 60; DS, not looked at. These keep the file name or the NTSC-U default. Images outside width/height 0.5 to 1.4 are not read, so a wrap keeps the default. Batch reads marks in the worker thread. One review lane, 2026-11-02; its findings fixed. Tests: tests/test_region.py TestRegionFromArtwork, tests/test_jewel.py. Evidence sheets: /mnt/Games/.slipcase-scratch/region/. Next: the user's eye on a real load.
   **Layman:** A European cover gets the European case even when its file name does not say "Europe".
   Kind: feature.
   Source: retrodb-comparison-2026-10-29.

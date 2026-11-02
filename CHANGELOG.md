@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Six more consoles: Wii U, Switch 2, Game Gear, Atari 2600, TurboGrafx-16 and
   Neo Geo AES** (SLIP-0124)
   Each has its own case, and all but Switch 2 can search for covers. Japanese NES games get a Famicom box, and Japanese TurboGrafx-16 games a PC Engine HuCard case.
+- **European PlayStation and Dreamcast covers get the European case even when
+  the file name does not say "Europe"** (SLIP-0119)
+  Slipcase recognises the black PlayStation strip at the foot of a PS1 cover
+  and the blue Dreamcast band at the head of a Dreamcast cover. A region in the
+  file name still wins, and you can still pick another case by hand.
 
 ### Changed
 

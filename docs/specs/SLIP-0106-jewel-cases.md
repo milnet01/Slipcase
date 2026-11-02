@@ -190,6 +190,12 @@ def detect_region(file_name: str) -> str:
 `detect_region` reads only the string it is given. Callers pass
 `Path(path).name`, so no folder name decides a region.
 
+SLIP-0119 adds a second source: when a name declares no region, the
+single-cover and batch paths also read the artwork for a printed mark
+(`region_from_artwork`, PS1 and Dreamcast PAL only). Sections 4.3 and 4.6
+describe the name path; the name still wins. The batch worker reads the
+artwork, not `_batch_cases`, because it opens every file.
+
 ### 4.3 Where detection hooks in
 
 - **`MainWindow._load_front` and `MainWindow._open_recent`.** Both load a

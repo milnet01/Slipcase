@@ -116,8 +116,11 @@ keep the project somewhere other than where it is now.
    platform's cases. For PlayStation, PS2,
    Dreamcast, DS and GameCube covers, Slipcase reads the region from the
    file name's tag,
-   such as "(Europe)" or "(Japan)", and picks that region's case. A name
-   with no tag counts as USA. Pick another case in the list to override it.
+   such as "(Europe)" or "(Japan)", and picks that region's case. With no
+   tag, a PlayStation or Dreamcast cover showing the European layout (the
+   black PlayStation strip at the foot, the blue Dreamcast band at the head)
+   counts as Europe, and anything else as USA. Pick another case in the list
+   to override it.
 3. **Adjust the angle** if you want. The default is 30 degrees, which is the
    LaunchBox look; you can go anywhere from 5 to 60. To match the 3D boxes
    already in RetroDB, press **Match RetroDB** instead. It sets the view for

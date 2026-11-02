@@ -610,6 +610,83 @@ class TestCaseChoice(unittest.TestCase):
             self.assertEqual([c.name for c in window._batch_cases(files)],
                              ["PS1 Jewel Case (NTSC-J)"] * 2)
 
+    def test_artwork_picks_the_case_when_the_name_is_silent(self):
+        """SLIP-0119: a scraped name says nothing, so the PAL footer decides;
+        a name that does speak still wins."""
+        from tests.test_region import ps1_cover
+        with tempfile.TemporaryDirectory() as d:
+            window = self._window(d)
+            window._detect_case("123_ss_boxart.webp", ps1_cover())
+            self.assertEqual(window.case_combo.currentText(), "PS1 Jewel Case (PAL)")
+            window._detect_case("123_ss_boxart.webp", ps1_cover(footer=False))
+            self.assertEqual(window.case_combo.currentText(), "PS1 Jewel Case (NTSC-U)")
+            window._detect_case("123 (USA).webp", ps1_cover())
+            self.assertEqual(window.case_combo.currentText(), "PS1 Jewel Case (NTSC-U)")
+
+            # The way a cover really arrives, and a platform change after it.
+            window._adopt_front_file(ps1_cover(), os.path.join(d, "123_ss_boxart.webp"))
+            self.assertEqual(window.case_combo.currentText(), "PS1 Jewel Case (PAL)")
+            window.platform_combo.setCurrentText("PS2")
+            window.platform_combo.setCurrentText("PS1")
+            self.assertEqual(window.case_combo.currentText(), "PS1 Jewel Case (PAL)")
+
+    def test_batch_worker_reads_artwork(self):
+        """SLIP-0119: run() opens the files, not _batch_cases on the UI thread.
+        An unreadable file neither stops the others nor changes its own case."""
+        from tests.test_region import ps1_cover
+        from ui.workers import BatchWorker
+        with tempfile.TemporaryDirectory() as d:
+            broken, pal, plain, named = (os.path.join(d, n) for n in (
+                "4_ss_boxart.png", "1_ss_boxart.png", "2_ss_boxart.png", "3 (USA).png"))
+            with open(broken, "wb") as f:
+                f.write(b"not an image")
+            ps1_cover().save(pal)
+            ps1_cover(footer=False).save(plain)
+            ps1_cover().save(named)
+            files = [broken, pal, plain, named]
+            window = self._window(d)
+            with patch("core.region.region_from_artwork") as read:
+                cases = window._batch_cases(files)
+            read.assert_not_called()
+            worker = BatchWorker(files, d, BoxRenderer(CASE_TYPES["PS2 DVD Case"]),
+                                 case_types=cases, artwork_platform="PS1")
+            self.addCleanup(worker.deleteLater)
+            with patch.object(worker, "_run_parallel", return_value=0) as render:
+                worker.run()
+            self.assertEqual([a[3].name for a in render.call_args.args[0]],
+                             ["PS1 Jewel Case (NTSC-U)", "PS1 Jewel Case (PAL)",
+                              "PS1 Jewel Case (NTSC-U)", "PS1 Jewel Case (NTSC-U)"])
+
+    def test_batch_asks_for_artwork_unless_picked_by_hand(self):
+        """SLIP-0119: _batch_process hands the worker the platform, and a hand
+        choice or a platform with no marks withholds it."""
+        with tempfile.TemporaryDirectory() as d:
+            window = self._window(d)
+            with (patch("ui.main_window.QFileDialog.getOpenFileNames",
+                        return_value=(["1.png"], "")),
+                  patch("ui.main_window.QFileDialog.getExistingDirectory", return_value=d),
+                  patch("ui.main_window.BatchWorker") as worker):
+                window._batch_process()
+                self.assertEqual(worker.call_args.kwargs["artwork_platform"], "PS1")
+                self._pick_by_hand(window, "PS1 Jewel Case (NTSC-J)")
+                self.assertIsNone(window._batch_artwork_platform())
+                window.platform_combo.setCurrentText("PS2")
+                self.assertIsNone(window._batch_artwork_platform())
+
+    def test_stopping_during_the_artwork_read_starts_no_render(self):
+        from tests.test_region import ps1_cover
+        from ui.workers import BatchWorker
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "1_ss_boxart.png")
+            ps1_cover().save(path)
+            worker = BatchWorker([path], d, BoxRenderer(CASE_TYPES["PS1 Jewel Case (NTSC-U)"]),
+                                 artwork_platform="PS1")
+            self.addCleanup(worker.deleteLater)
+            with (patch.object(worker, "isInterruptionRequested", return_value=True),
+                  patch.object(worker, "_run_sequential") as render):
+                worker.run()
+            render.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

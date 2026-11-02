@@ -12,8 +12,9 @@ from PyQt6.QtCore import QThread, pyqtSignal
 from api import releases
 from core.box_file import box_paths, write_box_file
 from core.box_model import build_box_model
-from core.case_types import CaseType
+from core.case_types import CaseType, case_for
 from core.config import Config
+from core.region import region_from_artwork, region_from_name
 from core.renderer import BoxRenderer, visible_width_mm
 from core.update_installer import Installer, UpdateMode
 from core.updater import UpdateOffer, check_for_update, download_and_verify
@@ -168,9 +169,11 @@ class BatchWorker(QThread):
 
     def __init__(self, file_paths: list[str], output_dir: str, renderer: BoxRenderer,
                  compress_level: int = 6, box_file: bool = False,
-                 case_types: list[CaseType] | None = None):
+                 case_types: list[CaseType] | None = None,
+                 artwork_platform: str | None = None):
         """`case_types`, one per file, gives each file its own case; without
-        it every file takes the renderer's (SLIP-0106 § 4.6)."""
+        it every file takes the renderer's (SLIP-0106 § 4.6). `artwork_platform`
+        has files whose names declare no region read for marks (SLIP-0119)."""
         super().__init__()
         self.file_paths = file_paths
         self.output_dir = output_dir
@@ -183,6 +186,7 @@ class BatchWorker(QThread):
         self._case_type = renderer.case_type
         self._case_by_file = (dict(zip(file_paths, case_types, strict=True))
                               if case_types is not None else {})
+        self._artwork_platform = artwork_platform
         self._renderer_kwargs = {
             "angle": renderer.angle,
             "camera_distance": renderer.camera_distance,
@@ -203,6 +207,9 @@ class BatchWorker(QThread):
         count = 0
         try:
             total = len(self.file_paths)
+            self._apply_artwork_regions()
+            if self.isInterruptionRequested():
+                return
             stems = pick_output_stems(self.file_paths, self.output_dir)
             args_list = [self._args_for(fp, stem)
                          for fp, stem in zip(self.file_paths, stems, strict=True)]
@@ -216,6 +223,29 @@ class BatchWorker(QThread):
             self.error.emit(f"Batch failed: {e}")
         finally:
             self.finished_signal.emit(count)
+
+    def _apply_artwork_regions(self) -> None:
+        """Give each file whose name declares no region the case its artwork's
+        marks show. Runs here, not on the UI thread: it opens every file."""
+        platform = self._artwork_platform
+        if platform is None:
+            return
+        for path in self.file_paths:
+            if self.isInterruptionRequested():
+                return
+            if region_from_name(Path(path).name) is not None:
+                continue
+            try:
+                with Image.open(path) as img:
+                    img.load()
+                    region = region_from_artwork(img, platform)
+            except Exception:  # noqa: BLE001, S112
+                # Only chooses a case, so no failure here may cost the batch.
+                # The render reports an unreadable file.
+                continue
+            case = case_for(platform, region) if region else None
+            if case is not None:
+                self._case_by_file[path] = case
 
     def _args_for(self, fp: str, stem: str) -> tuple:
         """The picklable arguments _render_single_image takes for one file."""
