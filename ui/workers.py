@@ -392,21 +392,23 @@ class AnimationWorker(QThread):
                     full_cover=self.full_cover,
                     back_strips=self.back_strips,
                 )
-                if i == 0:
-                    frame_w = max(frame.size[0], self.output_width)
-                    need = frame_w * frame.size[1] * 4 * total
-                    if need > MAX_ANIMATION_BYTES:
-                        self.error.emit(
-                            f"This animation would need about "
-                            f"{need / 1024 ** 3:.1f} GB of memory "
-                            f"({total} frames at {frame_w}x{frame.size[1]}), "
-                            f"more than the {MAX_ANIMATION_BYTES / 1024 ** 3:.0f} GB "
-                            "limit. Lower the width or the number of frames."
-                        )
-                        return
-                frames.append(frame)
+                # Every frame is padded to the largest, and a box seen from below
+                # changes height as it tilts, so the first frame cannot settle
+                # this.
                 max_w = max(max_w, frame.size[0])
                 max_h = max(max_h, frame.size[1])
+                frame_w = max(max_w, self.output_width)
+                need = frame_w * max_h * 4 * total
+                if need > MAX_ANIMATION_BYTES:
+                    self.error.emit(
+                        f"This animation would need about "
+                        f"{need / 1024 ** 3:.1f} GB of memory "
+                        f"({total} frames at {frame_w}x{max_h}), "
+                        f"more than the {MAX_ANIMATION_BYTES / 1024 ** 3:.0f} GB "
+                        "limit. Lower the width or the number of frames."
+                    )
+                    return
+                frames.append(frame)
 
             # Normalize all frames in-place to the same size (frees originals)
             for i, frame in enumerate(frames):

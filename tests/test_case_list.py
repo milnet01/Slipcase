@@ -174,6 +174,57 @@ class TestSnesViewFromBelow(unittest.TestCase):
         self.assertGreater(centre[0], 120)
         self.assertLess(centre[2], 90)
 
+    def test_background_stays_within_the_requested_width(self):
+        for width in (128, 512, 1024):
+            with self.subTest(width=width):
+                image = self._render(output_width=width, background="white",
+                                     show_shadow=True)
+                self.assertLessEqual(image.width, width)
+                self.assertGreater(image.width, width * 0.9)
+
+    def test_bottom_edge_holds_still_as_the_box_tilts(self):
+        """An animation lines its frames up by their bottoms, so what lies
+        below the box must not change with the tilt."""
+        for background in ("transparent", "white"):
+            with self.subTest(background=background):
+                gaps = []
+                for angle in (10, 30, 50):
+                    plain = self._render(angle=angle, fit_angle=50,
+                                         background=background)
+                    reflected = self._render(angle=angle, fit_angle=50,
+                                             background=background,
+                                             show_reflection=True)
+                    gaps.append(reflected.height - plain.height)
+                self.assertLessEqual(max(gaps) - min(gaps), 2, gaps)
+
+    def test_animation_memory_check_sees_the_tallest_frame(self):
+        """Tilting from steep to shallow, the first frame is the shortest."""
+        from unittest import mock
+        from ui.workers import AnimationWorker
+        steep = self._render(angle=60, fit_angle=5).size
+        shallow = self._render(angle=5, fit_angle=5).size
+        self.assertLess(steep[1], shallow[1])
+        frames = 12
+        # Enough for frames of the first (shortest) size, not of the tallest.
+        limit = int(600 * (steep[1] + shallow[1]) / 2 * 4 * frames)
+        with tempfile.TemporaryDirectory() as folder:
+            worker = AnimationWorker(
+                case_type=CASE_TYPES["SNES Cartridge Box"],
+                front_image=self._cover(), back_image=None, title="Game",
+                serial="", platform="SNES", spine_color=None, case_color=None,
+                spine_left_offset=0, spine_right_offset=0,
+                output_path=os.path.join(folder, "turn.png"), output_width=600,
+                start_angle=60, end_angle=5, frame_count=frames, frame_delay=50,
+                bounce=False, fmt="APNG", show_reflection=False,
+                show_shadow=False, background="transparent",
+            )
+            errors = []
+            worker.error.connect(errors.append)
+            with mock.patch("ui.workers.MAX_ANIMATION_BYTES", limit):
+                worker.run()
+        self.assertTrue(errors)
+        self.assertIn("would need about", errors[0])
+
     def test_shadow_and_reflection_still_drawn(self):
         plain = self._render()
         self.assertGreater(self._render(show_reflection=True).height,

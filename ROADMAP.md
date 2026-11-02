@@ -1186,6 +1186,13 @@ building.
   sizes and the SNES view from below.
   Built 2026-11-02: cardboard sizes. NES 127 x 180 x 24; Game Boy and GBA 126 x 126 x 23 (protector sizes, re-read at Pacsam). New Game Boy Box (NTSC-J) 89 x 102 x 19, for Game Boy and Color: later and Color boxes are larger by an unsourced amount, so the shape is what holds. New GBA Box (NTSC-J) 137 x 87 x 21: landscape. The research file had it portrait; LaunchBox's images and the source's own wording say landscape. Famicom Mini boxes stand portrait; not built, size unsourced.
   SNES view from below, also 2026-11-02: new view_from_below on SNES Cartridge Box only. It is RetroDB's camera turned a quarter turn, in both the normal and Match RetroDB views. The bottom edge is a generated spine in the cover's bottom colour. N64 keeps its left spine: LaunchBox shows that and RetroDB holds one N64 sample. Test: tests/test_case_list.py TestSnesViewFromBelow, TestCardboardBoxSizes. Sample: /mnt/Games/.slipcase-scratch/sizes/snes_cmp.png. Next: the user's eye on the tab and this view. Cardboard top and bottom print stays open.
+  One review lane, 2026-11-02. Fixed: output wider than asked on an
+  opaque background; bottom edge drifting in an animation; the animation
+  memory check reading only the first frame. Left: faint cardboard fold
+  marks swap sides on the SNES box, too faint to matter. Known limit:
+  the 3D View tab and box files keep the title on the short left spine
+  with a plain bottom. Animation and batch export ignore the back view
+  on every case, as before this change.
   **Layman:** Cartridge game boxes (NES, SNES, N64, Game Boy and others) get the right size and shape for each region.
   Kind: feature.
   Source: user-request-2026-10-21.

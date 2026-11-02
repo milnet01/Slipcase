@@ -549,23 +549,35 @@ class BoxRenderer:
             full_cover=False,
         ).transpose(Image.Transpose.ROTATE_90)
 
-        pad_x, pad_y = _SHADOW_REACH
-        reflection_space = box.height // 3 if self.show_reflection else 0
+        # The canvas, room for the shadow included, is output_width wide, as a
+        # normal render's is. Nothing here scales the shadow: this is final size.
+        left = _CANVAS_PAD // 2
+        right = max(left, _SHADOW_REACH[0]) if self.show_shadow else left
+        below = _SHADOW_REACH[1] if self.show_shadow else _CANVAS_PAD - _CANVAS_TOP_PAD
+        fit_width = max(1, self.output_width - left - right)
+        box = box.resize(
+            (fit_width, max(1, round(box.height * fit_width / box.width))),
+            Image.Resampling.LANCZOS,
+        )
+        # Sized from the box's width, which the tilt leaves alone: an animation
+        # lines its frames up by their bottoms, so this must not vary.
+        reflection_h = round(fit_width * ct.height / ct.width * _REFLECTION_HEIGHT)
+        reflection_space = reflection_h * 4 // 3 if self.show_reflection else 0
         canvas = Image.new(
             "RGBA",
-            (box.width + 2 * pad_x, box.height + 2 * pad_y + reflection_space),
+            (self.output_width,
+             _CANVAS_TOP_PAD + box.height + below + reflection_space),
             (0, 0, 0, 0),
         )
-        canvas.paste(box, (pad_x, pad_y))
-        # The box is at its final size here, so nothing scales the shadow.
+        canvas.paste(box, (left, _CANVAS_TOP_PAD))
         if self.show_shadow:
             canvas = Image.alpha_composite(self._render_shadow(canvas, 1), canvas)
         if self.show_reflection:
             reflection = generate_reflection(
-                box, height_fraction=_REFLECTION_HEIGHT,
+                box, height_fraction=reflection_h / box.height,
                 start_opacity=_REFLECTION_OPACITY,
             )
-            canvas.alpha_composite(reflection, (pad_x, pad_y + box.height + 2))
+            canvas.alpha_composite(reflection, (left, _CANVAS_TOP_PAD + box.height + 2))
             del reflection
         del box
 
