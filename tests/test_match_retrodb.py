@@ -111,7 +111,7 @@ class TestRetrodbCamera(unittest.TestCase):
 
     def test_every_case_shape_keeps_the_far_edge(self):
         """RetroDB's far edge is the same on every box, whatever its width."""
-        for name in ("PS1 Jewel Case (PAL)", "SNES Cartridge Box",
+        for name in ("PS1 Jewel Case (PAL)", "N64 Cartridge Box",
                      "Genesis Clamshell", "Game Boy Box"):
             with self.subTest(case=name):
                 self.assertAlmostEqual(_silhouette(name)["far"], 0.775, delta=0.015)

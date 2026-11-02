@@ -63,6 +63,153 @@ class TestCartridgeBoxShape(unittest.TestCase):
         self.assertEqual((n64j.width, n64j.height, n64j.depth), (138, 190, 30))
 
 
+class TestSnesViewFromBelow(unittest.TestCase):
+    """SLIP-0108: the SNES box shows its long bottom edge under the front, not
+    its short left end, as RetroDB's boxes and the user's reference do."""
+
+    RED, BLUE, YELLOW = (220, 30, 30), (30, 30, 220), (230, 220, 30)
+
+    def _cover(self):
+        """Red over the top left, blue over the top right, yellow below."""
+        cover = Image.new("RGB", (356, 254), self.YELLOW)
+        cover.paste(self.RED, (0, 0, 178, 127))
+        cover.paste(self.BLUE, (178, 0, 356, 127))
+        return cover
+
+    def _render(self, *images, **kw):
+        render_args = {k: kw.pop(k) for k in ("view", "full_cover", "spine_color")
+                       if k in kw}
+        args = dict(output_width=600, show_reflection=False, show_shadow=False,
+                    show_texture=False)
+        args.update(kw)
+        return BoxRenderer(CASE_TYPES["SNES Cartridge Box"], **args).render(
+            *(images or (self._cover(),)), title="Game", platform="SNES",
+            **render_args)
+
+    @staticmethod
+    def _opaque_span(row):
+        solid = np.where(row[:, 3] > 200)[0]
+        return solid[0], solid[-1]
+
+    def test_only_the_snes_box_has_it(self):
+        below = {name for name, ct in CASE_TYPES.items() if ct.view_from_below}
+        self.assertEqual(below, {"SNES Cartridge Box"})
+
+    def test_art_stays_upright_and_unmirrored(self):
+        pixels = np.asarray(self._render())
+        height, width = pixels.shape[:2]
+        self.assertGreater(pixels[height // 6, width // 3, 0], 150)   # red, left
+        self.assertGreater(pixels[height // 6, width * 2 // 3, 2], 150)  # blue, right
+        self.assertGreater(pixels[height // 2, width // 2, 1], 150)   # yellow, below
+
+    def test_no_spine_on_the_left(self):
+        """Halfway up the front, the first thing from the left is the cover."""
+        pixels = np.asarray(self._render(Image.new("RGB", (356, 254), self.YELLOW)))
+        row = pixels[pixels.shape[0] // 2]
+        left, _ = self._opaque_span(row)
+        self.assertGreater(row[left + 3, 1], 120)
+
+    def _edge_middle(self, cover, **kw):
+        """The bottom edge's colour, halfway up it and at its far right."""
+        pixels = np.asarray(self._render(cover, **kw))
+        row = pixels[int(pixels.shape[0] * 0.92)]
+        _, right = self._opaque_span(row)
+        return row[right - 25]
+
+    def test_bottom_edge_takes_the_covers_bottom_colour(self):
+        edge = self._edge_middle(Image.new("RGB", (356, 254), self.YELLOW))
+        self.assertGreater(edge[0], 100)
+        self.assertGreater(edge[1], 100)
+        self.assertLess(edge[2], 80)
+
+    def test_chosen_spine_colour_wins(self):
+        edge = self._edge_middle(Image.new("RGB", (356, 254), self.YELLOW),
+                                 spine_color=self.BLUE)
+        self.assertGreater(edge[2], edge[0] + 50)
+
+    def test_bottom_edge_runs_under_the_front(self):
+        pixels = np.asarray(self._render(Image.new("RGB", (356, 254), self.YELLOW),
+                                         spine_color=(10, 10, 10)))
+        yellow = (pixels[:, :, 1] > 120) & (pixels[:, :, 0] > 120) & (pixels[:, :, 2] < 90)
+        last_front_row = np.where(yellow.any(axis=1))[0][-1]
+        band = pixels[last_front_row + 4:]
+        self.assertGreater(band.shape[0], pixels.shape[0] * 0.08)
+        left, right = self._opaque_span(band[band.shape[0] // 2])
+        self.assertGreater(right - left, pixels.shape[1] * 0.9)
+        self.assertFalse(yellow[last_front_row + 4:].any())
+
+    def test_far_edge_matches_retrodb(self):
+        pixels = np.asarray(self._render(
+            angle=RETRODB_ANGLE, camera_distance=RETRODB_CAMERA_DISTANCE))
+        solid = pixels[:, :, 3] > 200
+        widths = solid.sum(axis=1)
+        rows = np.where(widths)[0]
+        self.assertAlmostEqual(widths[rows[3]] / widths.max(), 0.775, delta=0.02)
+        # RetroDB's box is 1.84 wide for each unit of height.
+        self.assertAlmostEqual(
+            pixels.shape[1] / pixels.shape[0], 1.84, delta=0.15)
+
+    def test_fills_the_output_width(self):
+        width = self._render().width
+        self.assertGreater(width, 540)
+        self.assertLessEqual(width, 600)
+
+    def test_frames_of_a_turn_share_one_scale(self):
+        widths = {angle: self._render(angle=angle, fit_angle=45).width
+                  for angle in (15, 30, 45)}
+        self.assertLess(max(widths.values()) - min(widths.values()), 4)
+
+    def test_back_view_shows_the_back_cover(self):
+        back = Image.new("RGB", (356, 254), (30, 200, 60))
+        pixels = np.asarray(self._render(self._cover(), back, view="back"))
+        self.assertGreater(pixels[pixels.shape[0] // 3, pixels.shape[1] // 2, 1], 120)
+        with self.assertRaises(ValueError):
+            self._render(view="back")
+
+    def test_full_cover_uses_its_front_panel(self):
+        wrap = Image.new("RGB", (776, 254), (30, 200, 60))
+        wrap.paste(self.YELLOW, (420, 0, 776, 254))
+        pixels = np.asarray(self._render(wrap, full_cover=True))
+        centre = pixels[pixels.shape[0] // 3, pixels.shape[1] // 2]
+        self.assertGreater(centre[0], 120)
+        self.assertLess(centre[2], 90)
+
+    def test_shadow_and_reflection_still_drawn(self):
+        plain = self._render()
+        self.assertGreater(self._render(show_reflection=True).height,
+                           plain.height + plain.height // 6)
+        shadowed = np.asarray(self._render(show_shadow=True))
+        self.assertTrue(((shadowed[:, :, 3] > 0) & (shadowed[:, :, 3] < 200)).any())
+
+
+class TestCardboardBoxSizes(unittest.TestCase):
+    """SLIP-0108: sizes from docs/research/SLIP-0108-cartridge-boxes.md. US and
+    PAL Game Boy boxes are square; the Japanese ones stand portrait, and the
+    Japanese GBA box lies landscape."""
+
+    @staticmethod
+    def _size(ct):
+        return ct.width, ct.height, ct.depth
+
+    def test_western_sizes(self):
+        self.assertEqual(self._size(CASE_TYPES["NES Cartridge Box"]), (127, 180, 24))
+        self.assertEqual(self._size(CASE_TYPES["Game Boy Box"]), (126, 126, 23))
+        self.assertEqual(self._size(CASE_TYPES["GBA Box"]), (126, 126, 23))
+
+    def test_japanese_sizes_by_region(self):
+        from core.case_types import case_for
+        for platform in ("Game Boy", "Game Boy Color"):
+            with self.subTest(platform=platform):
+                ct = case_for(platform, "NTSC-J")
+                self.assertEqual(self._size(ct), (89, 102, 19))
+                self.assertIn(ct.name, cases_for_platform(platform))
+                self.assertEqual(case_for(platform, "PAL").name, "Game Boy Box")
+        gba = case_for("GBA", "NTSC-J")
+        self.assertEqual(self._size(gba), (137, 87, 21))
+        self.assertIn(gba.name, cases_for_platform("GBA"))
+        self.assertEqual(case_for("GBA", "NTSC-U").name, "GBA Box")
+
+
 class TestSegaClamshells(unittest.TestCase):
     """SLIP-0108: Genesis, Mega Drive and Master System games came in the same
     black plastic case, with a hanging tab above the top edge."""

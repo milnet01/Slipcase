@@ -73,6 +73,9 @@ class CaseType:
     texture: str | None = None
     # A slotted tab stands above the top edge, for a shop's peg (SLIP-0108).
     hanging_tab: bool = False
+    # Drawn tilted up to show the long bottom edge under the front, with the
+    # spine's text on it, instead of a spine on the left (SLIP-0108).
+    view_from_below: bool = False
     # Clear or tinted plastic: the front shines. The edges are still plastic,
     # `plastic` when set, and a neutral clear otherwise.
     clear: bool = False
@@ -271,7 +274,8 @@ CASE_TYPES: dict[str, CaseType] = {
     ),
     "NES Cartridge Box": CaseType(
         name="NES Cartridge Box",
-        width=127, height=175, depth=22,
+        # A box protector's size, as no measured box was found.
+        width=127, height=180, depth=24,
         platforms=("NES",),
         texture="cardboard",
     ),
@@ -283,6 +287,7 @@ CASE_TYPES: dict[str, CaseType] = {
         width=178, height=127, depth=32,
         platforms=("SNES",),
         texture="cardboard",
+        view_from_below=True,
     ),
     "Super Famicom Cartridge Box": CaseType(
         name="Super Famicom Cartridge Box",
@@ -321,16 +326,35 @@ CASE_TYPES: dict[str, CaseType] = {
         plastic=_BLACK_KEEP, texture="clamshell", keep_rim=_CLAMSHELL_RIM_MM,
         hanging_tab=True,
     ),
+    # Western Game Boy and GBA boxes share one protector's square size, as no
+    # measured box was found.
     "Game Boy Box": CaseType(
         name="Game Boy Box",
-        width=79, height=112, depth=30,
+        width=126, height=126, depth=23,
         platforms=("Game Boy", "Game Boy Color"),
+        texture="cardboard",
+    ),
+    # One owner's measurement of an original Game Boy box; the source does not
+    # say which figure is which, and LaunchBox's images show it portrait. Later
+    # and Color boxes are larger, by an unsourced amount, in that same shape.
+    "Game Boy Box (NTSC-J)": CaseType(
+        name="Game Boy Box (NTSC-J)",
+        width=89, height=102, depth=19,
+        platforms=(),
         texture="cardboard",
     ),
     "GBA Box": CaseType(
         name="GBA Box",
-        width=79, height=112, depth=22,
+        width=126, height=126, depth=23,
         platforms=("GBA",),
+        texture="cardboard",
+    ),
+    # One caliper measurement: 137 wide, 87 high. LaunchBox's images show it
+    # landscape. Famicom Mini boxes stand portrait; their size is unsourced.
+    "GBA Box (NTSC-J)": CaseType(
+        name="GBA Box (NTSC-J)",
+        width=137, height=87, depth=21,
+        platforms=(),
         texture="cardboard",
     ),
     "DS Case": CaseType(
@@ -434,6 +458,9 @@ REGIONAL_CASES: dict[tuple[str, str], str] = {
     ("GameCube", "NTSC-J"): "GameCube Case (NTSC-J)",
     ("SNES", "NTSC-J"): "Super Famicom Cartridge Box",
     ("N64", "NTSC-J"): "N64 Cartridge Box (NTSC-J)",
+    ("Game Boy", "NTSC-J"): "Game Boy Box (NTSC-J)",
+    ("Game Boy Color", "NTSC-J"): "Game Boy Box (NTSC-J)",
+    ("GBA", "NTSC-J"): "GBA Box (NTSC-J)",
 }
 
 

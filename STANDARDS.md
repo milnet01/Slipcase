@@ -218,6 +218,9 @@ configurable within that bound, not unbounded.
   `RETRODB_CAMERA_DISTANCE`: a level, true perspective camera that shows no top
   or bottom face (SLIP-0120). With no `camera_distance`, the default view stays
   as it was
+- A case with `view_from_below` is always drawn through that camera, turned a
+  quarter turn: its bottom edge shows under the front, and the angle is the
+  tilt (SLIP-0108)
 
 ---
 

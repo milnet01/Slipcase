@@ -30,7 +30,7 @@ Sources:
 Sega Retro blocks plain page fetches; its pages were read in a real
 browser.
 
-## What Slipcase has today
+## What Slipcase had on 2026-10-21
 
 `core/case_types.py` holds `NES Cartridge Box`, `SNES Cartridge Box`,
 `N64 Cartridge Box`, `Game Boy Box`, `GBA Box` and `Genesis Clamshell`,
@@ -70,7 +70,7 @@ only; for Sega clamshells it is U.
 | GB, GBC, GBA US | cardboard with insert tray | U | 126 × 126 × 23 protector [PS] | S, see below |
 | GB, GBC PAL | clear plastic blister tray, then cardboard tray, then a slot moulded into the box | region triangle on the spine | U | S, see below |
 | GB, GBC JP | cardboard; plastic cart case inside; small early size, later larger | U | 89 × 102 × 19 measured, size variant U | S, see below |
-| GBA JP | smaller, portrait | U | 87 × 137 × 21 by caliper | S, see below |
+| GBA JP | smaller, landscape; Famicom Mini boxes portrait | U | 137 × 87 × 21 by caliper | S, see below |
 | Virtual Boy | U | U | fits the GB protector [PS] | U |
 
 Quotes and sources:
@@ -104,12 +104,17 @@ Quotes and sources:
   box size" https://nintendosegajapan.com/2018/11/11/game-box-protectors-japanese-sizes/ ;
   "８９ｍｍ×１０２ｍｍ×１９ｍｍ"
   https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q12253844982 ;
-  cart case in the box https://fumoto36.hatenablog.com/entry/2022/10/30/170510
+  cart case in the box https://fumoto36.hatenablog.com/entry/2022/10/30/170510 .
+  The measurement answers a question about original Game Boy games, names no
+  game and labels no axis. LaunchBox's Japanese Game Boy and Color images
+  stand portrait.
 - GBA JP: 「横幅は137.1㎜」「高さは87.3㎜」「厚さは21.3㎜」
-  https://nantoka-game.com/ゲームボーイアドバンスの外箱の大きさやサイズについて/ ;
-  the box stands portrait, so the page's 横幅 is read as height. Its
-  protector is 90 × 138 × 24
-  https://retroprotection.com/product/japanese-game-boy-advance-box-protector/
+  https://nantoka-game.com/ゲームボーイアドバンスの外箱の大きさやサイズについて/ .
+  The page returned 404 on 2026-11-02, so this quote is from the first read.
+  Its protector is 90 × 138 × 24, axes unlabelled
+  https://retroprotection.com/product/japanese-game-boy-advance-box-protector/ .
+  In a seeded sample of 24 LaunchBox `Box - 3D` images (2026-11-02), 22 lie
+  landscape; the 2 Classic NES Series (Famicom Mini) games stand portrait.
 - GBA: "The Game Boy Advance's cardboard boxes are a little smaller than
   SNES/N64 packaging" [VGP].
 

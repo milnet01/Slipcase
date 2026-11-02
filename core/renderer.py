@@ -2,6 +2,7 @@
 
 import math
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageOps
@@ -75,6 +76,10 @@ _SHADOW_REACH = (
     _SHADOW_OFFSET[0] + _SHADOW_PASTE_OFFSET[0] + 2 * _SHADOW_BLUR,
     _SHADOW_OFFSET[1] + _SHADOW_PASTE_OFFSET[1] + 2 * _SHADOW_BLUR,
 )
+
+# Reflection: its height as a share of the box's, and its strongest opacity.
+_REFLECTION_HEIGHT = 0.25
+_REFLECTION_OPACITY = 0.25
 
 # Shading intensities
 _SPINE_UNIFORM_SHADE = 0.25
@@ -242,6 +247,10 @@ class BoxRenderer:
                     "full-cover scan (back + spine + front)"
                 )
             front_image = back_image
+
+        if self.case_type.view_from_below:
+            return self._render_from_below(
+                front_image, title, serial, platform, spine_color, case_color)
 
         # Prepare the visible face (front cover, or back cover from behind)
         front = front_image.convert("RGBA").resize(
@@ -454,7 +463,8 @@ class BoxRenderer:
             # whole would reflect empty space.
             box_region = canvas.crop((0, 0, canvas.size[0], box_bottom))
             reflection = generate_reflection(
-                box_region, height_fraction=0.25, start_opacity=0.25,
+                box_region, height_fraction=_REFLECTION_HEIGHT,
+                start_opacity=_REFLECTION_OPACITY,
             )
             del box_region
             refl_canvas = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
@@ -497,6 +507,74 @@ class BoxRenderer:
             canvas = canvas.crop(bbox)
 
         return canvas
+
+    def _render_from_below(
+        self,
+        face: Image.Image,
+        title: str,
+        serial: str,
+        platform: str,
+        spine_color: tuple[int, int, int] | None,
+        case_color: tuple[int, int, int] | None,
+    ) -> Image.Image:
+        """Draw `face` with the box's long bottom edge showing beneath it.
+
+        RetroDB's view of a landscape box is its usual camera turned a quarter
+        turn, so the box is drawn standing on its end through that camera, then
+        turned: the left spine becomes the bottom edge and its text reads left
+        to right. No cover service supplies a bottom edge, so a generated spine
+        in the cover's bottom colour stands in for it. `angle` is the tilt.
+
+        Shadow and reflection are added after the turn, so they fall downwards.
+        """
+        ct = self.case_type
+        if spine_color is None:
+            _, spine_color, _ = case_edge_colours(face, ct, case_color)
+        standing = replace(ct, width=ct.height, height=ct.width, view_from_below=False)
+        distance = (RETRODB_CAMERA_DISTANCE if self.camera_distance is None
+                    else self.camera_distance)
+        # The standing box's height becomes the output's width. Sized from
+        # fit_angle alone, so every frame of an animation shares one scale.
+        standing_width = round(
+            self.output_width * visible_width_mm(standing, self.fit_angle, distance)
+            / ct.width)
+        box = BoxRenderer(
+            standing, angle=self.angle, output_width=standing_width,
+            show_reflection=False, show_shadow=False,
+            show_texture=self.show_texture, supersample=self.supersample,
+            fit_angle=self.fit_angle, camera_distance=distance,
+        ).render(
+            face.transpose(Image.Transpose.ROTATE_270), title=title, serial=serial,
+            platform=platform, spine_color=spine_color, case_color=case_color,
+            full_cover=False,
+        ).transpose(Image.Transpose.ROTATE_90)
+
+        pad_x, pad_y = _SHADOW_REACH
+        reflection_space = box.height // 3 if self.show_reflection else 0
+        canvas = Image.new(
+            "RGBA",
+            (box.width + 2 * pad_x, box.height + 2 * pad_y + reflection_space),
+            (0, 0, 0, 0),
+        )
+        canvas.paste(box, (pad_x, pad_y))
+        # The box is at its final size here, so nothing scales the shadow.
+        if self.show_shadow:
+            canvas = Image.alpha_composite(self._render_shadow(canvas, 1), canvas)
+        if self.show_reflection:
+            reflection = generate_reflection(
+                box, height_fraction=_REFLECTION_HEIGHT,
+                start_opacity=_REFLECTION_OPACITY,
+            )
+            canvas.alpha_composite(reflection, (pad_x, pad_y + box.height + 2))
+            del reflection
+        del box
+
+        if self.background != "transparent":
+            bg = Image.new("RGBA", canvas.size, self._parse_bg_color(self.background))
+            canvas = Image.alpha_composite(bg, canvas)
+            del bg
+        bbox = canvas.getbbox()
+        return canvas.crop(bbox) if bbox else canvas
 
     @staticmethod
     def _lift_reflection(

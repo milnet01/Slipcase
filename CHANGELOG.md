@@ -13,11 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   boxes** (SLIP-0120)
   Press it beside the Angle slider, and pictures, batch renders and animations
   come out with the same strong perspective, so they sit well next to the boxes
-  RetroDB already has. Slipcase remembers the setting. SNES boxes still differ:
-  RetroDB shows those from below.
+  RetroDB already has. Slipcase remembers the setting.
 - **Master System is now a platform, with its own case and cover search** (SLIP-0108)
+- **Japanese Game Boy, Game Boy Color and GBA games get their own smaller boxes**
+  (SLIP-0108)
 
 ### Changed
+
+- **SNES boxes are now seen from below** (SLIP-0108)
+  The long bottom edge shows under the front, carrying the game's title, in place of the short left end. This matches RetroDB's SNES boxes. The Angle slider sets the tilt. The bottom edge is generated, because no cover service supplies one, so a full-cover scan's end panel is not shown.
+
+- **NES, Game Boy and GBA boxes take their real proportions** (SLIP-0108)
+  Western Game Boy and GBA boxes are square, not narrow. The sizes come from box protectors, as no measured box was found.
 
 - **Genesis and Mega Drive cases are now black plastic, not cardboard** (SLIP-0108)
   They take their real size, a thin plastic rim, and the slotted hanging tab above the top edge. Master System cases match. The tab is left out of the Match RetroDB view, because RetroDB's boxes have none, and out of the 3D View tab.
