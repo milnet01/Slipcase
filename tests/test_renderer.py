@@ -6,6 +6,9 @@ import tempfile
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import unittest
+from unittest.mock import patch
+
+import numpy as np
 from PIL import Image
 
 from core.case_types import CASE_TYPES, get_case_for_platform, ALL_PLATFORMS
@@ -98,6 +101,77 @@ class TestCaseTexture(unittest.TestCase):
 
 
 class TestSpineGenerator(unittest.TestCase):
+    def _drawn_text(self, *args, **kwargs):
+        """Each text generate_spine draws: {text: (font, colour)}."""
+        import core.spine_generator as sg
+        drawn = {}
+        real = sg._render_rotated_text
+
+        def spy(text, font, color):
+            drawn[text] = (font, color)
+            return real(text, font, color)
+
+        with patch.object(sg, "_render_rotated_text", spy):
+            generate_spine(*args, **kwargs)
+        return drawn
+
+    def test_generated_spine_prints_like_a_real_one(self):
+        """SLIP-0118: capitals, the console spelled out, a bold legible serial."""
+        import core.spine_generator as sg
+        drawn = self._drawn_text("Time Crisis", 70, 880, platform="PS1", serial="SCES-00657")
+        self.assertEqual(set(drawn), {"PlayStation", "TIME CRISIS", "SCES", "00657"})
+        self.assertEqual(drawn["TIME CRISIS"][1], (255, 255, 255, 255))
+        self.assertIs(drawn["SCES"][0], drawn["00657"][0], "one serial size")
+        for part in ("SCES", "00657"):
+            self.assertEqual(drawn[part][1][3], sg._SERIAL_ALPHA)
+            self.assertIs(drawn[part][0], sg._get_font(drawn[part][0].size, bold=True), "bold")
+        self.assertGreater(sg._SERIAL_ALPHA, 200, "not faded")
+
+    def test_every_playstation_spells_its_name(self):
+        for platform, name in (("PS2", "PlayStation 2"), ("PS3", "PlayStation 3"),
+                               ("PS4", "PlayStation 4"), ("PS5", "PlayStation 5")):
+            with self.subTest(platform=platform):
+                self.assertIn(name, self._drawn_text("A", 70, 880, platform=platform))
+        self.assertIn("GAMECUBE", self._drawn_text("A", 70, 880, platform="GameCube"))
+
+    def test_serial_font_fits_its_widest_part(self):
+        """SLIP-0118: a serial's parts share a size, fitted to the part that
+        draws widest. Equal letter counts hid "MWMW" behind "1234"."""
+        drawn = self._drawn_text("A", 70, 880, platform="PS1", serial="1234-MWMW")
+        font = drawn["MWMW"][0]
+        bbox = font.getbbox("MWMW")
+        self.assertLess(bbox[2] - bbox[0], int(880 * .08) // 2)
+
+    def test_short_title_keeps_a_printed_size(self):
+        """SLIP-0118: a short title takes about half the spine's width: not the
+        largest size that fits, and not small print."""
+        spine = np.asarray(generate_spine("Go", 70, 880, platform="PS1"))
+        body = spine[200:800, :, :3].max(axis=2) > 128
+        columns = np.flatnonzero(body[:, 2:-2].any(axis=0))
+        self.assertLessEqual(columns[-1] - columns[0] + 1, 35)
+        self.assertGreaterEqual(columns[-1] - columns[0] + 1, 20)
+
+    def test_small_render_keeps_text_in_its_zone(self):
+        """SLIP-0118: at the smallest font a long name is scaled down, not cut
+        off at the strip's ends or painted over the title."""
+        height = 190
+        spine = np.asarray(generate_spine("A", 12, height, platform="PS2"))
+        strip_end = int(height * .15)
+        text = spine[..., :3].max(axis=2) > 128
+        self.assertFalse(text[0, 2:-2].any(), "cut off at the top")
+        self.assertFalse(text[strip_end - 1, 2:-2].any(), "cut off at the foot")
+        long_title = "A Very Long Game Title Indeed: The Sequel Part Two Edition"
+        spine = np.asarray(generate_spine(long_title, 12, height))
+        self.assertFalse((spine[-1, 2:-2, :3].max(axis=1) > 128).any(), "off the spine")
+
+    def test_black_spines_draw_black(self):
+        """SLIP-0118: no reference GameCube spine is purple, no PS1 one grey."""
+        for platform in ("PS1", "GameCube"):
+            with self.subTest(platform=platform):
+                spine = np.asarray(generate_spine("", 70, 880, platform=platform))
+                self.assertEqual(tuple(spine[500, 30, :3]), (0, 0, 0), "body")
+                self.assertEqual(tuple(spine[3, 3, :3]), (0, 0, 0), "brand strip")
+
     def test_generate_spine_basic(self):
         spine = generate_spine("Test Game", spine_width=30, spine_height=400)
         self.assertEqual(spine.size, (30, 400))

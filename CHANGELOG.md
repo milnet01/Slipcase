@@ -28,6 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Spines Slipcase draws for itself look more like printed ones** (SLIP-0118)
+  The title is in bold capitals at a printed size, the console's name is spelled
+  out at the top ("PlayStation 2", not "PS PS2"), and the serial is easier to
+  read. PS1 and GameCube spines are now black. A spine from a loaded back scan
+  does not change.
 - **Saturn and US Sega CD games now come in a long box** (SLIP-0124)
   Sega CD is a new platform with cover search. Japanese Saturn and Sega CD games keep the standard jewel case, and so does PAL Sega CD for now. PAL Saturn games share the long box. Real PAL sizes could not be sourced.
 

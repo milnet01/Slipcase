@@ -1425,7 +1425,7 @@ building.
   Kind: enhancement.
   Source: user-request-2026-10-21.
 
-- 📋 [SLIP-0118] **Draw generated spines the way real printed spines look.**
+- 🚧 [SLIP-0118] **Draw generated spines the way real printed spines look.**
   Seen 2026-10-29 comparing Slipcase against RetroDB's ScreenScraper
   and ES-DE 3D renders (PS1, PS2, Dreamcast, GameCube, Xbox 360).
   Their spines come from real scans: platform logo at the top, title in
@@ -1437,6 +1437,8 @@ building.
   spine is purple. RetroDB holds serials (games.disc_serial).
   Only the no-back-image path changes; a loaded wrap or back card
   already supplies the real spine.
+  Built 2026-11-02, compared with RetroDB's 3D boxes: title in bold capitals at half the spine's width; console's name spelled out ("PlayStation 2", "GAMECUBE"); serial bold, nearly opaque, one size fitted to its widest part; PS1 and GameCube spine black. Text too long for its zone on a very small render is scaled down. A back scan's spine is untouched.
+  Not as the item asked: no console logo, as none ships with the app, so the top is text. The serial shows only if typed in the Serial box; RetroDB's games.disc_serial is not read. The item's "ridges over the whole spine" no longer holds: jewel spines draw only end caps and rims, so nothing changed there. Left: Dreamcast's orange strip and white spine, PS3 and PSP grey, Game Boy Color purple, as the item named none of them; Georgian titles may lose glyphs in capitals, unverified. One review lane, 2026-11-02; findings fixed. Tests: tests/test_renderer.py. Samples: /mnt/Games/.slipcase-scratch/spines/after.png and render.png. Next: the user's eye.
   **Layman:** When there is no spine picture, the spine Slipcase draws looks like a real one: console logo at the top, the title in bold white capitals, the serial at the bottom.
   Kind: enhancement.
   Source: retrodb-comparison-2026-10-29.

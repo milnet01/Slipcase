@@ -8,6 +8,13 @@ from PIL import Image, ImageDraw, ImageFont
 
 _RESOURCES = Path(__file__).parent.parent / "resources"
 
+# A printed title takes about half the spine's width, judged from RetroDB's
+# scanned spines (SLIP-0118); filling it reads as a label, not as print.
+_TITLE_THICKNESS = 0.5
+# Serials are small print, not faded print: dimmer than this reads as haze.
+_SERIAL_ALPHA = 230
+
+
 def _load_case_colors(path: Path) -> tuple[dict, str | None]:
     """Read the platform colour table, returning what went wrong if anything.
 
@@ -31,17 +38,19 @@ _CASE_COLORS, CASE_COLORS_ERROR = _load_case_colors(_colors_path)
 
 
 # Platform-specific branding for the spine strip.
-#   "logo" - top portion of strip (e.g. PlayStation symbol representation)
-#   "name" - bottom portion of strip, large (e.g. "PS4")
+#   "logo" - top portion of strip, the maker's name (e.g. "Nintendo")
+#   "name" - bottom portion of strip, large (e.g. "GAMECUBE")
+# Text, as no console's logo ships with the app. Printed spines spell the
+# console out, so a name here does too (SLIP-0118).
 #   "strip_pct" - how much of spine height the branding strip takes up
 PLATFORM_BRANDING: dict[str, dict] = {
-    "PS1": {"logo": "PS", "name": "", "strip_pct": 0.15},
-    "PS2": {"logo": "PS", "name": "PS2", "strip_pct": 0.15},
-    "PS3": {"logo": "PS", "name": "PS3", "strip_pct": 0.13},
-    "PS4": {"logo": "PS", "name": "PS4", "strip_pct": 0.14},
-    "PS5": {"logo": "PS", "name": "PS5", "strip_pct": 0.14},
-    "PSP": {"logo": "PS", "name": "PSP", "strip_pct": 0.14},
-    "Vita": {"logo": "PS", "name": "VITA", "strip_pct": 0.14},
+    "PS1": {"logo": "", "name": "PlayStation", "strip_pct": 0.15},
+    "PS2": {"logo": "", "name": "PlayStation 2", "strip_pct": 0.15},
+    "PS3": {"logo": "", "name": "PlayStation 3", "strip_pct": 0.13},
+    "PS4": {"logo": "", "name": "PlayStation 4", "strip_pct": 0.14},
+    "PS5": {"logo": "", "name": "PlayStation 5", "strip_pct": 0.14},
+    "PSP": {"logo": "", "name": "PSP", "strip_pct": 0.14},
+    "Vita": {"logo": "", "name": "PS Vita", "strip_pct": 0.14},
     "Xbox": {"logo": "", "name": "XBOX", "strip_pct": 0.13},
     "Xbox 360": {"logo": "XBOX", "name": "360", "strip_pct": 0.15},
     "Xbox One": {"logo": "XBOX", "name": "ONE", "strip_pct": 0.13},
@@ -53,7 +62,7 @@ PLATFORM_BRANDING: dict[str, dict] = {
     "NES": {"logo": "Nintendo", "name": "NES", "strip_pct": 0.15},
     "SNES": {"logo": "Nintendo", "name": "SNES", "strip_pct": 0.15},
     "N64": {"logo": "Nintendo", "name": "64", "strip_pct": 0.15},
-    "GameCube": {"logo": "Nintendo", "name": "GCN", "strip_pct": 0.15},
+    "GameCube": {"logo": "Nintendo", "name": "GAMECUBE", "strip_pct": 0.15},
     "Genesis": {"logo": "SEGA", "name": "GENESIS", "strip_pct": 0.15},
     "Mega Drive": {"logo": "SEGA", "name": "MEGA DRIVE", "strip_pct": 0.15},
     "Master System": {"logo": "SEGA", "name": "MASTER SYSTEM", "strip_pct": 0.15},
@@ -197,6 +206,15 @@ def _render_rotated_text(
     return text_img.rotate(-90, expand=True, resample=Image.Resampling.BICUBIC)
 
 
+def _shrink_to_height(img: Image.Image, max_height: int) -> Image.Image:
+    """`img` scaled down to fit `max_height`. _fit_text stops at its smallest
+    font, so on a very small render a long name is still too long for its zone."""
+    if img.height <= max_height or max_height < 1:
+        return img
+    width = max(1, round(img.width * max_height / img.height))
+    return img.resize((width, max_height), Image.Resampling.LANCZOS)
+
+
 def _render_brand_strip(
     platform: str,
     strip_width: int,
@@ -240,7 +258,8 @@ def _render_brand_strip(
             logo, max_width=logo_zone - gap * 2,
             max_height=int(max_thickness * 0.55), bold=True,
         )
-        logo_img = _render_rotated_text(logo, logo_font, text_color)
+        logo_img = _shrink_to_height(
+            _render_rotated_text(logo, logo_font, text_color), logo_zone)
         lx = (strip_width - logo_img.width) // 2
         ly = (logo_zone - logo_img.height) // 2
         strip.paste(logo_img, (lx, ly), logo_img)
@@ -250,7 +269,8 @@ def _render_brand_strip(
             name, max_width=name_zone - gap * 2,
             max_height=int(max_thickness * 0.85), bold=True,
         )
-        name_img = _render_rotated_text(name, name_font, text_color)
+        name_img = _shrink_to_height(
+            _render_rotated_text(name, name_font, text_color), name_zone)
         nx = (strip_width - name_img.width) // 2
         ny = logo_zone + (name_zone - name_img.height) // 2
         strip.paste(name_img, (nx, ny), name_img)
@@ -261,7 +281,8 @@ def _render_brand_strip(
             name, max_width=strip_height - 4,
             max_height=max_thickness, bold=True,
         )
-        txt_img = _render_rotated_text(name, font, text_color)
+        txt_img = _shrink_to_height(
+            _render_rotated_text(name, font, text_color), strip_height)
         x = (strip_width - txt_img.width) // 2
         y = (strip_height - txt_img.height) // 2
         strip.paste(txt_img, (x, y), txt_img)
@@ -271,7 +292,8 @@ def _render_brand_strip(
             logo, max_width=strip_height - 4,
             max_height=max_thickness, bold=True,
         )
-        txt_img = _render_rotated_text(logo, font, text_color)
+        txt_img = _shrink_to_height(
+            _render_rotated_text(logo, font, text_color), strip_height)
         x = (strip_width - txt_img.width) // 2
         y = (strip_height - txt_img.height) // 2
         strip.paste(txt_img, (x, y), txt_img)
@@ -291,10 +313,10 @@ def generate_spine(
     """Generate a platform-templated spine image with a branding strip.
 
     The spine layout follows real game case conventions:
-    - Platform branding color strip at top (25-35% height depending on
-      platform) with logo symbol and platform name
-    - Main body with the game title centered
-    - Serial number at the bottom in very small text, split across lines
+    - Platform branding color strip at top with the platform's name
+    - Main body with the title in capitals, centered, at a printed spine's
+      size rather than the largest that fits
+    - Serial number at the bottom in small text, split across lines
 
     Args:
         title: Game title text.
@@ -337,7 +359,7 @@ def generate_spine(
     brand_text_color = (0, 0, 0, 255) if brand_brightness > 128 else (255, 255, 255, 255)
 
     text_rgba = (*text_color, 255)
-    dim_rgba = (*text_color, 120)
+    serial_rgba = (*text_color, _SERIAL_ALPHA)
 
     # Layout zones — strip size is platform-dependent
     branding = PLATFORM_BRANDING.get(platform, {})
@@ -370,11 +392,13 @@ def generate_spine(
     # --- Game title (center of body, bold) ---
     if title:
         title_y_start = brand_strip_h + pad
+        printed_title = title.upper()
         title_font, _, _ = _fit_text(
-            title, max_width=title_zone_h, max_height=max_text_thickness,
-            bold=True,
+            printed_title, max_width=title_zone_h,
+            max_height=int(spine_width * _TITLE_THICKNESS), bold=True,
         )
-        title_img = _render_rotated_text(title, title_font, text_rgba)
+        title_img = _shrink_to_height(
+            _render_rotated_text(printed_title, title_font, text_rgba), title_zone_h)
         tx = (spine_width - title_img.width) // 2
         ty = title_y_start + (title_zone_h - title_img.height) // 2
         spine.paste(title_img, (tx, ty), title_img)
@@ -385,15 +409,15 @@ def generate_spine(
         parts = serial.replace("-", " ").split()
         if len(parts) >= 2:
             _draw_serial_lines(spine, parts, spine_width, spine_height,
-                               serial_zone_h, max_text_thickness, dim_rgba)
+                               serial_zone_h, max_text_thickness, serial_rgba)
         else:
             # Single part, render as-is
             serial_font, _, _ = _fit_text(
                 serial, max_width=serial_zone_h,
                 max_height=int(max_text_thickness * 0.35),
-                bold=False,
+                bold=True,
             )
-            serial_img = _render_rotated_text(serial, serial_font, dim_rgba)
+            serial_img = _render_rotated_text(serial, serial_font, serial_rgba)
             sx = (spine_width - serial_img.width) // 2
             sy = spine_height - serial_zone_h + (serial_zone_h - serial_img.height) // 2
             spine.paste(serial_img, (sx, sy), serial_img)
@@ -420,14 +444,17 @@ def _draw_serial_lines(
     """Draw serial number split across multiple lines at the bottom of the spine.
 
     Real game cases show the serial prefix and number on separate lines
-    in very small text at the bottom of the spine.
+    in very small text at the bottom of the spine, all at one size.
     """
     line_h = serial_zone_h // len(parts)
     max_h = int(max_text_thickness * 0.30)
+    # By drawn width, not letters: "MWMW" is wider than "12345".
+    measure = _get_font(max(6, max_h), bold=True)
+    widest = max(parts, key=lambda part: measure.getlength(part))
+    font, _, _ = _fit_text(widest, max_width=line_h - 1, max_height=max_h, bold=True)
 
     for i, part in enumerate(parts):
-        font, _, _ = _fit_text(part, max_width=line_h - 1, max_height=max_h, bold=False)
-        img = _render_rotated_text(part, font, color)
+        img = _shrink_to_height(_render_rotated_text(part, font, color), line_h)
         x = (spine_width - img.width) // 2
         y = spine_height - serial_zone_h + i * line_h + (line_h - img.height) // 2
         spine.paste(img, (x, y), img)

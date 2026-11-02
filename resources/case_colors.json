@@ -1,5 +1,5 @@
 {
-    "PS1": {"brand": "#000000", "spine": "#3D3D3D", "accent": "#FFFFFF"},
+    "PS1": {"brand": "#000000", "spine": "#000000", "accent": "#FFFFFF"},
     "PS2": {"brand": "#1A3A6B", "spine": "#000000", "accent": "#FFFFFF"},
     "PS3": {"brand": "#000000", "spine": "#2B2B2B", "accent": "#FFFFFF"},
     "PS4": {"brand": "#003087", "spine": "#00143D", "accent": "#FFFFFF"},
@@ -17,7 +17,7 @@
     "NES": {"brand": "#6B6B6B", "spine": "#4B4B4B", "accent": "#000000"},
     "SNES": {"brand": "#7B7B8B", "spine": "#5B5B6B", "accent": "#000000"},
     "N64": {"brand": "#4B4B4B", "spine": "#2B2B2B", "accent": "#FFFFFF"},
-    "GameCube": {"brand": "#6A0DAD", "spine": "#3A0060", "accent": "#FFFFFF"},
+    "GameCube": {"brand": "#000000", "spine": "#000000", "accent": "#FFFFFF"},
     "Genesis": {"brand": "#000000", "spine": "#1A1A1A", "accent": "#FFFFFF"},
     "Mega Drive": {"brand": "#000000", "spine": "#1A1A1A", "accent": "#FFFFFF"},
     "Master System": {"brand": "#000000", "spine": "#1A1A1A", "accent": "#FFFFFF"},
