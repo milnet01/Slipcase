@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Saturn and US Sega CD games now come in a long box** (SLIP-0124)
+  Sega CD is a new platform with cover search. Japanese Saturn and Sega CD games keep the standard jewel case, and so does PAL Sega CD for now. PAL Saturn games share the long box. Real PAL sizes could not be sourced.
+
 - **SNES boxes are now seen from below** (SLIP-0108)
   The long bottom edge shows under the front, carrying the game's title, in place of the short left end. This matches RetroDB's SNES boxes. The Angle slider sets the tilt. The bottom edge is generated, because no cover service supplies one, so a full-cover scan's end panel is not shown.
 

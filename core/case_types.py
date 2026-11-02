@@ -232,8 +232,18 @@ CASE_TYPES: dict[str, CaseType] = {
         # twice silently gave the later entry the platform and made the
         # mapping depend on CASE_TYPES' insertion order.
         width=142, height=125, depth=10,
-        platforms=("Saturn",),
+        platforms=(),
         jewel=_STANDARD_PAPER, plastic=_BLACK_TRAY,
+    ),
+    # Saturn and US Sega CD games. PS1 long boxes share the size; protector
+    # sellers' figures agree with it. PAL Saturn cases look tall and black in a
+    # small sample, their size unsourced, so they share this one. LaunchBox's
+    # wide hinge strip on the front is not drawn.
+    "Sega Long Box": CaseType(
+        name="Sega Long Box",
+        width=144, height=207, depth=21,
+        platforms=("Saturn", "Sega CD"),
+        plastic=_BLACK_KEEP, texture="clamshell", keep_rim=_CLAMSHELL_RIM_MM,
     ),
     "PS1 Jewel Case (NTSC-U)": CaseType(
         name="PS1 Jewel Case (NTSC-U)",
@@ -520,6 +530,10 @@ REGIONAL_CASES: dict[tuple[str, str], str] = {
     ("Game Boy Color", "NTSC-J"): "Game Boy Box (NTSC-J)",
     ("GBA", "NTSC-J"): "GBA Box (NTSC-J)",
     ("NES", "NTSC-J"): "Famicom Cartridge Box",
+    ("Saturn", "NTSC-J"): "CD Jewel Case",
+    ("Sega CD", "NTSC-J"): "CD Jewel Case",
+    # PAL Sega CD cases look double thick in a small sample; how thick is unsourced.
+    ("Sega CD", "PAL"): "CD Jewel Case",
     ("TurboGrafx-16", "NTSC-J"): "PC Engine HuCard Case",
 }
 

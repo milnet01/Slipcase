@@ -311,6 +311,36 @@ class TestAddedConsoles(unittest.TestCase):
                 self.assertGreater(image.width, 200)
 
 
+class TestSegaDiscCases(unittest.TestCase):
+    """SLIP-0124: Saturn and US Sega CD games came in a long box; Japanese ones
+    in a standard jewel case. PAL sizes are unsourced."""
+
+    def test_long_box(self):
+        ct = CASE_TYPES["Sega Long Box"]
+        self.assertEqual((ct.width, ct.height, ct.depth), (144, 207, 21))
+        self.assertEqual(ct.layout, "wrap")
+        self.assertGreater(ct.rim_mm, 0)
+
+    def test_cases_by_region(self):
+        from core.case_types import case_for
+        for platform, region, name in (
+            ("Saturn", "NTSC-U", "Sega Long Box"),
+            ("Saturn", "PAL", "Sega Long Box"),
+            ("Saturn", "NTSC-J", "CD Jewel Case"),
+            ("Sega CD", "NTSC-U", "Sega Long Box"),
+            ("Sega CD", "PAL", "CD Jewel Case"),
+            ("Sega CD", "NTSC-J", "CD Jewel Case"),
+        ):
+            with self.subTest(platform=platform, region=region):
+                self.assertEqual(case_for(platform, region).name, name)
+                self.assertIn(name, cases_for_platform(platform))
+
+    def test_sega_cd_can_be_searched(self):
+        self.assertEqual(LIBRETRO_SYSTEMS["Sega CD"], "Sega - Mega-CD - Sega CD")
+        self.assertEqual(SCREENSCRAPER_SYSTEMS["Sega CD"], 20)
+        self.assertEqual(THEGAMESDB_PLATFORMS["Sega CD"], 21)
+
+
 class TestCardboardBoxSizes(unittest.TestCase):
     """SLIP-0108: sizes from docs/research/SLIP-0108-cartridge-boxes.md. US and
     PAL Game Boy boxes are square; the Japanese ones stand portrait, and the

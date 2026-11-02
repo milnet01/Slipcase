@@ -137,6 +137,7 @@ LIBRETRO_SYSTEMS: dict[str, str] = {
     "TurboGrafx-16": "NEC - PC Engine - TurboGrafx 16",
     "Neo Geo AES": "SNK - Neo Geo",
     "Saturn": "Sega - Saturn",
+    "Sega CD": "Sega - Mega-CD - Sega CD",
     "Dreamcast": "Sega - Dreamcast",
     "PS1": "Sony - PlayStation",
     "PS2": "Sony - PlayStation 2",

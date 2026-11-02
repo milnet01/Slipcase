@@ -149,6 +149,7 @@ THEGAMESDB_PLATFORMS: dict[str, int] = {
     "TurboGrafx-16": 34,
     "Neo Geo AES": 24,
     "Saturn": 17,
+    "Sega CD": 21,
     "Dreamcast": 16,
     "PS1": 10,
     "PS2": 11,

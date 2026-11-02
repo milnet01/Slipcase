@@ -62,6 +62,7 @@ PLATFORM_BRANDING: dict[str, dict] = {
     "TurboGrafx-16": {"logo": "NEC", "name": "TURBOGRAFX", "strip_pct": 0.15},
     "Neo Geo AES": {"logo": "SNK", "name": "NEO GEO", "strip_pct": 0.15},
     "Saturn": {"logo": "SEGA", "name": "SATURN", "strip_pct": 0.15},
+    "Sega CD": {"logo": "SEGA", "name": "SEGA CD", "strip_pct": 0.15},
     "Dreamcast": {"logo": "SEGA", "name": "DREAMCAST", "strip_pct": 0.15},
     "Game Boy": {"logo": "Nintendo", "name": "GAME BOY", "strip_pct": 0.15},
     "Game Boy Color": {"logo": "Nintendo", "name": "GBC", "strip_pct": 0.15},

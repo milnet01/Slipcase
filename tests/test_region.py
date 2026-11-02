@@ -42,7 +42,8 @@ class TestCaseFor(unittest.TestCase):
             ("DS", PAL): "DS Case (PAL)",
             ("GameCube", NTSC_J): "GameCube Case (NTSC-J)",
             ("GameCube", PAL): "GameCube DVD Case",
-            ("Saturn", PAL): "CD Jewel Case",
+            ("Saturn", PAL): "Sega Long Box",
+            ("Saturn", NTSC_J): "CD Jewel Case",
         }
         for (platform, region), name in expected.items():
             with self.subTest(platform=platform, region=region):

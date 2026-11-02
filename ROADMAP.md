@@ -1513,6 +1513,15 @@ building.
   /mnt/Games/.slipcase-scratch/sizes/added.png. Test:
   tests/test_case_list.py TestAddedConsoles. Next: Saturn and Sega CD;
   PAL sizes unsourced after one search.
+  Built 2026-11-02: Sega Long Box, 144 x 207 x 21, the default for
+  Saturn and new platform Sega CD. Four protector sellers' figures agree
+  with the size. Japanese Saturn and Sega CD use CD Jewel Case, and so
+  does PAL Sega CD. PAL Saturn shares the long box. Not built: PAL
+  sizes, unsourced after two searches, and LaunchBox's wide hinge strip
+  on the long box's front. Test: tests/test_case_list.py
+  TestSegaDiscCases. Sample:
+  /mnt/Games/.slipcase-scratch/sizes/longbox.png. Next: the user's eye
+  on these cases, then flip to shipped.
   **Layman:** Saturn and Sega CD games get cases that look like theirs, and consoles with no case yet get one.
   Kind: feature.
   Source: user-request-2026-10-30.

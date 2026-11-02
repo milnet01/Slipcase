@@ -246,6 +246,7 @@ SCREENSCRAPER_SYSTEMS: dict[str, int] = {
     "TurboGrafx-16": 31,
     "Neo Geo AES": 142,
     "Saturn": 22,
+    "Sega CD": 20,
     "Dreamcast": 23,
     "PS1": 57,
     "PS2": 58,
