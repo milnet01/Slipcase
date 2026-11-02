@@ -111,6 +111,7 @@ _STANDARD_PAPER = JewelGeometry(booklet=(120, 120), back_card=(150, 118), strip=
 _BLACK_TRAY = (0x10, 0x10, 0x10)
 _BLACK_KEEP = (0x14, 0x14, 0x14)
 _WHITE_KEEP = (0xEE, 0xEE, 0xEE)
+_RED_KEEP = (0xB0, 0x1C, 0x1C)
 _BLUE_TINT = (0x2A, 0x6C, 0xD0)
 _GREEN_TINT = (0x2E, 0x9E, 0x3A)
 # What the user's US cases show through the clear tray (photos, 2026-10-21):
@@ -149,6 +150,14 @@ CASE_TYPES: dict[str, CaseType] = {
         width=135, height=190, depth=14,
         platforms=("Wii",),
         plastic=_WHITE_KEEP, texture="dvd",
+    ),
+    # Wikipedia's "Bright cerulean", between the #007DC6 and #2D9FC2 that
+    # LaunchBox's images measure.
+    "Wii U Case": CaseType(
+        name="Wii U Case",
+        width=135, height=190, depth=14,
+        platforms=("Wii U",),
+        plastic=(0x16, 0x8E, 0xC4), texture="dvd",
     ),
     "GameCube DVD Case": CaseType(
         name="GameCube DVD Case",
@@ -289,6 +298,14 @@ CASE_TYPES: dict[str, CaseType] = {
         texture="cardboard",
         view_from_below=True,
     ),
+    # The middle of three measured Lode Runner boxes, one per era, each
+    # landscape.
+    "Famicom Cartridge Box": CaseType(
+        name="Famicom Cartridge Box",
+        width=127, height=87, depth=21,
+        platforms=(),
+        texture="cardboard",
+    ),
     "Super Famicom Cartridge Box": CaseType(
         name="Super Famicom Cartridge Box",
         width=105, height=190, depth=30,
@@ -325,6 +342,42 @@ CASE_TYPES: dict[str, CaseType] = {
         platforms=("Master System",),
         plastic=_BLACK_KEEP, texture="clamshell", keep_rim=_CLAMSHELL_RIM_MM,
         hanging_tab=True,
+    ),
+    # A protector's size. LaunchBox's images show the tab in every region.
+    "Game Gear Box": CaseType(
+        name="Game Gear Box",
+        width=113, height=160, depth=25,
+        platforms=("Game Gear",),
+        texture="cardboard", hanging_tab=True,
+    ),
+    # A protector's size.
+    "Atari 2600 Box": CaseType(
+        name="Atari 2600 Box",
+        width=140, height=194, depth=23,
+        platforms=("Atari 2600",),
+        texture="cardboard",
+    ),
+    # A protector's size; LaunchBox's images show black plastic.
+    "TurboGrafx-16 Case": CaseType(
+        name="TurboGrafx-16 Case",
+        width=152, height=178, depth=17.5,
+        platforms=("TurboGrafx-16",),
+        plastic=_BLACK_KEEP, texture="clamshell", keep_rim=_CLAMSHELL_RIM_MM,
+    ),
+    # HuCards came in a CD jewel case with a soft sleeve for the card.
+    "PC Engine HuCard Case": CaseType(
+        name="PC Engine HuCard Case",
+        width=142, height=125, depth=10,
+        platforms=(),
+        jewel=_STANDARD_PAPER, plastic=_BLACK_TRAY,
+    ),
+    # One owner's measurement, axes unlabelled; LaunchBox's images stand it
+    # portrait. Early games came in cardboard; this is the later plastic case.
+    "Neo Geo AES Case": CaseType(
+        name="Neo Geo AES Case",
+        width=165, height=220, depth=44,
+        platforms=("Neo Geo AES",),
+        plastic=_BLACK_KEEP, texture="clamshell", keep_rim=_CLAMSHELL_RIM_MM,
     ),
     # Western Game Boy and GBA boxes share one protector's square size, as no
     # measured box was found.
@@ -393,6 +446,12 @@ CASE_TYPES: dict[str, CaseType] = {
         platforms=("Switch",),
         clear=True, texture="switch",
     ),
+    "Switch 2 Case": CaseType(
+        name="Switch 2 Case",
+        width=104, height=170, depth=10,
+        platforms=("Switch 2",),
+        plastic=_RED_KEEP, texture="switch",
+    ),
     "Universal Cart Case": CaseType(
         name="Universal Cart Case",
         width=135, height=185, depth=24.5,
@@ -405,7 +464,6 @@ CASE_TYPES: dict[str, CaseType] = {
 # standard case in another plastic. Colours from Wikipedia, Keep case,
 # per docs/research/SLIP-0113-edition-cases.md; every RGB is judged by eye.
 _SILVER = (0xB4, 0xB8, 0xBE)
-_RED_KEEP = (0xB0, 0x1C, 0x1C)
 _EDITION_PLASTIC: dict[str, tuple[str, dict]] = {
     "PS2 Platinum Case (PAL)": ("PS2 DVD Case", {"plastic": _SILVER}),
     "PS2 DVD Case (navy)": ("PS2 DVD Case", {"plastic": (0x1A, 0x24, 0x4C)}),
@@ -461,6 +519,8 @@ REGIONAL_CASES: dict[tuple[str, str], str] = {
     ("Game Boy", "NTSC-J"): "Game Boy Box (NTSC-J)",
     ("Game Boy Color", "NTSC-J"): "Game Boy Box (NTSC-J)",
     ("GBA", "NTSC-J"): "GBA Box (NTSC-J)",
+    ("NES", "NTSC-J"): "Famicom Cartridge Box",
+    ("TurboGrafx-16", "NTSC-J"): "PC Engine HuCard Case",
 }
 
 
@@ -474,7 +534,8 @@ def case_for(platform: str, region: str) -> CaseType | None:
 
 
 _CARTRIDGE_PLATFORMS = ("NES", "SNES", "N64", "Genesis", "Mega Drive",
-                        "Master System", "Game Boy", "Game Boy Color", "GBA")
+                        "Master System", "Game Boy", "Game Boy Color", "GBA",
+                        "Game Gear", "Atari 2600", "TurboGrafx-16", "Neo Geo AES")
 
 # platform -> cases picked only by hand, beyond its default and regional
 # cases (SLIP-0113), editions included.

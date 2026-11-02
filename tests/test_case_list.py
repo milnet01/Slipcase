@@ -182,6 +182,84 @@ class TestSnesViewFromBelow(unittest.TestCase):
         self.assertTrue(((shadowed[:, :, 3] > 0) & (shadowed[:, :, 3] < 200)).any())
 
 
+class TestAddedConsoles(unittest.TestCase):
+    """SLIP-0124: consoles that had no case. Sizes and looks are in
+    docs/research/SLIP-0106-real-cases.md and SLIP-0108-cartridge-boxes.md."""
+
+    SIZES = {
+        "Wii U Case": (135, 190, 14),
+        "Switch 2 Case": (104, 170, 10),
+        "Game Gear Box": (113, 160, 25),
+        "Atari 2600 Box": (140, 194, 23),
+        "Famicom Cartridge Box": (127, 87, 21),
+        "TurboGrafx-16 Case": (152, 178, 17.5),
+        "PC Engine HuCard Case": (142, 125, 10),
+        "Neo Geo AES Case": (165, 220, 44),
+    }
+
+    def test_sizes(self):
+        for name, size in self.SIZES.items():
+            with self.subTest(case=name):
+                ct = CASE_TYPES[name]
+                self.assertEqual((ct.width, ct.height, ct.depth), size)
+
+    def test_platforms_and_regions(self):
+        from core.case_types import case_for
+        for platform, name in (("Wii U", "Wii U Case"), ("Switch 2", "Switch 2 Case"),
+                               ("Game Gear", "Game Gear Box"),
+                               ("Atari 2600", "Atari 2600 Box"),
+                               ("TurboGrafx-16", "TurboGrafx-16 Case"),
+                               ("Neo Geo AES", "Neo Geo AES Case")):
+            with self.subTest(platform=platform):
+                self.assertEqual(PLATFORM_CASE_MAP[platform], name)
+        self.assertEqual(case_for("NES", "NTSC-J").name, "Famicom Cartridge Box")
+        self.assertEqual(case_for("TurboGrafx-16", "NTSC-J").name,
+                         "PC Engine HuCard Case")
+
+    def test_cartridge_consoles_offer_the_universal_case(self):
+        for platform in ("Game Gear", "Atari 2600", "TurboGrafx-16", "Neo Geo AES"):
+            with self.subTest(platform=platform):
+                self.assertIn("Universal Cart Case", cases_for_platform(platform))
+
+    def test_searchable_where_the_service_has_the_system(self):
+        for platform, libretro, screenscraper, thegamesdb in (
+            ("Wii U", "Nintendo - Wii U", 18, 38),
+            ("Game Gear", "Sega - Game Gear", 21, 20),
+            ("Atari 2600", "Atari - 2600", 26, 22),
+            ("TurboGrafx-16", "NEC - PC Engine - TurboGrafx 16", 31, 34),
+            ("Neo Geo AES", "SNK - Neo Geo", 142, 24),
+        ):
+            with self.subTest(platform=platform):
+                self.assertEqual(LIBRETRO_SYSTEMS[platform], libretro)
+                self.assertEqual(SCREENSCRAPER_SYSTEMS[platform], screenscraper)
+                self.assertEqual(THEGAMESDB_PLATFORMS[platform], thegamesdb)
+
+    def test_plastic_colours(self):
+        wiiu = CASE_TYPES["Wii U Case"].plastic
+        self.assertGreater(wiiu[2], wiiu[0] + 100)
+        switch2 = CASE_TYPES["Switch 2 Case"].plastic
+        self.assertGreater(switch2[0], switch2[2] + 100)
+
+    def test_each_platform_has_colours_and_branding(self):
+        import json
+        from core.spine_generator import PLATFORM_BRANDING
+        with open(os.path.join(os.path.dirname(__file__), "..", "resources",
+                               "case_colors.json"), encoding="utf-8") as f:
+            colours = json.load(f)
+        for platform in ("Wii U", "Switch 2", "Game Gear", "Atari 2600",
+                         "TurboGrafx-16", "Neo Geo AES"):
+            with self.subTest(platform=platform):
+                self.assertIn(platform, colours)
+                self.assertIn(platform, PLATFORM_BRANDING)
+
+    def test_each_renders(self):
+        for name in self.SIZES:
+            with self.subTest(case=name):
+                image = BoxRenderer(CASE_TYPES[name], output_width=300).render(
+                    Image.new("RGB", (300, 300), (200, 40, 40)), title="Game")
+                self.assertGreater(image.width, 200)
+
+
 class TestCardboardBoxSizes(unittest.TestCase):
     """SLIP-0108: sizes from docs/research/SLIP-0108-cartridge-boxes.md. US and
     PAL Game Boy boxes are square; the Japanese ones stand portrait, and the
@@ -301,7 +379,7 @@ class TestSegaClamshells(unittest.TestCase):
 
     def test_other_cases_have_no_tab(self):
         tabbed = {name for name, ct in CASE_TYPES.items() if ct.hanging_tab}
-        self.assertEqual(tabbed, set(self.CASES))
+        self.assertEqual(tabbed, {*self.CASES, "Game Gear Box"})
 
     def test_clear_sleeve_shines_without_cardboard_folds(self):
         for name in self.CASES:

@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Master System is now a platform, with its own case and cover search** (SLIP-0108)
 - **Japanese Game Boy, Game Boy Color and GBA games get their own smaller boxes**
   (SLIP-0108)
+- **Six more consoles: Wii U, Switch 2, Game Gear, Atari 2600, TurboGrafx-16 and
+  Neo Geo AES** (SLIP-0124)
+  Each has its own case, and all but Switch 2 can search for covers. Japanese NES games get a Famicom box, and Japanese TurboGrafx-16 games a PC Engine HuCard case.
 
 ### Changed
 

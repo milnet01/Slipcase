@@ -43,14 +43,15 @@ You don't need either one to use it. The images are ordinary PNG files.
 
 ## Case types it knows
 
-PS2 DVD Case (US and PAL) · Wii DVD Case · GameCube DVD Case · GameCube
+PS2 DVD Case (US and PAL) · Wii DVD Case · Wii U Case · GameCube DVD Case · GameCube
 Case (NTSC-J) · PC DVD Case · Xbox Case · Xbox 360 Case · PS3, PS4 and PS5
 Blu-ray Cases · Xbox One Case · Xbox Series X Case · CD Jewel Case · PS1 Jewel Case (NTSC-U, PAL and
 NTSC-J) · Dreamcast Jewel Case (NTSC-U, PAL and NTSC-J) · NES Cartridge Box ·
-SNES Cartridge Box · Super Famicom Cartridge Box · N64 Cartridge Box (US
+Famicom Cartridge Box · SNES Cartridge Box · Super Famicom Cartridge Box · N64 Cartridge Box (US
 and NTSC-J) · Genesis Clamshell · Master System Case · Game Boy Box (US
-and NTSC-J) · GBA Box (US and NTSC-J) · DS Case (US and PAL) · 3DS Case · PSP Case · PS Vita Case · Switch Case ·
-Universal Cart Case
+and NTSC-J) · GBA Box (US and NTSC-J) · Game Gear Box · Atari 2600 Box ·
+TurboGrafx-16 Case · PC Engine HuCard Case · Neo Geo AES Case · DS Case (US and PAL) · 3DS Case · PSP Case · PS Vita Case · Switch Case ·
+Switch 2 Case · Universal Cart Case
 
 Edition and special-colour cases, picked by hand: PS2 Platinum (PAL), and
 PS2 navy, red, white and clear · PS3 Greatest Hits and Platinum (PAL) ·

@@ -1483,7 +1483,7 @@ building.
   Source: user-request-2026-10-29.
   Lanes: core, ui.
 
-- 📋 [SLIP-0124] **Give Saturn and Sega CD their own cases, and add the consoles that have none.**
+- 🚧 [SLIP-0124] **Give Saturn and Sega CD their own cases, and add the consoles that have none.**
   The user, 2026-10-30: "Let's get all of these sorted." Saturn still uses
   the generic CD Jewel Case; LaunchBox shows a wide hinge strip, and a tall
   black PAL case. Sega CD has no entry and uses a similar jewel style, PAL
@@ -1495,6 +1495,17 @@ building.
   says "Bright cerulean", with red, green and yellow editions, and LaunchBox's
   images measure #007DC6 to #2D9FC2. Switch 2 also has no entry: red, at Switch
   size. Some late Switch reprints are red too (OpenCritic).
+  Built 2026-11-02: Wii U, Switch 2, Game Gear (with tab), Atari 2600,
+  TurboGrafx-16 and Neo Geo AES platforms; Famicom box for (NES,
+  NTSC-J); PC Engine HuCard jewel case for (TurboGrafx-16, NTSC-J).
+  Service ids come from RetroDB's scraper tables and the
+  libretro-thumbnails repository list; none was searched live. Switch 2
+  has no id in any table, so it has no cover search. Neo Geo is the
+  later plastic case; the early cardboard carton is not built. Famicom
+  takes the middle of three measured sizes. Sample:
+  /mnt/Games/.slipcase-scratch/sizes/added.png. Test:
+  tests/test_case_list.py TestAddedConsoles. Next: Saturn and Sega CD;
+  PAL sizes unsourced after one search.
   **Layman:** Saturn and Sega CD games get cases that look like theirs, and consoles with no case yet get one.
   Kind: feature.
   Source: user-request-2026-10-30.
