@@ -2,7 +2,8 @@
 # SLIP-0107 — Give keep cases and handheld cases their real size and plastic, per region
 
 **Status:** implemented (2026-10-21); amended 2026-10-30 (plastic rim, clear
-edges); the user approved the rims by eye on 2026-10-30.
+edges); the user approved the rims by eye on 2026-10-30. Amended
+2026-11-03 (SLIP-0127): PS3 depth 14 mm, the user's choice.
 **Kind:** feature.
 **Source:** ROADMAP SLIP-0107 (user-request-2026-10-21). Phase 2 of
 SLIP-0106. Research:
@@ -100,7 +101,7 @@ W × H × D in mm. "S" = sourced, "W" = working value, judged by eye.
 | PC DVD Case | PC | 135 × 190 × 14 S | black W | no | dvd |
 | Xbox Case | Xbox | 129 × 189 × 13 S | lime green W | no | dvd |
 | Xbox 360 Case | Xbox 360 | 133 × 187 × 13 S | green tint W | yes | dvd |
-| PS3 Blu-ray Case | PS3 | 135 × 171.5 × 13 S | white tint W | yes | bluray |
+| PS3 Blu-ray Case | PS3 | 135 × 171.5 × 14 S | white tint W | yes | bluray |
 | PS4 Blu-ray Case | PS4 | 135 × 171.5 × 13 S | blue tint W | yes | bluray |
 | PS5 Blu-ray Case | PS5 | 135 × 171.5 × 13 S | blue tint W | yes | bluray |
 | Xbox One Case | Xbox One | 135 × 171.5 × 13 S | green tint W | yes | bluray |

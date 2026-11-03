@@ -133,6 +133,10 @@ _PS5_SHAPE = CaseShape(corner_radius=3.0, edge_radius=1.0,
                        lip_width=KEEP_RIM_MM, lip_height=0.5,
                        seam_width=0.8, seam_depth=0.4,
                        recess_length=59.0, recess_height=6.0, recess_depth=1.5)
+# The PS3 case has the PS5's corners, lip and seam in seller photos, and no
+# finger recess (SLIP-0127).
+_PS3_SHAPE = replace(_PS5_SHAPE, recess_length=0.0, recess_height=0.0,
+                     recess_depth=0.0)
 _BLACK_TRAY = (0x10, 0x10, 0x10)
 _BLACK_KEEP = (0x14, 0x14, 0x14)
 _WHITE_KEEP = (0xEE, 0xEE, 0xEE)
@@ -216,9 +220,11 @@ CASE_TYPES: dict[str, CaseType] = {
     ),
     "PS3 Blu-ray Case": CaseType(
         name="PS3 Blu-ray Case",
-        width=135, height=171.5, depth=13,
+        # 14 mm: the sellers' figure, chosen by the user over 13 (SLIP-0127).
+        width=135, height=171.5, depth=14,
         platforms=("PS3",),
         plastic=(0xF0, 0xF0, 0xF0), clear=True, texture="bluray",
+        shape=_PS3_SHAPE,
     ),
     "PS4 Blu-ray Case": CaseType(
         name="PS4 Blu-ray Case",

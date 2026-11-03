@@ -3,7 +3,8 @@
 
 **Status:** accepted (2026-10-15); amended 2026-10-21 (case details,
 transparent viewer background; the optional edge face, SLIP-0106), not
-re-reviewed: user rulings 2026-10-21.
+re-reviewed: user rulings 2026-10-21. INV-11's test case changed
+2026-11-03 (SLIP-0127): the PS3 case now has a real lip.
 **Amended by:** SLIP-0106 (`SLIP-0106-jewel-cases.md` § 16).
 **Kind:** implement.
 **Source:** ROADMAP SLIP-0104 (user request 2026-10-10; details agreed with
@@ -354,7 +355,7 @@ and the shortcut Ctrl+3 (unused today; added to `STANDARDS.md` § 6).
 - **INV-11** — With `show_texture` set, every face carries § 4.2's overlay
   at the face's own size, the back's mirrored; with it clear, none does.
   *Test:* `tests/test_box_model.py::test_case_details_baked_in` builds a
-  PS3 Blu-ray Case model from uniform grey (128) front and back covers, so the
+  Xbox One Case model from uniform grey (128) front and back covers, so the
   overlay's faint lines change pixels, and compares each face with the
   overlay composited by hand. A Blu-ray front is not mirror-symmetric (its
   spine-edge groove), so only the mirroring rule passes the back.

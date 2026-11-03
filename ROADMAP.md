@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: SLIP=126 -->
+<!-- ants-roadmap-id-high-water: SLIP=127 -->
 
 # Slipcase — Roadmap
 
@@ -1600,6 +1600,21 @@ building.
   Kind: feature.
   Source: user-request-2026-11-03.
   Blocked-by: SLIP-0109.
+
+- 🚧 [SLIP-0127] **Give the PS3 case its real shape in the 3D viewer, as SLIP-0125 did for the PS5.**
+  Reuses core/box_shape.py and the box file's "shape" keys (SLIP-0125
+  § 4.1); no new keys. Seller photos (2026-11-03, not for the repo:
+  /mnt/Games/.slipcase-scratch/ps3/refs) show rounded corners, a raised
+  lip, the seam and clear frosted plastic, and no finger slot. So the
+  PS3 takes the PS5's figures with the recess at 0. Waiting on the user's
+  photo of their own case's opening side to confirm there is no slot.
+  The user, 2026-11-03: depth 14 mm, the sellers' figure, not 13.
+  "PLAYSTATION 3" and the Blu-ray logo moulded into the top lip are not
+  part of this item.
+  **Layman:** Turn a PS3 case in the 3D viewer and it looks like the real one: rounded corners, the plastic lip and the seam.
+  Kind: feature.
+  Source: user-request-2026-11-03.
+  Lanes: core.
 
 ## Project record
 

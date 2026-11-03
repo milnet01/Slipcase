@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the cover, the groove where the two halves meet, and the finger recess in
   the opening side. The box file carries the shape, so RetroDB can draw the
   same case. The sizes are estimates until checked against a real case.
+- **The PS3 case has its real shape in the 3D view too** (SLIP-0127)
+  The same rounded corners, lip and groove as the PS5 case, with no finger
+  recess. The PS3 case is now 14 mm deep instead of 13, so PS3 renders are a
+  little thicker. The Greatest Hits and Platinum cases change with it.
 - **A Match RetroDB button draws your box from the same view as RetroDB's 3D
   boxes** (SLIP-0120)
   Press it beside the Angle slider, and pictures, batch renders and animations

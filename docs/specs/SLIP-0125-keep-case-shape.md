@@ -6,6 +6,7 @@ Spec draft 2026-11-03; amended 2026-11-03, before any build,
 to make the lip and the seam real shape; amended again 2026-11-03, after
 the user's first look, to add the finger recess, and again after their
 photo of the opening side, to centre it on the seam with round ends.
+Amended 2026-11-03 for SLIP-0127: the PS3 case takes the same shape.
 **Kind:** implement.
 **Source:** ROADMAP SLIP-0125 (user request 2026-11-03; shape format agreed
 with the RetroDB session the same day).
@@ -184,7 +185,10 @@ class CaseShape:                 # core/case_types.py
 CaseType.shape: CaseShape | None = None
 ```
 
-Only "PS5 Blu-ray Case" sets it. Its figures are working estimates; no
+"PS5 Blu-ray Case" and "PS3 Blu-ray Case" set it (SLIP-0127). The PS3
+takes the PS5's figures with the three `recess_*` at 0: seller photos
+show the same corners, lip and seam, and no finger recess. The PS5's
+figures are working estimates; no
 published source gives any of them (research 2026-11-03):
 
 - `corner_radius` 3.0 mm, measured from the user's straight-on PS5 photo

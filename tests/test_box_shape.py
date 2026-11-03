@@ -11,6 +11,7 @@ PS5 = CASE_TYPES["PS5 Blu-ray Case"]
 # Shapes that take each path through the profiles and the corners.
 SHAPES = {
     "PS5": PS5.shape,
+    "PS3: lip and seam, no recess": CASE_TYPES["PS3 Blu-ray Case"].shape,
     "no lip, no seam": CaseShape(3, 1),
     "square corners": CaseShape(0, 1, 2.5, 0.5, 0.8, 0.4),
     "corners tighter than the lip": CaseShape(1, 1, 2.5, 0.5, 0.8, 0.4),

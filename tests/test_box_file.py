@@ -4,6 +4,7 @@ import json
 import os
 import tempfile
 import unittest
+from dataclasses import replace
 from unittest.mock import patch
 
 import numpy as np
@@ -311,6 +312,19 @@ class TestShape(unittest.TestCase):
                              CASE_TYPES["PS5 Blu-ray Case"].shape)
             with open(write_box_file(_model(), d, "Other"), encoding="utf-8") as f:
                 self.assertNotIn("shape", json.load(f))
+
+    def test_every_shape_reads_back(self):
+        """INV-5's limits pass every shaped case's own figures at its own
+        size, so no shipped shape is dropped flat on reading (SLIP-0127)."""
+        shaped = [ct for ct in CASE_TYPES.values() if ct.shape is not None]
+        self.assertIn(CASE_TYPES["PS3 Blu-ray Case"], shaped)
+        for ct in shaped:
+            with self.subTest(case=ct.name), tempfile.TemporaryDirectory() as d:
+                model = replace(_ps5_model(), case_type=ct,
+                                spine=_noise(int(ct.depth), 171, 2))
+                write_box_file(model, d, "Game")
+                read = read_box_file(os.path.join(d, "Game.box.json"))
+                self.assertEqual(read.case_type.shape, ct.shape)
 
     def test_shape_is_optional(self):
         """INV-4: with shape deleted, the file reads whole and flat."""

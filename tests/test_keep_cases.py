@@ -28,7 +28,7 @@ TABLE = {
     "PC DVD Case": (135, 190, 14, BLACK, False, "dvd"),
     "Xbox Case": (129, 189, 13, (0x5C, 0xB0, 0x2E), False, "dvd"),
     "Xbox 360 Case": (133, 187, 13, (0x6C, 0xC0, 0x40), True, "dvd"),
-    "PS3 Blu-ray Case": (135, 171.5, 13, (0xF0, 0xF0, 0xF0), True, "bluray"),
+    "PS3 Blu-ray Case": (135, 171.5, 14, (0xF0, 0xF0, 0xF0), True, "bluray"),
     "PS4 Blu-ray Case": (135, 171.5, 13, BLUE_TINT, True, "bluray"),
     "PS5 Blu-ray Case": (135, 171.5, 13, BLUE_TINT, True, "bluray"),
     "Xbox One Case": (135, 171.5, 13, GREEN_TINT, True, "bluray"),
