@@ -1561,6 +1561,14 @@ building.
   copied to /mnt/Games/.slipcase-scratch/ps5/refs/ps5 and refs/ps4.
   Asked the RetroDB session what its viewer draws (2026-11-03); online
   research of PS5 case details running.
+  RetroDB answered, 2026-11-03: its viewer (static/js/box-viewer.js, CSS
+  3D) draws six flat faces. It asks for shape as an optional "shape"
+  section of named mm parameters in box file version 1, not version 2:
+  every released RetroDB (3.34.0 to 3.35.4) refuses other versions but
+  ignores unknown keys. Each parameter's absence or zero means flat, as
+  today; give each a maximum, the face edges it applies to, and a
+  labelled diagram. Face images stay unchanged. Send RetroDB the spec
+  path when written.
   **Layman:** Turn a PS5 case in the 3D viewer and it looks like the real one: rounded corners, the plastic lip, the seam and the tray seen through the plastic.
   Kind: feature.
   Source: user-request-2026-11-03.
