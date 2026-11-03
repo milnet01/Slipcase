@@ -1469,7 +1469,7 @@ building.
   Source: retrodb-comparison-2026-10-29.
   Lanes: core.
 
-- 🚧 [SLIP-0120] **Add a "Match RetroDB" view so exported boxes share RetroDB's perspective.**
+- ✅ [SLIP-0120] **Add a "Match RetroDB" view so exported boxes share RetroDB's perspective.**
   The user, 2026-10-29: "Just a button to match RetroDB so that the boxes
   we export match."
   Measured 2026-10-29 from the alpha silhouettes of RetroDB's 3D covers
@@ -1497,6 +1497,8 @@ building.
   on a real export, then flip to shipped.
   SNES now matched, 2026-11-02: drawn from below through this camera
   (SLIP-0108).
+  Approved by the user 2026-11-03: by eye, a PS5 export with Match
+  RetroDB matches RetroDB's covers.
   **Layman:** One button sets the view so the boxes you export look like the 3D boxes already in RetroDB, side by side.
   Kind: feature.
   Source: user-request-2026-10-29.
