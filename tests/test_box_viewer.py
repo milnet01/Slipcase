@@ -88,6 +88,30 @@ class TestLimitsAndReset(_ViewerTest):
                          (25.0, 10.0, fitted))
 
 
+
+class TestShowFace(_ViewerTest):
+
+    def test_show_face(self):
+        """The Front, Spine and Back buttons: each turns the box square to
+        that face, level, centred and at the fitted zoom, and stops the spin
+        (SLIP-0128)."""
+        from PyQt6.QtCore import QPointF
+        viewer = self._viewer()
+        fitted = viewer.distance
+        for face in ("front", "spine", "back"):
+            with self.subTest(face=face):
+                viewer.turn(37, 21)
+                viewer.zoom_by(1.5)
+                viewer._pan = QPointF(40, -30)
+                viewer.set_auto_spin(True)
+                viewer.show_face(face)
+                self.assertEqual(viewer.visible_faces(), {face})
+                self.assertEqual(viewer.pitch, 0.0)
+                self.assertEqual(viewer.distance, fitted)
+                self.assertEqual(viewer._pan, QPointF(0, 0))
+                self.assertFalse(viewer._spin.isActive())
+
+
 class TestModelFromWorker(_ViewerTest):
 
     def test_model_from_worker(self):

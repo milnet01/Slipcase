@@ -33,6 +33,9 @@ from core.box_shape import Patch, box_patches, face_corners, patch_normal
 Vec = tuple[float, float, float]
 
 _RESET_PITCH = 10.0
+# The yaw that puts each face square to the camera. The camera orbits from
+# +z (the front) towards -x (the spine) as yaw grows.
+_FACE_YAW = {"front": 0.0, "spine": 90.0, "back": 180.0}
 _PITCH_LIMIT = 89.0
 # Field of view across the widget's shorter side. Narrow, so the fitted
 # camera is far enough off that 10 degrees of pitch already shows the top,
@@ -291,6 +294,14 @@ class BoxViewer(QWidget):
         self.distance = self.fitted_distance
         self._pan = QPointF(0, 0)
         self.set_view(self._angle, _RESET_PITCH)
+
+    def show_face(self, face: str) -> None:
+        """Turn the box to face the camera straight on, level and centred, at
+        the fitted zoom: "front", "spine" or "back". Stops the spin."""
+        self.set_auto_spin(False)
+        self.distance = self.fitted_distance
+        self._pan = QPointF(0, 0)
+        self.set_view(_FACE_YAW[face], 0.0)
 
     def set_auto_spin(self, on: bool) -> None:
         """Start or stop turning the yaw at _SPIN_DEGREES_PER_S.

@@ -13,7 +13,9 @@ from core.case_texture import (
     generate_front_texture, generate_moulded_edge, generate_spine_texture,
 )
 from core.case_types import CaseType
-from core.image_utils import case_edge_colours, inset_in_rim, is_full_cover, split_full_cover
+from core.image_utils import (
+    case_edge_colours, inset_in_rim, is_full_cover, split_full_cover, upright_spine,
+)
 from core.jewel import DEFAULT_VIEW_ANGLE, jewel_faces
 from core.spine_generator import generate_spine
 
@@ -77,12 +79,14 @@ def build_box_model(
     full_cover: bool | None,
     show_texture: bool,
     back_strips: bool | None = None,
+    spine_image: Image.Image | None = None,
 ) -> BoxModel:
     """Build the faces from BoxRenderer.render's face inputs.
 
     A full cover is split with the same offsets render uses, and a loaded
-    back cover wins over the split one. With no full cover the spine is
-    generated at the front height's scale. With `show_texture` set, each face
+    back cover wins over the split one. A loaded `spine_image` wins over
+    the split spine; with neither, the spine is generated at the front
+    height's scale. With `show_texture` set, each face
     carries the case overlay at its own size; the back carries the front
     overlay mirrored, as render's back view lays it.
 
@@ -96,6 +100,7 @@ def build_box_model(
             spine_left_offset=spine_left_offset,
             spine_right_offset=spine_right_offset, full_cover=full_cover,
             show_texture=show_texture, back_strips=back_strips,
+            spine_image=spine_image,
         )
     split_spine = None
     if full_cover is None:
@@ -107,6 +112,8 @@ def build_box_model(
         )
         if back_image is None:
             back_image = split_back
+    if spine_image is not None:
+        split_spine = upright_spine(spine_image)
 
     top, bottom, edge = case_edge_colours(front_image, case_type, case_color)
 
@@ -158,9 +165,11 @@ def _jewel_model(
     *,
     case_color: tuple[int, int, int] | None,
     show_texture: bool,
+    spine_image: Image.Image | None,
     **face_args,
 ) -> BoxModel:
-    """build_box_model for a jewel case (SLIP-0106 § 4.5)."""
+    """build_box_model for a jewel case (SLIP-0106 § 4.5). A loaded
+    `spine_image` replaces the hinge, as render does."""
     faces = jewel_faces(front_image, back_image, case_type,
                         view_angle=DEFAULT_VIEW_ANGLE, **face_args)
     plastic = case_color or case_type.plastic
@@ -169,7 +178,8 @@ def _jewel_model(
     side_aspect = case_type.depth / case_type.height
     front = _scaled(faces.front, face_aspect)
     back = _scaled(faces.back, face_aspect) if faces.back is not None else None
-    spine = _scaled(faces.hinge, side_aspect)
+    hinge = upright_spine(spine_image) if spine_image is not None else faces.hinge
+    spine = _scaled(hinge, side_aspect)
     edge_face = _scaled(faces.opening, side_aspect)
     del faces
 

@@ -106,10 +106,12 @@ class RenderWorker(QThread):
                  case_color: tuple[int, int, int] | None = None,
                  spine_left_offset: int = 0, spine_right_offset: int = 0,
                  full_cover: bool | None = None, view: str = "front",
-                 back_strips: bool | None = None) -> None:
+                 back_strips: bool | None = None,
+                 spine_image: Image.Image | None = None) -> None:
         super().__init__()
         self.view = view
         self.back_strips = back_strips
+        self.spine_image = spine_image
         self.renderer = renderer
         self.front = front
         self.back = back
@@ -138,6 +140,7 @@ class RenderWorker(QThread):
                 full_cover=self.full_cover,
                 view=self.view,
                 back_strips=self.back_strips,
+                spine_image=self.spine_image,
             )
             self.rendered.emit(result)
             self.model_ready.emit(build_box_model(
@@ -152,6 +155,7 @@ class RenderWorker(QThread):
                 full_cover=self.full_cover,
                 show_texture=self.renderer.show_texture,
                 back_strips=self.back_strips,
+                spine_image=self.spine_image,
             ))
         except Exception as e:
             self.error.emit(str(e))
@@ -339,6 +343,7 @@ class AnimationWorker(QThread):
         full_cover: bool | None = None,
         back_strips: bool | None = None,
         camera_distance: float | None = None,
+        spine_image: Image.Image | None = None,
     ):
         super().__init__()
         self.case_type = case_type
@@ -367,6 +372,7 @@ class AnimationWorker(QThread):
         self.full_cover = full_cover
         self.back_strips = back_strips
         self.camera_distance = camera_distance
+        self.spine_image = spine_image
 
     def run(self) -> None:
         """Render each angle of the sweep and write the animated file."""
@@ -421,6 +427,7 @@ class AnimationWorker(QThread):
                     spine_right_offset=self.spine_right_offset,
                     full_cover=self.full_cover,
                     back_strips=self.back_strips,
+                    spine_image=self.spine_image,
                 )
                 # Every frame is padded to the largest, and a box seen from below
                 # changes height as it tilts, so the first frame cannot settle

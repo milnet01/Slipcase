@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: SLIP=127 -->
+<!-- ants-roadmap-id-high-water: SLIP=129 -->
 
 # Slipcase — Roadmap
 
@@ -1611,10 +1611,39 @@ building.
   The user, 2026-11-03: depth 14 mm, the sellers' figure, not 13.
   "PLAYSTATION 3" and the Blu-ray logo moulded into the top lip are not
   part of this item.
+  The user's own case, photos 2026-11-03 (copied to the refs folder):
+  it has a finger slot, a long channel in the opening side across the
+  seam. Depth 3 mm (the user's figure); length 85 mm and height 7 mm
+  measured from the straight side photo. The real channel's ends are
+  square and it sits a little above the middle; box_shape draws round
+  ends, centred. Figures set; waiting on the user's check by eye.
   **Layman:** Turn a PS3 case in the 3D viewer and it looks like the real one: rounded corners, the plastic lip and the seam.
   Kind: feature.
   Source: user-request-2026-11-03.
   Lanes: core.
+
+- 🚧 [SLIP-0128] **Add Front, Spine and Back buttons that turn the 3D view square to that side.**
+  The user, 2026-11-03: buttons that orient the case to that exact
+  view, to check whether the margins need adjusting. Built 2026-11-03:
+  BoxViewer.show_face, three buttons beside Auto-spin, enabled with the
+  3D view. Waiting on the user's check by eye.
+  **Layman:** Press Front, Spine or Back and the 3D view turns to look straight at that side.
+  Kind: feature.
+  Source: user-request-2026-11-03.
+  Lanes: ui.
+
+- 🚧 [SLIP-0129] **Let the user load their own spine picture in place of the generated spine.**
+  The user, 2026-11-03: "I have a spine separately as well but there is
+  nowhere to add it." Built 2026-11-03: a Load Image row in the Spine
+  box and File > Open Spine Picture. It wins over the split and the
+  generated spine in the render, animations, the 3D view and the box
+  file, and replaces a jewel case's hinge. A sideways scan is turned
+  upright, left end at the top (core/image_utils.upright_spine).
+  SLIP-0104 § 4.2 and INV-5 amended. Waiting on the user's check by eye.
+  **Layman:** Load a scan of the real spine and the box uses it instead of a made-up one.
+  Kind: feature.
+  Source: user-request-2026-11-03.
+  Lanes: core, ui.
 
 ## Project record
 

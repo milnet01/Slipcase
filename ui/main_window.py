@@ -21,7 +21,9 @@ from core.box_model import BoxModel
 from core.case_types import (CASE_TYPES, ALL_PLATFORMS, CaseType,
                              case_for, cases_for_platform)
 from core.config import Config
-from core.image_utils import detect_spine_bounds, is_full_cover, split_full_cover
+from core.image_utils import (
+    detect_spine_bounds, is_full_cover, split_full_cover, upright_spine,
+)
 from core.jewel import (
     back_has_strips, card_case, detect_strip_folds, fold_reach, split_back_card,
 )
@@ -105,6 +107,7 @@ class MainWindow(QMainWindow):
         self._front_image: Image.Image | None = None
         self._front_image_path: str | None = None
         self._back_image: Image.Image | None = None
+        self._spine_image: Image.Image | None = None
         self._spine_color: tuple[int, int, int] | None = None
         self._case_color: tuple[int, int, int] | None = None
         self._render_worker: RenderWorker | None = None
@@ -156,6 +159,10 @@ class MainWindow(QMainWindow):
         open_back_action.setShortcut("Ctrl+Shift+O")
         open_back_action.triggered.connect(self._load_back)
         file_menu.addAction(open_back_action)
+
+        open_spine_action = QAction(self.tr("Open &Spine Picture..."), self)
+        open_spine_action.triggered.connect(self._load_spine)
+        file_menu.addAction(open_spine_action)
 
         # Recent files submenu
         self.recent_menu = file_menu.addMenu(self.tr("Recent &Files"))
@@ -370,6 +377,26 @@ class MainWindow(QMainWindow):
         _link_label(color_label, self.color_btn)
         color_row.addStretch()
         spine_layout.addLayout(color_row)
+
+        # A spine picture of the user's own replaces the generated or split
+        # one; the title, serial and colour above then go unused.
+        picture_row = QHBoxLayout()
+        picture_row.addWidget(QLabel(self.tr("Picture:")))
+        load_spine_btn = QPushButton(self.tr("Load Image"))
+        load_spine_btn.setToolTip(self.tr(
+            "Use your own spine scan instead of the generated spine"))
+        load_spine_btn.clicked.connect(self._load_spine)
+        picture_row.addWidget(load_spine_btn)
+        clear_spine_btn = QPushButton(self.tr("Clear"))
+        clear_spine_btn.clicked.connect(self._clear_spine)
+        picture_row.addWidget(clear_spine_btn)
+        self.spine_thumb = QLabel(self.tr("None"))
+        self.spine_thumb.setFixedSize(40, 120)
+        self.spine_thumb.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.spine_thumb.setStyleSheet(themed_thumbnail_style())
+        picture_row.addWidget(self.spine_thumb)
+        picture_row.addStretch()
+        spine_layout.addLayout(picture_row)
 
         spine_group.setLayout(spine_layout)
         left_layout.addWidget(spine_group)
@@ -606,6 +633,19 @@ class MainWindow(QMainWindow):
         self.auto_spin_btn.toggled.connect(self.box_viewer.set_auto_spin)
         self.box_viewer.auto_spin_changed.connect(self.auto_spin_btn.setChecked)
         compare_row.addWidget(self.auto_spin_btn)
+        # Square views of one side each, for checking the margins.
+        self.face_btns = []
+        for face, label, tip in (
+            ("front", self.tr("Front"), self.tr("Look straight at the front")),
+            ("spine", self.tr("Spine"), self.tr("Look straight at the spine")),
+            ("back", self.tr("Back"), self.tr("Look straight at the back")),
+        ):
+            btn = QPushButton(label)
+            btn.setEnabled(False)
+            btn.setToolTip(tip)
+            btn.clicked.connect(lambda _=False, f=face: self.box_viewer.show_face(f))
+            compare_row.addWidget(btn)
+            self.face_btns.append(btn)
         compare_row.addStretch()
         right_layout.addLayout(compare_row)
 
@@ -883,6 +923,7 @@ class MainWindow(QMainWindow):
         self._front_image = None
         self._front_image_path = None
         self._back_image = None
+        self._spine_image = None
         self._fold_bounds = None
         self.preview.clear_image()
         self.compare_original.clear_image()
@@ -1113,6 +1154,18 @@ class MainWindow(QMainWindow):
         self._update_view_choice()
         self._update_back_strips()
         return note
+
+    def _load_spine(self) -> None:
+        img, _ = self._load_image_dialog("Open Spine Picture")
+        if img:
+            self._spine_image = img
+            self._set_thumbnail(self.spine_thumb, upright_spine(img))
+            self.status.showMessage(self.tr("Spine picture loaded"))
+
+    def _clear_spine(self) -> None:
+        self._spine_image = None
+        self.spine_thumb.setPixmap(QPixmap())
+        self.spine_thumb.setText(self.tr("None"))
 
     def _clear_back(self) -> None:
         self._back_image = None
@@ -1400,6 +1453,7 @@ class MainWindow(QMainWindow):
             full_cover=self._full_cover_choice(),
             view=self._view(),
             back_strips=self._back_strips_choice(),
+            spine_image=self._spine_image.copy() if self._spine_image else None,
         )
         self._render_worker.rendered.connect(self._on_rendered)
         self._render_worker.model_ready.connect(self._on_model_ready)
@@ -1736,6 +1790,8 @@ class MainWindow(QMainWindow):
         else:
             self.box_viewer.set_auto_spin(False)
         self.auto_spin_btn.setEnabled(checked)
+        for btn in self.face_btns:
+            btn.setEnabled(checked)
         self._update_preview_page()
 
     def _toggle_3d_view(self) -> None:
@@ -1801,6 +1857,7 @@ class MainWindow(QMainWindow):
             full_cover=self._full_cover_choice(),
             back_strips=self._back_strips_choice(),
             camera_distance=self._camera_distance(),
+            spine_image=self._spine_image.copy() if self._spine_image else None,
             output_path=path,
             output_width=params["output_width"],
             start_angle=params["start_angle"],
@@ -1935,6 +1992,7 @@ class MainWindow(QMainWindow):
         """Re-apply all inline themed styles after a theme change."""
         thumb_style = themed_thumbnail_style()
         self.front_thumb.setStyleSheet(thumb_style)
+        self.spine_thumb.setStyleSheet(thumb_style)
         self.back_thumb.setStyleSheet(thumb_style)
         self.split_back_thumb.setStyleSheet(themed_split_thumb_style())
         self.split_spine_thumb.setStyleSheet(themed_split_thumb_style(is_spine=True))

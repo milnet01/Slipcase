@@ -93,6 +93,28 @@ class TestFaceSelection(unittest.TestCase):
         self.assertFramed(model.back, loaded, ct.name, "left")
 
 
+    def test_loaded_spine_wins(self):
+        """A loaded spine picture wins over the generated spine and over a
+        full cover's split one; one lying on its side is stood upright with
+        its left end at the top (SLIP-0129)."""
+        sideways = Image.new("RGB", (400, 30), (255, 0, 0))
+        sideways.paste((0, 0, 255), (200, 0, 400, 30))
+        ct = CASE_TYPES["PS2 DVD Case"]
+        wrap = _noise(round(2 * ct.width + ct.depth) * 4, round(ct.height) * 4, 3)
+        for label, front, case in (("front only", _noise(270, 380, 1), "PS2 DVD Case"),
+                                   ("full cover", wrap, "PS2 DVD Case"),
+                                   ("jewel", _noise(300, 300, 2), "CD Jewel Case")):
+            with self.subTest(label):
+                spine = np.asarray(_build(front, case=case, spine_image=sideways).spine)
+                h, w = spine.shape[:2]
+                top = spine[h // 8, w // 2].astype(int)
+                bottom = spine[h - h // 8, w // 2].astype(int)
+                self.assertGreater(top[0], 200)
+                self.assertLess(top[2], 60)
+                self.assertGreater(bottom[2], 200)
+                self.assertLess(bottom[0], 60)
+
+
 class TestCaseDetails(unittest.TestCase):
     """INV-11: case details are baked into the faces, the back's mirrored."""
 

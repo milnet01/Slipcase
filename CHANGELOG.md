@@ -15,9 +15,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the opening side. The box file carries the shape, so RetroDB can draw the
   same case. The sizes are estimates until checked against a real case.
 - **The PS3 case has its real shape in the 3D view too** (SLIP-0127)
-  The same rounded corners, lip and groove as the PS5 case, with no finger
-  recess. The PS3 case is now 14 mm deep instead of 13, so PS3 renders are a
-  little thicker. The Greatest Hits and Platinum cases change with it.
+  The same rounded corners, lip and groove as the PS5 case, and the PS3's
+  long finger slot in the opening side: 85 mm long, 7 mm across, 3 mm deep,
+  measured from a real case. The PS3 case is now 14 mm deep instead of 13, so
+  PS3 renders are a little thicker. The Greatest Hits and Platinum cases
+  change with it.
+- **Front, Spine and Back buttons in the 3D view** (SLIP-0128)
+  Each turns the case to look straight at that side, so you can check the
+  margins of the pictures.
+- **Load your own spine picture** (SLIP-0129)
+  The Spine box has a Load Image button, also under File. Your spine scan
+  replaces the generated spine in pictures, animations, the 3D view and the
+  box file. A scan lying on its side is stood upright, its left end at the
+  top.
 - **A Match RetroDB button draws your box from the same view as RetroDB's 3D
   boxes** (SLIP-0120)
   Press it beside the Angle slider, and pictures, batch renders and animations

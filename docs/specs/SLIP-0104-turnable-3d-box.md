@@ -176,7 +176,8 @@ It takes `BoxRenderer.render`'s face inputs and decides the faces the way
 render does: `is_full_cover` when `full_cover` is None; `split_full_cover`
 with the same offsets; a loaded back cover wins over the split one; with no
 full cover, the spine is `generate_spine(title or "Game", ...)` at the front
-height's scale.
+height's scale. A spine picture the user loaded wins over both, stood
+upright by `upright_spine` (amended by SLIP-0129).
 
 **Case details.** With `show_texture` set, each face is scaled to its final
 size and then composited, as render does, with the overlay at that size:
@@ -303,7 +304,8 @@ and the shortcut Ctrl+3 (unused today; added to `STANDARDS.md` § 6).
   would use (amended by SLIP-0106): for a full
   cover, back, spine and front are `split_full_cover`'s output for the same
   offsets, scaled; for a front-only cover, the spine is `generate_spine`'s
-  output and `back` is None unless a back cover was loaded.
+  output and `back` is None unless a back cover was loaded. A loaded spine
+  picture replaces either spine (SLIP-0129).
   *Test:* `tests/test_box_model.py::test_full_cover_faces` and
   `::test_front_only_faces`, comparing pixels.
   *Breaks when:* the offsets are not passed through, or a split back

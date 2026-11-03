@@ -306,6 +306,18 @@ def wrap_panels_mm(case_type: CaseType) -> tuple[float, float, float, float]:
     return card_w - 2 * jewel.strip, jewel.strip, jewel.booklet[0], card_h
 
 
+def upright_spine(image: Image.Image) -> Image.Image:
+    """A spine picture the user loaded, standing upright as RGBA.
+
+    A spine scan lying on its side, wider than tall, is turned a quarter
+    clockwise, so its left end goes to the top: a spine's title reads top
+    to bottom.
+    """
+    if image.width > image.height:
+        image = image.transpose(Image.Transpose.ROTATE_270)
+    return image.convert("RGBA")
+
+
 def is_full_cover(image: Image.Image, case_type: CaseType, tolerance: float = 0.15) -> bool:
     """Detect whether an image is a full cover (back + spine + front) based on aspect ratio.
 

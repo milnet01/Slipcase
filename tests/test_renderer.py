@@ -285,6 +285,28 @@ class TestRenderer(unittest.TestCase):
         self.assertTrue(np.array_equal(out[0], out[1]))
 
 
+    def test_loaded_spine_picture_is_drawn(self):
+        """A loaded spine picture replaces the generated spine in the still
+        render (SLIP-0129): a green spine turns the left of the box green."""
+        renderer = BoxRenderer(CASE_TYPES["PS2 DVD Case"], angle=30,
+                               output_width=300, show_texture=False,
+                               show_reflection=False, show_shadow=False)
+        red = Image.new("RGB", (270, 380), (220, 0, 0))
+
+        def spine_green(**kw) -> float:
+            out = np.asarray(renderer.render(red, title="Game", full_cover=False,
+                                             **kw).convert("RGBA")).astype(int)
+            cols = np.nonzero(out[:, :, 3].max(axis=0) > 0)[0]
+            # At 30 degrees the spine is about 6% of the box's width.
+            band = out[:, cols[0]:cols[0] + max(2, len(cols) // 25)]
+            band = band[band[:, :, 3] > 0]
+            return float((band[:, 1] - band[:, 0]).mean())
+
+        green = Image.new("RGB", (20, 380), (0, 220, 0))
+        self.assertGreater(spine_green(spine_image=green), 50)
+        self.assertLess(spine_green(), 50)
+
+
 class TestConfig(unittest.TestCase):
     def test_config_defaults(self):
         with tempfile.NamedTemporaryFile(suffix=".json", delete=True) as f:

@@ -24,6 +24,7 @@ from core.image_utils import (
     inset_in_rim,
     is_full_cover,
     split_full_cover,
+    upright_spine,
 )
 from core.jewel import jewel_faces
 from core.spine_generator import generate_spine
@@ -167,6 +168,7 @@ class BoxRenderer:
         full_cover: bool | None = None,
         view: str = "front",
         back_strips: bool | None = None,
+        spine_image: Image.Image | None = None,
     ) -> Image.Image:
         """Render the 3D box.
 
@@ -191,6 +193,9 @@ class BoxRenderer:
                 for "back" when there is no back cover.
             back_strips: For a jewel case, whether back_image is the whole
                 back card with its end strips. None detects it.
+            spine_image: A spine picture the user loaded. It wins over the
+                split or generated spine, as a loaded back wins over a split
+                one; one lying on its side is stood upright (upright_spine).
 
         Returns:
             RGBA image of the rendered 3D box.
@@ -232,6 +237,8 @@ class BoxRenderer:
                 )
                 if back_image is None:
                     back_image = _back
+        if spine_image is not None:
+            extracted_spine = upright_spine(spine_image)
 
         # The back view is the front view mirrored: flip the back cover and
         # the spine, lay the box out as usual, then flip the finished box
