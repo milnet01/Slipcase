@@ -1,7 +1,8 @@
 <!-- ants-spec-format: 1 -->
-# SLIP-0125 — Give the PS5 case its real shape and painted detail in the 3D viewer
+# SLIP-0125 — Give the PS5 case its real shape in the 3D viewer
 
-**Status:** spec draft (2026-11-03).
+**Status:** spec draft (2026-11-03); amended 2026-11-03, before any build,
+to make the lip and the seam real shape.
 **Kind:** implement.
 **Source:** ROADMAP SLIP-0125 (user request 2026-11-03; shape format agreed
 with the RetroDB session the same day).
@@ -10,15 +11,17 @@ with the RetroDB session the same day).
 **Pairs with:** RetroDB PASS-59-231, which draws the same shape.
 
 **Layman:** Turn a PS5 case in the 3D viewer and it looks like the real one:
-rounded corners and edges, and the seam where the two halves meet.
+rounded corners and edges, the raised lip round the cover, and the groove
+where the two halves meet.
 
 ## 1. Goal
 
-A PS5 case in Slipcase's 3D viewer has rounded corners and rounded edges,
-and its top, bottom and opening side show the seam where the case's halves
-meet. The box file carries the shape as two measurements, so RetroDB draws
-the same case. Every other case, and every older RetroDB, behaves exactly as
-today.
+A PS5 case in Slipcase's 3D viewer has rounded corners and rounded edges, a
+raised plastic lip round the cover on its front and back, and a groove along
+its top, bottom and opening side where the case's halves meet. All of them
+are shape, not paint. The box file carries the shape as named measurements,
+so RetroDB draws the same case. Every other case, and every older RetroDB,
+behaves exactly as today.
 
 ## 2. Problem
 
@@ -26,9 +29,9 @@ today.
    flat rectangles, and `BoxViewer.paintEvent` maps one picture onto each. A
    real keep case has no square corner or edge (the user's PS4 and PS5
    photos, 2026-11-03).
-2. A wrap case's top, bottom and opening side are flat colours.
-   `build_box_model` in `core/box_model.py` leaves `top_face`, `bottom_face`
-   and `edge_face` as None for the wrap layout, so the seam never shows.
+2. The lip is paint. `inset_in_rim` in `core/image_utils.py` frames each
+   picture in plastic and paints the lip's inner wall as a shaded band, so
+   the lip has no height when the box turns. The seam is not drawn at all.
 3. The box file cannot say what shape a case is. RetroDB reads it
    (SLIP-0104 § 4.1), so a shape only Slipcase knew would make the two apps
    show different boxes.
@@ -37,6 +40,13 @@ today.
 
 - **Real shape and painted detail together, worked out with RetroDB.** The
   user, 2026-11-03, chose this over painted detail first.
+- **The lip and the seam are shape, not paint.** The user, 2026-11-03, will
+  use the feature only once it is complete, and asked for the finished
+  shape rather than paint to be redone later. The seam is "most certainly
+  visible in real life" (the user), and shows as a clear line on the closed
+  case in the reference photos.
+- **The tray and disc stay out.** The user, 2026-11-03, agreed: with a game
+  in the case, the cover hides them.
 - **PS5 first.** The user, 2026-11-03: "Let's test PS5 for now", then other
   cases from reference photos or research.
 - **The size stays 135 × 171.5 × 13 mm.** The user, 2026-11-03, kept the
@@ -57,7 +67,9 @@ today.
 `S.box.json` gains one optional top-level key. Version stays 1.
 
 ```json
-"shape": {"corner_radius_mm": 3, "edge_radius_mm": 1}
+"shape": {"corner_radius_mm": 3, "edge_radius_mm": 1,
+          "lip_width_mm": 2.5, "lip_height_mm": 0.5,
+          "seam_width_mm": 0.8, "seam_depth_mm": 0.4}
 ```
 
 ```
@@ -65,41 +77,67 @@ today.
 
   (a)                                         (a)
    .--------------------------------------------.
-   |                                            |
-   |                 front                      |
-   |                                            |
+   | spine side: no lip   .--------------(c)--. |
+   |                      |   sheet           | |
+   |                      '-------------------' |
    '--------------------------------------------'
   (a)                                         (a)
 
- Cut across the case, seen from the top:
+ The opening side, cut across, outside on the right:
 
-        spine     front                       opening
-          .-(b)------------------------------(b)-.
-          |                                      |
-          '-(b)------------------------------(b)-'
-                  back
+          |<- (c) width ->|
+  front   _______________ .
+  sheet  |                 '.  (b)
+  _______|  (c) height       |
+                             |
+                             >  (d) at half the depth
+                             |
+  _______                   .'
+  back   |_______________ .'   (b)
 ```
 
 - **(a) `corner_radius_mm`** rounds the four corners of the outline seen
   from the front, through the whole depth.
 - **(b) `edge_radius_mm`** rounds the eight edges where the front and the
-  back meet the four sides, the two hinge edges included.
-- **The outer size stays `case`'s.** Rounding takes material away; nothing
-  stands outside the box.
+  back meet the four sides. On the top, bottom and opening side it rounds
+  the lip's outer edge; on the spine side, the edge between the sheet and
+  the spine.
+- **(c) `lip_width_mm` and `lip_height_mm`.** On the front and on the back,
+  a lip `lip_width_mm` wide runs along the top, the bottom and the opening
+  side, measured in from the outline. The sheet lies `lip_height_mm` below
+  the lip's top. The lip's inner wall is straight. The spine side has no
+  lip: the sheet runs to the spine's rounded edge, and the lip falls to the
+  sheet's level round the curve of the spine-side corners.
+- **(d) `seam_width_mm` and `seam_depth_mm`.** A V-shaped groove at half
+  the depth, along the top, the bottom and the opening side:
+  `seam_width_mm` wide at the surface, its deepest line `seam_depth_mm`
+  in. The spine side has none.
+- **The outer size stays `case`'s.** Rounding and grooves take material
+  away; the lip's top is the case's face. Nothing stands outside the box.
 - **Pictures.** Each face's picture still spans its face's full outer
   rectangle, `case`'s size. Every flat part shows the region of that
-  picture lying on it, cropped, never rescaled. Each viewer decides how
-  much detail the rounded parts get; plain plastic in `colours` is always
-  allowed.
+  picture straight below it on the face's plane, cropped, never rescaled.
+  Each viewer decides how much detail the rounded parts, the lip's walls
+  and the groove get; plain plastic in `colours` is always allowed.
 
 **Reading rules for `shape`**, added to SLIP-0104 § 4.1's: a missing `shape`
-means flat. Each value must be a number, not `true` or `false`, at least 0.
-A value of 0 means that rounding is absent; both 0 is a flat box. `corner_radius_mm` is
-at most a quarter of the smaller of `width_mm` and `height_mm`;
-`edge_radius_mm` at most a quarter of `depth_mm`. A `shape` that is not an
-object, lacks a key, or breaks a limit is ignored whole and the box is drawn
-flat. It never refuses the file: a wrong decoration is no reason to lose a
-box.
+means flat. `corner_radius_mm` and `edge_radius_mm` are required; a missing
+`lip_*` or `seam_*` key means 0, so a shape written before the lip and seam
+reads. Each value must be a number, not `true` or `false`, at least 0. A
+value of 0 means that feature is absent; every value 0 is a flat box. The
+limits:
+
+- `corner_radius_mm` and `lip_width_mm`: at most a quarter of the smaller
+  of `width_mm` and `height_mm`.
+- `edge_radius_mm`: at most a quarter of `depth_mm`.
+- `lip_height_mm` and `seam_width_mm`: at most an eighth of `depth_mm`.
+- `seam_depth_mm`: at most `seam_width_mm`.
+- With `lip_height_mm` above 0, `lip_width_mm` is above 0 and at least
+  `edge_radius_mm`, so the rounding fits on the lip.
+
+A `shape` that is not an object, lacks a required key, or breaks a rule is
+ignored whole and the box is drawn flat. It never refuses the file: a wrong
+decoration is no reason to lose a box.
 
 ### 4.2 Where the shape comes from
 
@@ -108,42 +146,41 @@ box.
 class CaseShape:                 # core/case_types.py
     corner_radius: float         # mm, as § 4.1 (a)
     edge_radius: float           # mm, as § 4.1 (b)
+    lip_width: float = 0.0       # mm, as § 4.1 (c)
+    lip_height: float = 0.0
+    seam_width: float = 0.0      # mm, as § 4.1 (d)
+    seam_depth: float = 0.0
 
 CaseType.shape: CaseShape | None = None
 ```
 
-Only "PS5 Blu-ray Case" sets it, at working figures: `corner_radius` 3.0 mm,
-measured from the user's straight-on PS5 photo against the case's 135 mm
-width (2026-11-03), an estimate; `edge_radius` 1.0 mm, judged by eye from
-the closed-case photos. No published source gives either (research
-2026-11-03). The user's by-eye check sets them.
+Only "PS5 Blu-ray Case" sets it. Its figures are working estimates; no
+published source gives any of them (research 2026-11-03):
 
-`write_box_file` writes `"shape"` when `case_type.shape` is set, with both
-keys in mm, and leaves it out otherwise. `read_box_file` applies § 4.1's
+- `corner_radius` 3.0 mm, measured from the user's straight-on PS5 photo
+  against the case's 135 mm width (2026-11-03).
+- `edge_radius` 1.0 mm, judged by eye from the closed-case photos.
+- `lip_width` equal to the case's `rim_mm`, so the lip and the plastic
+  frame in the pictures line up.
+- `lip_height` 0.5 mm, unsourced.
+- `seam_width` 0.8 mm and `seam_depth` 0.4 mm, from the closed case photo
+  labelled 10 mm deep, where the seam's line is about a twentieth of the
+  depth (2026-11-03).
+
+The user's by-eye check sets them all.
+
+`write_box_file` writes `"shape"` when `case_type.shape` is set, with all
+six keys in mm, and leaves it out otherwise. `read_box_file` applies § 4.1's
 rules and puts the result on the `CaseType` it builds.
 
-### 4.3 Painted detail
+### 4.3 The painted lip gives way to the real one
 
-For a wrap case with `shape` set and `show_texture` on, `build_box_model`
-also makes `top_face`, `bottom_face` and `edge_face`. Each is the bare
-plastic at the front's px/mm, with the seam where the halves meet: a fine
-dark line with a lit line beside it, along the full length, at half the
-depth. The front half is a shade lighter, as the lid catches more light in
-the photos. Line widths and shades are judged by eye. They follow
-`show_texture` as every overlay does (SLIP-0104 INV-11). The front, spine
-and back pictures are unchanged; their painted lip, with its shaded inner
-wall (`inset_in_rim` in `core/image_utils.py`), stays the lip.
-
-New in `core/case_texture.py`:
-
-```python
-def generate_keep_side(case_type: CaseType, plastic: tuple[int, int, int],
-                       length: int, depth: int) -> Image.Image: ...
-```
-
-It returns one side, `length` px long and `depth` px deep, laid as the
-top's picture is: the front half along its lower edge. The caller turns or
-flips each side into SLIP-0104 § 4.1's orientation for that face.
+For a wrap case whose shape has `lip_height` above 0, `build_box_model`
+frames each picture as today but without the lip's painted inner wall: the
+shape now casts it. `inset_in_rim` gains `wall: bool = True`; the model
+passes False for such a case. The still render keeps the painted wall
+(§ 4.4). The top, bottom and opening side get no pictures: `top_face`,
+`bottom_face` and `edge_face` stay None for the wrap layout, as today.
 
 ### 4.4 Drawing the shape
 
@@ -157,26 +194,41 @@ class Patch:
     source: list[tuple[float, float]] | None  # its corners in that picture, 0..1
     colour: str                   # "top", "bottom" or "edge": fill when face is None
 
+def face_corners(case_type: CaseType) -> dict[str, list[Vec]]: ...
 def box_patches(case_type: CaseType) -> list[Patch]: ...
 ```
 
-With `shape` None, `box_patches` gives the six faces `_face_corners` gives
-today; that function moves into this module. With a shape, it builds the
-solid from rings of the rounded outline, front to back. Each ring is the
-outline inset by the edge rounding at its depth, its corner radius reduced
-by the same inset and never below 0. Quads join the rings; the front and
-back faces are flat caps. Eight segments a corner and three an edge
-rounding are the starting figures.
+`face_corners` is today's `_face_corners`, moved from `ui/box_viewer.py`.
+With `shape` None, `box_patches` gives the six faces it gives. With a shape,
+it builds the solid from rings running round the outline, front to back.
+Each side has a profile: the inset from the outline and the height of each
+ring on that side. The top, bottom and opening side share one, with the
+lip, its rounding and the groove; the spine side has its own, with neither.
+Round a corner, a ring's inset and height pass from one side's value to
+the other's. Quads join the rings; the two sheets are flat caps. Eight
+segments a corner and three an edge rounding are the starting figures.
 
-The solid is convex, so SLIP-0104 § 4.5's rule still holds: the viewer
-draws only patches turned towards the camera, and none of them overlap. A
-flat part is drawn with `QTransform.quadToQuad` from its face's plane and
-clipped to the part, so one picture spans its face. A rounded patch next to
-a picture continues that picture's border pixels; others are plain
-plastic. `visible_faces` still names the faces whose flat parts face the
-camera.
+Each patch shows the picture of the face its outward direction is nearest
+to, at its region straight below it on that face's plane. A lip's inner
+wall shows the lip top beside it. Slipcase's viewer maps a picture onto the
+flat parts and onto the long straight strips, and fills small patches with
+their region's average colour.
 
-The still render (`BoxRenderer.render`) does not use the shape.
+The solid is not convex: the lip stands above the sheet, and the groove
+dips into the sides. So SLIP-0104 § 4.5's "no sorting" no longer holds for
+a shaped box. The viewer draws only patches turned towards the camera. At
+most one sheet faces the camera, as the two face opposite ways. The viewer
+draws what lies behind that sheet's plane, then the sheet, then what stands
+in front of it; each group from the farthest centre to the nearest. The
+plane decides exactly what the sheet hides: the back lip's inner walls face
+the camera from behind the front sheet, and drawn after it they show
+through it. Within a group the patches are small, so sorting them by centre
+goes wrong only at their joins, if at all; the by-eye check judges that
+(§ 6). `visible_faces` still names the faces whose outer rectangle
+faces the camera.
+
+The still render (`BoxRenderer.render`) does not use the shape, and keeps
+its painted lip.
 
 ## 5. Invariants
 
@@ -194,9 +246,10 @@ The still render (`BoxRenderer.render`) does not use the shape.
   *Breaks when:* a rounding is added outside the outline, or a cap is
   placed short of the depth.
 
-- **INV-3** — The shaped solid is closed and convex, wound outward: every
-  patch's normal points away from the box's centre, and every edge is
-  shared by exactly two patches.
+- **INV-3** — *Withdrawn 2026-11-03: the lip and the groove make the solid
+  concave (§ 4.4). INV-8 replaces it.* The shaped solid is closed and
+  convex, wound outward: every patch's normal points away from the box's
+  centre, and every edge is shared by exactly two patches.
   *Test:* `tests/test_box_shape.py::test_closed_and_outward`, which also
   checks that no patch corner lies in front of another patch's plane.
   *Breaks when:* a ring is joined in the wrong order, so the viewer culls
@@ -209,6 +262,9 @@ The still render (`BoxRenderer.render`) does not use the shape.
   *Test:* `tests/test_box_file.py::test_shape_written` and
   `::test_shape_is_optional`.
   *Breaks when:* the version is raised, or a reader requires `shape`.
+  *Amended 2026-11-03:* a `shape` with only `corner_radius_mm` and
+  `edge_radius_mm` reads, with the lip and seam 0
+  (`::test_two_key_shape_reads`).
 
 - **INV-5** — A `shape` that breaks § 4.1's rules is ignored whole and the
   rest of the file reads.
@@ -218,8 +274,14 @@ The still render (`BoxRenderer.render`) does not use the shape.
   of the depth. Each reads, with `case_type.shape` None.
   *Breaks when:* a bad shape refuses the file, or a value over its limit is
   clamped instead of ignored.
+  *Amended 2026-11-03:* the same test also carries one fixture per new
+  rule: a lip height and a seam width above an eighth of the depth, a seam
+  depth above its width, a lip width above a quarter of the width, a lip
+  narrower than the edge rounding, and `true` and −1 in a lip or seam key.
 
-- **INV-6** — With a shape and `show_texture` set, a wrap model has a
+- **INV-6** — *Withdrawn 2026-11-03: the seam is shape, so the sides get no
+  pictures (§ 4.3). INV-9 replaces it.* With a shape and `show_texture` set,
+  a wrap model has a
   `top_face`, `bottom_face` and `edge_face`; with `show_texture` clear, or
   with no shape, it has none.
   *Test:* `tests/test_box_model.py::test_keep_sides_follow_texture`.
@@ -231,6 +293,26 @@ The still render (`BoxRenderer.render`) does not use the shape.
   *Test:* `tests/test_renderer.py::test_render_ignores_shape`.
   *Breaks when:* `render` reads `case_type.shape`.
 
+- **INV-8** — The shaped solid is closed and wound outward: every edge is
+  shared by exactly two patches, which cross it in opposite directions, and
+  the volume they enclose is positive and below the outer box's.
+  *Test:* `tests/test_box_shape.py::test_closed_and_wound_outward`, on the
+  PS5 case and on shapes with no lip, no seam, square corners, and corners
+  tighter than the lip.
+  *Breaks when:* a ring is joined in the wrong order, so the viewer culls a
+  side facing the camera; a gap is left between a cap and its ring; or a
+  corner's passage from one side's profile to the other leaves a hole.
+
+- **INV-9** — A wrap case whose shape has a lip gets pictures framed without
+  the painted inner wall; a case without a shape gets today's pictures.
+  Every shaped case's `lip_width` equals its `rim_mm`.
+  *Test:* `tests/test_box_model.py::test_lip_replaces_painted_wall`, which
+  reads the row just inside the top of the frame in the PS5 front: plain
+  plastic with the shape, the wall's shade with `shape` set to None; and
+  `::test_lip_width_is_rim_width`, over every case in `CASE_TYPES`.
+  *Breaks when:* the wall is painted under a real lip, or a lip width
+  drifts from the frame it should cover.
+
 SLIP-0104's INV-7 (visible faces) and INV-12 (nothing outside the box) still
 bind the viewer, and their tests run unchanged.
 
@@ -240,6 +322,10 @@ bind the viewer, and their tests run unchanged.
   patches. If a frame takes longer than the spin's timer interval
   (`_SPIN_INTERVAL_MS`), the segment counts drop before anything else
   changes.
+- **A patch drawn in the wrong order.** Sorting by centre can draw a patch
+  over a nearer one where two meet. The patches are small, so a mistake
+  shows as a sliver at a join. The by-eye check looks for one; if it shows,
+  the segment counts rise round the lip.
 - **A tiny face picture.** A clip at sub-pixel size draws nothing; that
   costs detail, not correctness.
 - **RetroDB draws less.** Its viewer draws at its own fidelity (§ 4.1), so
@@ -248,10 +334,11 @@ bind the viewer, and their tests run unchanged.
 
 ## 7. Tests
 
-- INV-1, INV-2, INV-3 — `tests/test_box_shape.py`, a new file listed in
+- INV-1, INV-2, INV-8 — `tests/test_box_shape.py`, a new file listed in
   `.indie-review/partition.json`.
 - INV-4, INV-5 — `tests/test_box_file.py`.
-- INV-6 — `tests/test_box_model.py`.
+- INV-9 — `tests/test_box_model.py`.
+- INV-3 and INV-6 — withdrawn (§ 5); INV-8 and INV-9 replace them.
 - INV-7 — `tests/test_renderer.py`.
 
 Each is new and is seen failing before its code exists. The look has no
@@ -263,12 +350,13 @@ automated check: the user compares the viewer with their photos.
   ties both apps to one geometry pipeline.
 - **Box file version 2.** Rejected: every released RetroDB refuses it, while
   version 1 with an extra key loads everywhere.
-- **A raised lip as shape.** Rejected: the lip has no hinge side, so a
-  raised one steps at the hinge and makes the solid concave, which needs
-  depth sorting in both viewers. It is about half a millimetre, unsourced,
-  and already painted with a shaded inner wall.
+- **A painted lip and seam.** The first draft chose them, as a raised lip
+  makes the solid concave. The user, 2026-11-03, chose the finished shape
+  instead (§ 3); the draw order in § 4.4 handles the concave solid.
+- **Painted sides with the seam** (`generate_keep_side`). Dropped with the
+  painted seam: the groove is shape.
 - **OpenGL or Qt Quick 3D in Slipcase.** Rejected: a new dependency, and
-  SLIP-0104 chose `QPainter`. A convex solid needs only culling.
+  SLIP-0104 chose `QPainter`. Culling and a centre sort draw this solid.
 - **Painted detail only.** The user chose both, 2026-11-03.
 - **Refusing a box file with a bad shape.** Rejected: a wrong decoration
   should not lose the box.
@@ -280,7 +368,8 @@ automated check: the user compares the viewer with their photos.
 - PS4, PS3, Xbox One and the other cases — deferred; not yet queued. They
   follow the user's check of the PS5 case and reference photos.
 - The tray and disc seen through the plastic — deferred; not yet queued.
-  With a game in the case, the back cover hides them.
+  With a game in the case, the cover hides them (the user agreed,
+  2026-11-03).
 - Moulded marks on the edges — deferred; not yet queued. No source.
 - The shape in the still render — deferred; not yet queued.
 
@@ -290,21 +379,26 @@ automated check: the user compares the viewer with their photos.
 |------|----------------------|
 | INV-1 | `tests/test_box_shape.py::test_no_shape_is_six_faces` |
 | INV-2 | `tests/test_box_shape.py::test_outer_size_kept` |
-| INV-3 | `tests/test_box_shape.py::test_closed_and_outward` |
-| INV-4 | `tests/test_box_file.py::test_shape_written`, `::test_shape_is_optional` |
+| INV-3 | withdrawn — see INV-8 |
+| INV-4 | `tests/test_box_file.py::test_shape_written`, `::test_shape_is_optional`, `::test_two_key_shape_reads` |
 | INV-5 | `tests/test_box_file.py::test_bad_shape_ignored` |
-| INV-6 | `tests/test_box_model.py::test_keep_sides_follow_texture` |
+| INV-6 | withdrawn — see INV-9 |
 | INV-7 | `tests/test_renderer.py::test_render_ignores_shape` |
+| INV-8 | `tests/test_box_shape.py::test_closed_and_wound_outward` |
+| INV-9 | `tests/test_box_model.py::test_lip_replaces_painted_wall`, `::test_lip_width_is_rim_width` |
+| § 4.4's draw order | **nothing** — the by-eye check (§ 6) |
 | § 4.2's working figures | **nothing** — no source exists; the user's by-eye check |
 | § 6 frame time | **nothing** — judged while auto-spin runs |
 
 ## 11. Cross-doc impact
 
 - `SLIP-0104-turnable-3d-box.md`: § 4.1 gains the `shape` key, pointing
-  here; § 4.5 names `box_patches` as what is drawn; INV-1 and INV-13 are
-  annotated (§ 13).
+  here; § 4.5 names `box_patches` as what is drawn, and the draw order of
+  a shaped box; INV-1 is annotated (§ 13).
 - `CHANGELOG.md`: Added, under Unreleased.
 - RetroDB: the session is sent this path; PASS-59-231 builds from § 4.1.
+  The amendment of 2026-11-03 adds the lip and seam keys, which RetroDB is
+  sent.
 
 ## 12. Cold-eyes loop log
 
@@ -318,9 +412,10 @@ Rows live in `../reviews/SLIP-0125-keep-case-shape-loop-log.md`.
   builds drop the key at import, so a box imported there must be imported
   again to gain its shape.
 - SLIP-0104 INV-1 ("exactly § 4.1's keys") now allows the optional `shape`.
-  SLIP-0104 INV-13 ("a wrap box file writes `"edge": null`") now holds for
-  wrap cases without a shape, or with `show_texture` clear.
+  SLIP-0104 INV-13 ("a wrap box file writes `"edge": null`") holds
+  unchanged, as the sides get no pictures (§ 4.3).
 
 ## 14. Open questions
 
 - The working figures in § 4.2, until the user's check.
+- Whether RetroDB takes the lip and seam keys as written in § 4.1.

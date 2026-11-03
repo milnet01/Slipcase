@@ -1577,6 +1577,13 @@ building.
   that rounding, as § 4.1 says; § 4.1 stands. RetroDB noted the user had
   asked for a raised lip in PASS-59-231; the spec leaves the lip painted
   (§ 8). The user is asked whether to keep it painted.
+  The user, 2026-11-03: build the finished shape, not paint; the seam is
+  clearly visible on a real case. Spec amended the same day (lip and
+  seam keys in § 4.1; INV-3 and INV-6 withdrawn, INV-8 and INV-9 added);
+  RetroDB sent the new keys. Built 2026-11-03: core/box_shape.py, the
+  shape in the box file, the viewer draws the shaped PS5 case. Tray and
+  disc stay out (user agreed); other cases follow the PS5 check. Waiting
+  on the user's by-eye check of the working figures.
   **Layman:** Turn a PS5 case in the 3D viewer and it looks like the real one: rounded corners, the plastic lip, the seam and the tray seen through the plastic.
   Kind: feature.
   Source: user-request-2026-11-03.

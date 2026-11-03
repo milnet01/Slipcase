@@ -15,7 +15,7 @@ import tempfile
 from PIL import Image
 
 from core.box_model import BoxModel
-from core.case_types import CaseType
+from core.case_types import CaseShape, CaseType
 from core.png_utils import save_optimized_png
 from core.version import __version__
 
@@ -30,6 +30,12 @@ _FACES = {"front": "front", "spine": "spine", "back": "back", "edge": "edge_face
 _COLOURS = ("top", "bottom", "edge")
 _SIZES = ("width_mm", "height_mm", "depth_mm")
 _MAX_SIZE_MM = 1000
+# The shape's keys (SLIP-0125 § 4.1), each with its CaseShape field. The
+# first two are required; a missing lip or seam key means 0.
+_SHAPE_KEYS = {"corner_radius_mm": "corner_radius", "edge_radius_mm": "edge_radius",
+               "lip_width_mm": "lip_width", "lip_height_mm": "lip_height",
+               "seam_width_mm": "seam_width", "seam_depth_mm": "seam_depth"}
+_SHAPE_REQUIRED = ("corner_radius_mm", "edge_radius_mm")
 _COLOUR_RE = re.compile(r"#[0-9A-Fa-f]{6}")
 
 
@@ -94,6 +100,9 @@ def write_box_file(model: BoxModel, folder: str, stem: str,
         "faces": {face: names[face] if getattr(model, attr) is not None else None
                   for face, attr in _FACES.items()},
     }
+    if ct.shape is not None:
+        data["shape"] = {key: getattr(ct.shape, field)
+                         for key, field in _SHAPE_KEYS.items()}
 
     written: list[str] = []
     try:
@@ -145,6 +154,33 @@ def _face(folder: str, name: object) -> Image.Image:
         raise BoxFileError(f"face picture unreadable: {name}: {e}") from e
 
 
+def _shape(data: dict, width: float, height: float, depth: float) -> CaseShape | None:
+    """The `shape` section by SLIP-0125 § 4.1's rules, or None for a flat
+    box. A shape breaking any rule is ignored whole, never refused."""
+    shape = data.get("shape")
+    if not isinstance(shape, dict) or any(key not in shape for key in _SHAPE_REQUIRED):
+        return None
+    values = {}
+    for key, field in _SHAPE_KEYS.items():
+        value = shape.get(key, 0)
+        if (isinstance(value, bool) or not isinstance(value, (int, float))
+                or not math.isfinite(value) or value < 0):
+            return None
+        values[field] = value
+    result = CaseShape(**values)
+    side, lip = min(width, height) / 4, result.lip_height > 0
+    if (result.corner_radius > side or result.lip_width > side
+            or result.edge_radius > depth / 4
+            or result.lip_height > depth / 8 or result.seam_width > depth / 8
+            or result.seam_depth > result.seam_width
+            or (lip and (result.lip_width == 0
+                         or result.lip_width < result.edge_radius))):
+        return None
+    if not any(values.values()):
+        return None
+    return result
+
+
 def _section(data: dict, key: str) -> dict:
     value = data.get(key)
     if not isinstance(value, dict):
@@ -153,7 +189,8 @@ def _section(data: dict, key: str) -> dict:
 
 
 def read_box_file(path: str) -> BoxModel:
-    """Read a box file, applying every reading rule of SLIP-0104 § 4.1."""
+    """Read a box file, applying every reading rule of SLIP-0104 § 4.1 and,
+    for its shape, of SLIP-0125 § 4.1."""
     try:
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
@@ -185,7 +222,7 @@ def read_box_file(path: str) -> BoxModel:
                 for key, name in optional.items()}
     return BoxModel(
         case_type=CaseType(name=name, width=width, height=height, depth=depth,
-                           platforms=()),
+                           platforms=(), shape=_shape(data, width, height, depth)),
         top=top, bottom=bottom, edge=edge,
         front=_face(folder, faces["front"]),
         spine=_face(folder, faces["spine"]),

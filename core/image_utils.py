@@ -254,6 +254,7 @@ def inset_in_rim(
     case_type: CaseType,
     case_color: tuple[int, int, int] | None,
     opening: str | None,
+    wall: bool = True,
 ) -> Image.Image:
     """Shrink a printed face into its case's plastic lip; RGBA.
 
@@ -261,7 +262,8 @@ def inset_in_rim(
     `opening` ("left" or "right"; None for a spine, which has neither). The
     hinge side has none, so the art runs on to the spine. The art is shrunk,
     not cropped, as a logo often sits at its very edge. A case with no rim
-    returns `face` untouched.
+    returns `face` untouched. With `wall` clear, the lip's inner wall is not
+    painted: a 3D viewer drawing a real lip casts it (SLIP-0125 § 4.3).
     """
     if not case_type.rim_mm:
         return face
@@ -276,12 +278,12 @@ def inset_in_rim(
     right = width - rim if opening == "right" else width
     # The lip's inner wall, in shade, so the sheet reads as sunk below it. A
     # one-pixel lip has no room for one and must still read as the plastic.
-    wall = round(rim * _RIM_WALL_SHARE) if rim > 1 else 0
-    if wall:
+    band = round(rim * _RIM_WALL_SHARE) if wall and rim > 1 else 0
+    if band:
         shade = tuple(round(c * _RIM_WALL_SHADE) for c in plastic)
         framed.paste((*shade, 255), (
-            max(0, left - wall), rim - wall,
-            min(width, right + wall), height - rim + wall,
+            max(0, left - band), rim - band,
+            min(width, right + band), height - rim + band,
         ))
     art = face if face.mode == "RGBA" else face.convert("RGBA")
     art = art.resize((max(1, right - left), height - 2 * rim), Image.Resampling.LANCZOS)

@@ -1,10 +1,14 @@
 """A turnable, zoomable 3D view of a BoxModel, drawn with QPainter.
 
-Each face's four corners are projected with a perspective camera that orbits
-the box, and its picture is mapped onto them with QTransform.quadToQuad,
-which draws it perspective-correctly. Only faces turned towards the camera
-are drawn; on a box those never overlap, so no sorting is needed
-(SLIP-0104 § 4.5).
+The box is the patches core.box_shape gives: six faces, or a shaped case's
+surface (SLIP-0125 § 4.4). Each patch's corners are projected with a
+perspective camera that orbits the box, and a picture is mapped onto them
+with QTransform.quadToQuad, which draws it perspective-correctly. Only
+patches turned towards the camera are drawn. A six-faced box needs no
+sorting, as its faces never overlap (SLIP-0104 § 4.5). A shaped one is not
+convex: at most one of its two sheets faces the camera, and what lies behind
+that sheet's plane is drawn before it, what stands in front after it, each
+from the farthest centre to the nearest.
 
 Box coordinates are millimetres with the box centred on the origin: x runs
 across the front, y up, z out of the front. The spine is the x = -width/2
@@ -12,16 +16,19 @@ face, on the front's left as seen from the front.
 """
 
 import math
+from dataclasses import dataclass
 
+import numpy as np
 from PIL import Image
 from PyQt6.QtCore import QPointF, QRectF, Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import (
-    QColor, QImage, QKeyEvent, QMouseEvent, QPainter, QPaintEvent, QPolygonF,
-    QTransform, QWheelEvent,
+    QColor, QImage, QKeyEvent, QMouseEvent, QPainter, QPainterPath, QPaintEvent,
+    QPen, QPolygonF, QTransform, QWheelEvent,
 )
 from PyQt6.QtWidgets import QWidget
 
 from core.box_model import BoxModel
+from core.box_shape import Patch, box_patches, face_corners, patch_normal
 
 Vec = tuple[float, float, float]
 
@@ -50,6 +57,9 @@ _SPIN_INTERVAL_MS = 33
 _AMBIENT = 0.45
 _DIFFUSE = 0.55
 _LIGHT_IN_VIEW = (0.3, 0.35, 0.89)  # (right, up, towards the camera)
+# A rounded strip whose region of its picture spans fewer pixels than this
+# is filled with that region's average colour instead of the picture.
+_PICTURE_MIN_PX = 8
 
 
 def _sub(a: Vec, b: Vec) -> Vec:
@@ -71,24 +81,72 @@ def _unit(a: Vec) -> Vec:
     return (a[0] / n, a[1] / n, a[2] / n)
 
 
-def _face_corners(model: BoxModel) -> dict[str, list[Vec]]:
-    """Each face's corners as seen from outside the box: top left, top
-    right, bottom right, bottom left of its picture."""
-    ct = model.case_type
-    w, h, d = ct.width / 2, ct.height / 2, ct.depth / 2
-    return {
-        "front": [(-w, h, d), (w, h, d), (w, -h, d), (-w, -h, d)],
-        "back": [(w, h, -d), (-w, h, -d), (-w, -h, -d), (w, -h, -d)],
-        "spine": [(-w, h, -d), (-w, h, d), (-w, -h, d), (-w, -h, -d)],
-        "edge": [(w, h, d), (w, h, -d), (w, -h, -d), (w, -h, d)],
-        "top": [(-w, h, -d), (w, h, -d), (w, h, d), (-w, h, d)],
-        "bottom": [(-w, -h, d), (w, -h, d), (w, -h, -d), (-w, -h, -d)],
-    }
+@dataclass
+class _Piece:
+    """A patch as the viewer draws it, worked out once per model.
+
+    `mode` is "plane" for a face, or a sheet, drawn by its face's picture
+    mapped onto `plane` and clipped to the patch; "strip" for a patch drawn
+    by the region `rect` of its picture, whose corners are `source`; and
+    "fill" for a patch filled with `colour` alone.
+    """
+    corners: list[Vec]
+    normal: Vec
+    centre: Vec
+    colour: tuple[int, int, int]
+    face: str | None
+    mode: str
+    sheet: bool                     # the cover's flat sheet, front or back
+    plane: list[Vec] | None = None
+    source: QPolygonF | None = None
+    rect: QRectF | None = None
 
 
-def _outward_normal(corners: list[Vec]) -> Vec:
-    tl, tr, _br, bl = corners
-    return _unit(_cross(_sub(bl, tl), _sub(tr, tl)))
+def _piece(patch: Patch, pictures: dict[str, np.ndarray],
+           plain: dict[str, tuple[int, int, int]],
+           faces: dict[str, list[Vec]], shaped: bool) -> _Piece | None:
+    """How to draw `patch`, or None for a patch with no area."""
+    normal = patch_normal(patch.corners)
+    if normal == (0.0, 0.0, 0.0):
+        return None
+    n = len(patch.corners)
+    centre = tuple(sum(c[i] for c in patch.corners) / n for i in range(3))
+    piece = _Piece(patch.corners, normal, centre, plain[patch.colour], None,
+                   "fill", shaped and n > 4)
+    picture = pictures.get(patch.face) if patch.face is not None else None
+    if picture is None:
+        return piece
+
+    height, width = picture.shape[:2]
+    us = [u * width for u, _ in patch.source]
+    vs = [v * height for _, v in patch.source]
+    x0 = min(max(0, math.floor(min(us))), width - 1)
+    y0 = min(max(0, math.floor(min(vs))), height - 1)
+    x1 = max(x0 + 1, min(width, math.ceil(max(us))))
+    y1 = max(y0 + 1, min(height, math.ceil(max(vs))))
+    region = picture[y0:y1, x0:x1].reshape(-1, picture.shape[2])[:, :3]
+    piece.colour = tuple(int(round(c)) for c in region.mean(axis=0))
+
+    outer = faces[patch.face]
+    face_normal = patch_normal(outer)
+    if not shaped or (n > 4 and _dot(normal, face_normal) > 1 - 1e-9):
+        # A face, or a sheet parallel to its face: the face's picture, on
+        # the patch's own plane.
+        offset = _dot(face_normal, _sub(patch.corners[0], outer[0]))
+        piece.plane = [tuple(c + offset * f for c, f in zip(corner, face_normal, strict=True))
+                       for corner in outer]
+        piece.mode, piece.face = "plane", patch.face
+    elif (n == 4 and len({round(u, 6) for u in us}) <= 2
+            and len({round(v, 6) for v in vs}) <= 2
+            and max(x1 - x0, y1 - y0) >= _PICTURE_MIN_PX):
+        # A straight strip: its region of the picture is a rectangle.
+        low_u, low_v = min(us), min(vs)
+        piece.source = QPolygonF([
+            QPointF(x0 if u - low_u < 1e-6 else x1, y0 if v - low_v < 1e-6 else y1)
+            for u, v in zip(us, vs, strict=True)])
+        piece.rect = QRectF(x0, y0, x1 - x0, y1 - y0)
+        piece.mode, piece.face = "strip", patch.face
+    return piece
 
 
 def _to_qimage(image: Image.Image) -> QImage:
@@ -118,6 +176,8 @@ class BoxViewer(QWidget):
         self._images: dict[str, QImage] = {}
         self._corners: dict[str, list[Vec]] = {}
         self._normals: dict[str, Vec] = {}
+        self._pieces: list[_Piece] = []
+        self._shaped = False
         self._radius = 1.0
         self._angle = 30.0
         self.yaw = 0.0
@@ -149,9 +209,17 @@ class BoxViewer(QWidget):
                     "top": model.top_face, "bottom": model.bottom_face}
         self._images = {face: _to_qimage(picture)
                         for face, picture in pictures.items() if picture is not None}
-        self._corners = _face_corners(model)
-        self._normals = {face: _outward_normal(c) for face, c in self._corners.items()}
         ct = model.case_type
+        self._corners = face_corners(ct)
+        self._normals = {face: patch_normal(c) for face, c in self._corners.items()}
+        self._shaped = ct.shape is not None
+        arrays = {face: np.asarray(picture.convert("RGB"))
+                  for face, picture in pictures.items() if picture is not None}
+        plain = {"top": model.top, "bottom": model.bottom, "edge": model.edge}
+        pieces = (_piece(patch, arrays, plain, self._corners, self._shaped)
+                  for patch in box_patches(ct))
+        self._pieces = [piece for piece in pieces if piece is not None]
+        del arrays
         self._radius = math.sqrt(ct.width ** 2 + ct.height ** 2 + ct.depth ** 2) / 2
         self._angle = angle
         self.reset_view()
@@ -219,7 +287,7 @@ class BoxViewer(QWidget):
         return position, right, _cross(right, forward), forward
 
     def visible_faces(self) -> set[str]:
-        """The faces turned towards the camera."""
+        """The faces whose outer rectangle is turned towards the camera."""
         position = self._camera()[0]
         return {face for face, corners in self._corners.items()
                 if _dot(self._normals[face], _sub(position, corners[0])) > 0}
@@ -234,37 +302,73 @@ class BoxViewer(QWidget):
         lx, ly, lz = _LIGHT_IN_VIEW
         light = _unit(tuple(lx * r + ly * u - lz * f
                             for r, u, f in zip(right, up, forward, strict=True)))
-        plain = {"top": self._model.top, "bottom": self._model.bottom,
-                 "edge": self._model.edge, "back": self._model.edge}
+
+        def project(corners: list[Vec]) -> QPolygonF:
+            points = []
+            for corner in corners:
+                rel = _sub(corner, position)
+                depth = _dot(rel, forward)
+                points.append(QPointF(cx + focal * _dot(rel, right) / depth,
+                                      cy - focal * _dot(rel, up) / depth))
+            return QPolygonF(points)
+
+        visible = [piece for piece in self._pieces
+                   if _dot(piece.normal, _sub(position, piece.centre)) > 0]
+        # Behind the visible sheet's plane, the sheet, then in front of it;
+        # each farthest to nearest (SLIP-0125 § 4.4).
+        sheet = next((piece for piece in visible if piece.sheet), None)
+
+        def order(piece: _Piece) -> tuple[int, float]:
+            group = 0
+            if piece is sheet:
+                group = 1
+            elif sheet is not None and _dot(sheet.normal, _sub(piece.centre, sheet.corners[0])) > 0:
+                group = 2
+            return group, -_dot(_sub(piece.centre, position), forward)
+
+        visible.sort(key=order)
 
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         painter.setPen(Qt.PenStyle.NoPen)
-        for face in self.visible_faces():
-            points = []
-            for corner in self._corners[face]:
-                rel = _sub(corner, position)
-                depth = _dot(rel, forward)
-                points.append(QPointF(cx + focal * _dot(rel, right) / depth,
-                                      cy - focal * _dot(rel, up) / depth))
-            quad = QPolygonF(points)
-            brightness = _AMBIENT + _DIFFUSE * max(0.0, _dot(self._normals[face], light))
-            image = self._images.get(face)
-            if image is None:
-                painter.setBrush(QColor(*(round(c * brightness) for c in plain[face])))
-                painter.drawPolygon(quad)
+        for piece in visible:
+            polygon = project(piece.corners)
+            brightness = _AMBIENT + _DIFFUSE * max(0.0, _dot(piece.normal, light))
+            if self._shaped or piece.mode == "fill":
+                colour = QColor(*(round(c * brightness) for c in piece.colour))
+                if self._shaped:
+                    # Outlined in its own colour, so no gap shows between patches.
+                    painter.setPen(QPen(colour, 1))
+                painter.setBrush(colour)
+                painter.drawPolygon(polygon)
+            if piece.mode == "fill":
                 continue
-            rect = QRectF(0, 0, image.width(), image.height())
-            source = QPolygonF([rect.topLeft(), rect.topRight(),
-                                rect.bottomRight(), rect.bottomLeft()])
+            image = self._images[piece.face]
+            shade = QColor(0, 0, 0, round(255 * (1 - brightness)))
             transform = QTransform()
-            if not QTransform.quadToQuad(source, quad, transform):
-                continue
-            painter.setTransform(transform)
-            painter.drawImage(0, 0, image)
-            painter.fillRect(rect, QColor(0, 0, 0, round(255 * (1 - brightness))))
+            if piece.mode == "plane":
+                rect = QRectF(0, 0, image.width(), image.height())
+                source = QPolygonF([rect.topLeft(), rect.topRight(),
+                                    rect.bottomRight(), rect.bottomLeft()])
+                if not QTransform.quadToQuad(source, project(piece.plane), transform):
+                    continue
+                if self._shaped:
+                    path = QPainterPath()
+                    path.addPolygon(polygon)
+                    path.closeSubpath()
+                    painter.setClipPath(path)
+                painter.setTransform(transform)
+                painter.drawImage(0, 0, image)
+            else:
+                if not QTransform.quadToQuad(piece.source, polygon, transform):
+                    continue
+                rect = piece.rect
+                painter.setTransform(transform)
+                painter.drawImage(rect.topLeft(), image, rect)
+            painter.fillRect(rect, shade)
             painter.resetTransform()
+            painter.setClipping(False)
         painter.end()
 
     # --- Controls ---

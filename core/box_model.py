@@ -126,11 +126,13 @@ def build_box_model(
             bg_color=spine_color,
         ).convert("RGBA")
 
-    # Seen from behind, the opening side is on the left.
-    front = inset_in_rim(front, case_type, case_color, opening="right")
-    spine = inset_in_rim(spine, case_type, case_color, opening=None)
+    # Seen from behind, the opening side is on the left. A real lip casts its
+    # own inner wall in the viewer, so none is painted (SLIP-0125 § 4.3).
+    wall = case_type.shape is None or case_type.shape.lip_height == 0
+    front = inset_in_rim(front, case_type, case_color, opening="right", wall=wall)
+    spine = inset_in_rim(spine, case_type, case_color, opening=None, wall=wall)
     if back is not None:
-        back = inset_in_rim(back, case_type, case_color, opening="left")
+        back = inset_in_rim(back, case_type, case_color, opening="left", wall=wall)
 
     if show_texture:
         front = Image.alpha_composite(

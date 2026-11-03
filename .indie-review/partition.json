@@ -5,7 +5,7 @@
     {
       "name": "render-engine",
       "summary": "Turns a flat cover into a 3D box: perspective transform, shading, reflection, shadow, and the PNG write.",
-      "sourcePaths": ["core/renderer.py", "core/case_texture.py", "core/png_utils.py", "core/box_model.py", "core/box_file.py"]
+      "sourcePaths": ["core/renderer.py", "core/case_texture.py", "core/png_utils.py", "core/box_model.py", "core/box_file.py", "core/box_shape.py"]
     },
     {
       "name": "image-analysis",
@@ -65,7 +65,7 @@
     {
       "name": "tests",
       "summary": "The test suite. review-code excludes this lane; review-tests is exactly this lane.",
-      "sourcePaths": ["tests/test_regressions.py", "tests/test_renderer.py", "tests/test_security.py", "tests/test_libretro.py", "tests/test_smoke.py", "tests/test_api_recordings.py", "tests/test_search_worker.py", "tests/test_single_instance.py", "tests/conftest.py", "tests/test_box_model.py", "tests/test_box_file.py", "tests/test_box_viewer.py", "tests/test_jewel.py", "tests/test_keep_cases.py", "tests/test_region.py", "tests/test_case_list.py", "tests/test_match_retrodb.py", "tests/test_release_signing.py", "tests/test_updater.py"]
+      "sourcePaths": ["tests/test_regressions.py", "tests/test_renderer.py", "tests/test_security.py", "tests/test_libretro.py", "tests/test_smoke.py", "tests/test_api_recordings.py", "tests/test_search_worker.py", "tests/test_single_instance.py", "tests/conftest.py", "tests/test_box_model.py", "tests/test_box_file.py", "tests/test_box_viewer.py", "tests/test_box_shape.py", "tests/test_jewel.py", "tests/test_keep_cases.py", "tests/test_region.py", "tests/test_case_list.py", "tests/test_match_retrodb.py", "tests/test_release_signing.py", "tests/test_updater.py"]
     }
   ]
 }

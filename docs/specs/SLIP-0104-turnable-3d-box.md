@@ -125,6 +125,9 @@ S.bottom.png      bottom (absent when there is none)
 - **Background.** A viewer draws the box and nothing behind it.
 - **`generator`** is informational. Readers ignore it and any key they do not
   know, so version 1 can gain optional keys.
+- **`shape`** is optional: a case's rounded corners and edges, lip and seam,
+  in mm. Its keys, limits and reading rules are SLIP-0125 § 4.1's. A file
+  without it, or whose `shape` breaks those rules, is a flat box.
 
 **Reading rules**, for any reader: refuse a `format` other than
 `slipcase-box` or a `version` other than 1; refuse a face name that is not a
@@ -229,11 +232,14 @@ New `ui/box_viewer.py::BoxViewer(QWidget)`, a third page of
 `MainWindow.preview_stack`, reached by a **3D View** toggle under the preview
 and the shortcut Ctrl+3 (unused today; added to `STANDARDS.md` § 6).
 
-- **Drawing.** For each face, project its four corners and draw its picture
+- **Drawing.** The viewer draws the patches `core/box_shape.py::box_patches`
+  gives: the six faces, or a shaped case's surface (SLIP-0125 § 4.4). For
+  each face, project its four corners and draw its picture
   with `QTransform.quadToQuad` and `QPainter.drawImage`, which maps the
   picture perspective-correctly. Plain faces are filled polygons. Only faces
-  turned towards the camera are drawn; on a box those never overlap, so no
-  sorting is needed. Each face is darkened by a fixed light: brightness =
+  turned towards the camera are drawn; on a six-faced box those never
+  overlap, so no sorting is needed. A shaped box is drawn in the order
+  SLIP-0125 § 4.4 gives. Each face is darkened by a fixed light: brightness =
   0.45 + 0.55 × max(0, normal · light).
 - **Background.** `paintEvent` draws the box and nothing else, and the
   widget keeps `autoFillBackground` off, so the preview area behind it shows
@@ -260,6 +266,9 @@ and the shortcut Ctrl+3 (unused today; added to `STANDARDS.md` § 6).
   *Test:* `tests/test_box_file.py::test_written_file_matches_schema`.
   *Breaks when:* `case` is filled from pixel sizes, a key is renamed, or a
   colour is written as a list.
+  *Annotated 2026-11-03 (SLIP-0125):* a case with a shape also writes the
+  optional `shape` key; the test's PS2 case has none, so it still holds
+  exactly these keys.
 
 - **INV-2** — `read_box_file` refuses every case in § 4.1's reading rules and
   accepts what `write_box_file` writes. The model read back has the written

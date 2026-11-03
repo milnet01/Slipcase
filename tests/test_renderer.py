@@ -6,6 +6,7 @@ import tempfile
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import unittest
+from dataclasses import replace
 from unittest.mock import patch
 
 import numpy as np
@@ -273,6 +274,15 @@ class TestRenderer(unittest.TestCase):
             result.save(path, "PNG")
             with Image.open(path) as saved:
                 self.assertEqual(saved.mode, "RGBA")
+
+    def test_render_ignores_shape(self):
+        """SLIP-0125 INV-7: the still render does not use the shape."""
+        ps5 = CASE_TYPES["PS5 Blu-ray Case"]
+        self.assertIsNotNone(ps5.shape)
+        out = [np.array(BoxRenderer(case_type=case, output_width=200).render(
+                   self._make_cover(), title="Shape"))
+               for case in (ps5, replace(ps5, shape=None))]
+        self.assertTrue(np.array_equal(out[0], out[1]))
 
 
 class TestConfig(unittest.TestCase):

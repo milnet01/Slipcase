@@ -272,6 +272,99 @@ class TestReading(unittest.TestCase):
             self.assertEqual(model.edge, CASE_TYPES["CD Jewel Case"].plastic)
 
 
+def _ps5_model() -> BoxModel:
+    return BoxModel(
+        case_type=CASE_TYPES["PS5 Blu-ray Case"],
+        top=(1, 2, 3), bottom=(4, 5, 6), edge=(7, 8, 9),
+        front=_noise(135, 171, 1), spine=_noise(13, 171, 2), back=None,
+    )
+
+
+def _rewritten(path: str, mutate) -> str:
+    """Apply `mutate` to the JSON at `path`, write it back, return `path`."""
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    mutate(data)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f)
+    return path
+
+
+class TestShape(unittest.TestCase):
+    """SLIP-0125 § 4.1."""
+
+    def test_shape_written(self):
+        """INV-4: version 1, plus shape exactly when the case has one."""
+        with tempfile.TemporaryDirectory() as d:
+            with open(write_box_file(_ps5_model(), d, "Game"), encoding="utf-8") as f:
+                data = json.load(f)
+            self.assertEqual(data["version"], 1)
+            self.assertEqual(data["shape"], {
+                "corner_radius_mm": 3.0, "edge_radius_mm": 1.0,
+                "lip_width_mm": 2.5, "lip_height_mm": 0.5,
+                "seam_width_mm": 0.8, "seam_depth_mm": 0.4,
+            })
+            model = read_box_file(os.path.join(d, "Game.box.json"))
+            self.assertEqual(model.case_type.shape,
+                             CASE_TYPES["PS5 Blu-ray Case"].shape)
+            with open(write_box_file(_model(), d, "Other"), encoding="utf-8") as f:
+                self.assertNotIn("shape", json.load(f))
+
+    def test_shape_is_optional(self):
+        """INV-4: with shape deleted, the file reads whole and flat."""
+        with tempfile.TemporaryDirectory() as d:
+            path = _rewritten(write_box_file(_ps5_model(), d, "Game"),
+                              lambda data: data.pop("shape"))
+            model = read_box_file(path)
+            self.assertIsNone(model.case_type.shape)
+            self.assertEqual(model.case_type.depth, 13)
+
+    def test_two_key_shape_reads(self):
+        """INV-4, amended: the lip and seam keys may be missing."""
+        with tempfile.TemporaryDirectory() as d:
+            path = _rewritten(write_box_file(_ps5_model(), d, "Game"),
+                              lambda data: data.update(shape={
+                                  "corner_radius_mm": 2, "edge_radius_mm": 0.5}))
+            shape = read_box_file(path).case_type.shape
+            self.assertEqual(
+                (shape.corner_radius, shape.edge_radius, shape.lip_width,
+                 shape.lip_height, shape.seam_width, shape.seam_depth),
+                (2, 0.5, 0, 0, 0, 0))
+
+    def test_bad_shape_ignored(self):
+        """INV-5: one fixture per rule; each reads, with no shape."""
+        def shape(**changes):
+            def mutate(data):
+                data["shape"].update(changes)
+            return mutate
+
+        fixtures = {
+            "not an object": lambda data: data.update(shape=[3, 1]),
+            "missing corner": lambda data: data["shape"].pop("corner_radius_mm"),
+            "missing edge": lambda data: data["shape"].pop("edge_radius_mm"),
+            "a string": shape(corner_radius_mm="3"),
+            "true": shape(edge_radius_mm=True),
+            "-1": shape(corner_radius_mm=-1),
+            "corner above a quarter of the width": shape(corner_radius_mm=33.76),
+            "edge above a quarter of the depth": shape(edge_radius_mm=3.26),
+            "lip height above an eighth of the depth": shape(lip_height_mm=1.63),
+            "seam width above an eighth of the depth": shape(
+                seam_width_mm=1.63, seam_depth_mm=0.4),
+            "seam depth above its width": shape(seam_depth_mm=0.81),
+            "lip width above a quarter of the width": shape(lip_width_mm=33.76),
+            "lip narrower than the edge rounding": shape(lip_width_mm=0.9),
+            "lip with no width": shape(lip_width_mm=0, edge_radius_mm=0),
+            "true in a lip key": shape(lip_height_mm=True),
+            "-1 in a seam key": shape(seam_depth_mm=-1),
+        }
+        for label, mutate in fixtures.items():
+            with self.subTest(fixture=label), tempfile.TemporaryDirectory() as d:
+                path = _rewritten(write_box_file(_ps5_model(), d, "Game"), mutate)
+                model = read_box_file(path)
+                self.assertIsNone(model.case_type.shape)
+                self.assertEqual(model.case_type.name, "PS5 Blu-ray Case")
+
+
 class TestExportPng(unittest.TestCase):
     """§ 4.4: Export PNG writes the shown render's box file beside the PNG."""
 

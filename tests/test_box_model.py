@@ -1,6 +1,7 @@
 """Tests for core/box_model.py: the faces of the turnable box (SLIP-0104)."""
 
 import unittest
+from dataclasses import replace
 
 import numpy as np
 from PIL import Image, ImageOps
@@ -158,6 +159,37 @@ class TestColours(unittest.TestCase):
 
         model = _build(cover, case="Switch Case", full_cover=False, case_color=(9, 8, 7))
         self.assertEqual((model.top, model.bottom, model.edge), ((9, 8, 7),) * 3)
+
+
+class TestLip(unittest.TestCase):
+    """SLIP-0125 INV-9: a real lip replaces the painted inner wall."""
+
+    def test_lip_replaces_painted_wall(self):
+        ps5 = CASE_TYPES["PS5 Blu-ray Case"]
+        grey = Image.new("RGB", (270, 343), (128, 128, 128))
+        fronts = {}
+        for label, case in (("shaped", ps5), ("flat", replace(ps5, shape=None))):
+            fronts[label] = np.array(build_box_model(
+                grey, None, case, title="Game", serial="", platform="PS5",
+                spine_color=None, case_color=None, spine_left_offset=0,
+                spine_right_offset=0, full_cover=False, show_texture=False,
+            ).front)
+        h, w = fronts["shaped"].shape[:2]
+        rim = max(1, round(ps5.rim_mm * h / ps5.height))
+        # The row just inside the top of the frame, where the wall is painted.
+        self.assertFalse(np.array_equal(fronts["flat"][rim - 1, w // 2],
+                                        fronts["flat"][0, w // 2]),
+                         "no painted wall without the shape, so this test proves nothing")
+        self.assertTrue(np.array_equal(fronts["shaped"][rim - 1, w // 2],
+                                       fronts["shaped"][0, w // 2]))
+
+    def test_lip_width_is_rim_width(self):
+        shaped = [ct for ct in CASE_TYPES.values()
+                  if ct.shape is not None and ct.shape.lip_height > 0]
+        self.assertTrue(shaped, "no case has a lip, so this test proves nothing")
+        for ct in shaped:
+            with self.subTest(case=ct.name):
+                self.assertEqual(ct.shape.lip_width, ct.rim_mm)
 
 
 if __name__ == "__main__":

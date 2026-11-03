@@ -31,6 +31,18 @@ class TrayPrint:
     wall: tuple[int, int, int] = (0, 0, 0)
 
 
+@dataclass(frozen=True)
+class CaseShape:
+    """A case's real shape for the 3D viewer, in mm (SLIP-0125 § 4.1). Zero
+    means that feature is absent; every value zero is a flat box."""
+    corner_radius: float        # the outline's corners, seen from the front
+    edge_radius: float          # the edges where the front and back meet the sides
+    lip_width: float = 0.0      # the raised lip along top, bottom and opening side
+    lip_height: float = 0.0     # how far the sheet lies below the lip's top
+    seam_width: float = 0.0     # the V groove where the halves meet, at the surface
+    seam_depth: float = 0.0     # how far in its deepest line lies
+
+
 # A keep case's sheet sits under a clear sleeve inside a plastic lip. Width
 # judged from LaunchBox's Box - 3D images (2026-10-30); a real case is unmeasured.
 KEEP_RIM_MM = 2.5
@@ -81,6 +93,8 @@ class CaseType:
     clear: bool = False
     # Width of a keep case's plastic lip; `rim_mm` says whether it has one.
     keep_rim: float = KEEP_RIM_MM
+    # The real shape the 3D viewer draws; None for a flat box (SLIP-0125).
+    shape: CaseShape | None = None
 
     @property
     def layout(self) -> str:
@@ -108,6 +122,12 @@ class CaseType:
 # The standard jewel case's paper: a 120 mm booklet, and a 150 x 118 mm back
 # card with a 6 mm strip at each end.
 _STANDARD_PAPER = JewelGeometry(booklet=(120, 120), back_card=(150, 118), strip=6)
+# Working estimates, no published source (SLIP-0125 § 4.2): corners measured
+# from the user's straight-on photo, edges and lip height judged by eye, the
+# seam from a closed-case photo; the lip covers the pictures' plastic frame.
+_PS5_SHAPE = CaseShape(corner_radius=3.0, edge_radius=1.0,
+                       lip_width=KEEP_RIM_MM, lip_height=0.5,
+                       seam_width=0.8, seam_depth=0.4)
 _BLACK_TRAY = (0x10, 0x10, 0x10)
 _BLACK_KEEP = (0x14, 0x14, 0x14)
 _WHITE_KEEP = (0xEE, 0xEE, 0xEE)
@@ -206,6 +226,7 @@ CASE_TYPES: dict[str, CaseType] = {
         width=135, height=171.5, depth=13,
         platforms=("PS5",),
         plastic=_BLUE_TINT, clear=True, texture="bluray",
+        shape=_PS5_SHAPE,
     ),
     "Xbox One Case": CaseType(
         name="Xbox One Case",
