@@ -1569,6 +1569,10 @@ building.
   today; give each a maximum, the face edges it applies to, and a
   labelled diagram. Face images stay unchanged. Send RetroDB the spec
   path when written.
+  Spec gated 2026-11-03 by review-contract: one lane, one loop (the user's
+  one-light-pass ruling). 4 findings verified and fixed, 2 open questions
+  settled in the same edit; no deferred tail. Loop log:
+  docs/reviews/SLIP-0125-keep-case-shape-loop-log.md.
   **Layman:** Turn a PS5 case in the 3D viewer and it looks like the real one: rounded corners, the plastic lip, the seam and the tray seen through the plastic.
   Kind: feature.
   Source: user-request-2026-11-03.
