@@ -1573,6 +1573,10 @@ building.
   one-light-pass ruling). 4 findings verified and fixed, 2 open questions
   settled in the same edit; no deferred tail. Loop log:
   docs/reviews/SLIP-0125-keep-case-shape-loop-log.md.
+  RetroDB confirmed, 2026-11-03: a zero in "shape" switches off only
+  that rounding, as § 4.1 says; § 4.1 stands. RetroDB noted the user had
+  asked for a raised lip in PASS-59-231; the spec leaves the lip painted
+  (§ 8). The user is asked whether to keep it painted.
   **Layman:** Turn a PS5 case in the 3D viewer and it looks like the real one: rounded corners, the plastic lip, the seam and the tray seen through the plastic.
   Kind: feature.
   Source: user-request-2026-11-03.
