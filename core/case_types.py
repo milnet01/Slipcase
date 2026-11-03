@@ -41,6 +41,9 @@ class CaseShape:
     lip_height: float = 0.0     # how far the sheet lies below the lip's top
     seam_width: float = 0.0     # the V groove where the halves meet, at the surface
     seam_depth: float = 0.0     # how far in its deepest line lies
+    recess_length: float = 0.0  # the finger recess in the opening side, top to bottom
+    recess_height: float = 0.0  # how far back from the seam it reaches
+    recess_depth: float = 0.0   # how far in its floor lies
 
 
 # A keep case's sheet sits under a clear sleeve inside a plastic lip. Width
@@ -124,10 +127,12 @@ class CaseType:
 _STANDARD_PAPER = JewelGeometry(booklet=(120, 120), back_card=(150, 118), strip=6)
 # Working estimates, no published source (SLIP-0125 § 4.2): corners measured
 # from the user's straight-on photo, edges and lip height judged by eye, the
-# seam from a closed-case photo; the lip covers the pictures' plastic frame.
+# seam and the finger recess from closed-case photos; the lip covers the
+# pictures' plastic frame.
 _PS5_SHAPE = CaseShape(corner_radius=3.0, edge_radius=1.0,
                        lip_width=KEEP_RIM_MM, lip_height=0.5,
-                       seam_width=0.8, seam_depth=0.4)
+                       seam_width=0.8, seam_depth=0.4,
+                       recess_length=90.0, recess_height=4.0, recess_depth=1.5)
 _BLACK_TRAY = (0x10, 0x10, 0x10)
 _BLACK_KEEP = (0x14, 0x14, 0x14)
 _WHITE_KEEP = (0xEE, 0xEE, 0xEE)

@@ -125,8 +125,8 @@ S.bottom.png      bottom (absent when there is none)
 - **Background.** A viewer draws the box and nothing behind it.
 - **`generator`** is informational. Readers ignore it and any key they do not
   know, so version 1 can gain optional keys.
-- **`shape`** is optional: a case's rounded corners and edges, lip and seam,
-  in mm. Its keys, limits and reading rules are SLIP-0125 § 4.1's. A file
+- **`shape`** is optional: a case's rounded corners and edges, lip, seam and
+  finger recess, in mm. Its keys, limits and reading rules are SLIP-0125 § 4.1's. A file
   without it, or whose `shape` breaks those rules, is a flat box.
 
 **Reading rules**, for any reader: refuse a `format` other than

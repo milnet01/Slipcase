@@ -11,9 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **The PS5 case has its real shape in the 3D view** (SLIP-0125)
   Turn it and you see rounded corners and edges, the raised plastic lip round
-  the cover, and the groove where the two halves meet. The box file carries
-  the shape, so RetroDB can draw the same case. The sizes are estimates until
-  checked against a real case.
+  the cover, the groove where the two halves meet, and the finger recess in
+  the opening side. The box file carries the shape, so RetroDB can draw the
+  same case. The sizes are estimates until checked against a real case.
 - **A Match RetroDB button draws your box from the same view as RetroDB's 3D
   boxes** (SLIP-0120)
   Press it beside the Angle slider, and pictures, batch renders and animations

@@ -303,6 +303,8 @@ class TestShape(unittest.TestCase):
                 "corner_radius_mm": 3.0, "edge_radius_mm": 1.0,
                 "lip_width_mm": 2.5, "lip_height_mm": 0.5,
                 "seam_width_mm": 0.8, "seam_depth_mm": 0.4,
+                "recess_length_mm": 90.0, "recess_height_mm": 4.0,
+                "recess_depth_mm": 1.5,
             })
             model = read_box_file(os.path.join(d, "Game.box.json"))
             self.assertEqual(model.case_type.shape,
@@ -320,7 +322,7 @@ class TestShape(unittest.TestCase):
             self.assertEqual(model.case_type.depth, 13)
 
     def test_two_key_shape_reads(self):
-        """INV-4, amended: the lip and seam keys may be missing."""
+        """INV-4, amended: the lip, seam and recess keys may be missing."""
         with tempfile.TemporaryDirectory() as d:
             path = _rewritten(write_box_file(_ps5_model(), d, "Game"),
                               lambda data: data.update(shape={
@@ -328,8 +330,9 @@ class TestShape(unittest.TestCase):
             shape = read_box_file(path).case_type.shape
             self.assertEqual(
                 (shape.corner_radius, shape.edge_radius, shape.lip_width,
-                 shape.lip_height, shape.seam_width, shape.seam_depth),
-                (2, 0.5, 0, 0, 0, 0))
+                 shape.lip_height, shape.seam_width, shape.seam_depth,
+                 shape.recess_length, shape.recess_height, shape.recess_depth),
+                (2, 0.5, 0, 0, 0, 0, 0, 0, 0))
 
     def test_bad_shape_ignored(self):
         """INV-5: one fixture per rule; each reads, with no shape."""
@@ -356,6 +359,12 @@ class TestShape(unittest.TestCase):
             "lip with no width": shape(lip_width_mm=0, edge_radius_mm=0),
             "true in a lip key": shape(lip_height_mm=True),
             "-1 in a seam key": shape(seam_depth_mm=-1),
+            # 171.5 - 2 x 3 mm corners: the recess must end before them.
+            "recess reaching the corners": shape(recess_length_mm=165.5),
+            "recess deeper than a quarter of the width": shape(recess_depth_mm=33.76),
+            # 6.5 - 0.5 lip - 1 rounding - 0.4 half seam: 4.6 mm of straight side.
+            "recess reaching the back rounding": shape(recess_height_mm=4.6),
+            "true in a recess key": shape(recess_length_mm=True),
         }
         for label, mutate in fixtures.items():
             with self.subTest(fixture=label), tempfile.TemporaryDirectory() as d:

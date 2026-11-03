@@ -31,10 +31,12 @@ _COLOURS = ("top", "bottom", "edge")
 _SIZES = ("width_mm", "height_mm", "depth_mm")
 _MAX_SIZE_MM = 1000
 # The shape's keys (SLIP-0125 § 4.1), each with its CaseShape field. The
-# first two are required; a missing lip or seam key means 0.
+# first two are required; a missing lip, seam or recess key means 0.
 _SHAPE_KEYS = {"corner_radius_mm": "corner_radius", "edge_radius_mm": "edge_radius",
                "lip_width_mm": "lip_width", "lip_height_mm": "lip_height",
-               "seam_width_mm": "seam_width", "seam_depth_mm": "seam_depth"}
+               "seam_width_mm": "seam_width", "seam_depth_mm": "seam_depth",
+               "recess_length_mm": "recess_length", "recess_height_mm": "recess_height",
+               "recess_depth_mm": "recess_depth"}
 _SHAPE_REQUIRED = ("corner_radius_mm", "edge_radius_mm")
 _COLOUR_RE = re.compile(r"#[0-9A-Fa-f]{6}")
 
@@ -174,7 +176,12 @@ def _shape(data: dict, width: float, height: float, depth: float) -> CaseShape |
             or result.lip_height > depth / 8 or result.seam_width > depth / 8
             or result.seam_depth > result.seam_width
             or (lip and (result.lip_width == 0
-                         or result.lip_width < result.edge_radius))):
+                         or result.lip_width < result.edge_radius))
+            or result.recess_length >= height - 2 * max(result.corner_radius,
+                                                         result.lip_width)
+            or result.recess_depth > side
+            or (result.seam_width / 2 + result.recess_height
+                >= depth / 2 - result.lip_height - result.edge_radius)):
         return None
     if not any(values.values()):
         return None

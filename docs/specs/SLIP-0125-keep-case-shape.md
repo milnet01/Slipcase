@@ -2,7 +2,8 @@
 # SLIP-0125 — Give the PS5 case its real shape in the 3D viewer
 
 **Status:** spec draft (2026-11-03); amended 2026-11-03, before any build,
-to make the lip and the seam real shape.
+to make the lip and the seam real shape; amended again 2026-11-03, after
+the user's first look, to add the finger recess.
 **Kind:** implement.
 **Source:** ROADMAP SLIP-0125 (user request 2026-11-03; shape format agreed
 with the RetroDB session the same day).
@@ -11,14 +12,15 @@ with the RetroDB session the same day).
 **Pairs with:** RetroDB PASS-59-231, which draws the same shape.
 
 **Layman:** Turn a PS5 case in the 3D viewer and it looks like the real one:
-rounded corners and edges, the raised lip round the cover, and the groove
-where the two halves meet.
+rounded corners and edges, the raised lip round the cover, the groove
+where the two halves meet, and the finger recess in the opening side.
 
 ## 1. Goal
 
 A PS5 case in Slipcase's 3D viewer has rounded corners and rounded edges, a
 raised plastic lip round the cover on its front and back, and a groove along
-its top, bottom and opening side where the case's halves meet. All of them
+its top, bottom and opening side where the case's halves meet, and a finger
+recess in its opening side. All of them
 are shape, not paint. The box file carries the shape as named measurements,
 so RetroDB draws the same case. Every other case, and every older RetroDB,
 behaves exactly as today.
@@ -45,6 +47,8 @@ behaves exactly as today.
   shape rather than paint to be redone later. The seam is "most certainly
   visible in real life" (the user), and shows as a clear line on the closed
   case in the reference photos.
+- **The opening side has its finger recess.** The user, 2026-11-03, after
+  the first look: the real case has it.
 - **The tray and disc stay out.** The user, 2026-11-03, agreed: with a game
   in the case, the cover hides them.
 - **PS5 first.** The user, 2026-11-03: "Let's test PS5 for now", then other
@@ -69,7 +73,9 @@ behaves exactly as today.
 ```json
 "shape": {"corner_radius_mm": 3, "edge_radius_mm": 1,
           "lip_width_mm": 2.5, "lip_height_mm": 0.5,
-          "seam_width_mm": 0.8, "seam_depth_mm": 0.4}
+          "seam_width_mm": 0.8, "seam_depth_mm": 0.4,
+          "recess_length_mm": 90, "recess_height_mm": 4,
+          "recess_depth_mm": 1.5}
 ```
 
 ```
@@ -112,6 +118,13 @@ behaves exactly as today.
   the depth, along the top, the bottom and the opening side:
   `seam_width_mm` wide at the surface, its deepest line `seam_depth_mm`
   in. The spine side has none.
+- **(e) `recess_length_mm`, `recess_height_mm` and `recess_depth_mm`.** A
+  finger recess cut into the opening side, centred top to bottom and
+  `recess_length_mm` long. It runs from the seam's back edge
+  `recess_height_mm` towards the back, and its flat floor lies
+  `recess_depth_mm` in. Its ends and walls are square. The back half is cut
+  away there so a finger reaches the front half's edge. With any of the
+  three 0 there is no recess.
 - **The outer size stays `case`'s.** Rounding and grooves take material
   away; the lip's top is the case's face. Nothing stands outside the box.
 - **Pictures.** Each face's picture still spans its face's full outer
@@ -122,8 +135,8 @@ behaves exactly as today.
 
 **Reading rules for `shape`**, added to SLIP-0104 § 4.1's: a missing `shape`
 means flat. `corner_radius_mm` and `edge_radius_mm` are required; a missing
-`lip_*` or `seam_*` key means 0, so a shape written before the lip and seam
-reads. Each value must be a number, not `true` or `false`, at least 0. A
+`lip_*`, `seam_*` or `recess_*` key means 0, so a shape written before
+those features reads. Each value must be a number, not `true` or `false`, at least 0. A
 value of 0 means that feature is absent; every value 0 is a flat box. The
 limits:
 
@@ -134,6 +147,14 @@ limits:
 - `seam_depth_mm`: at most `seam_width_mm`.
 - With `lip_height_mm` above 0, `lip_width_mm` is above 0 and at least
   `edge_radius_mm`, so the rounding fits on the lip.
+- `recess_length_mm`: less than `height_mm` minus twice the larger of
+  `corner_radius_mm` and `lip_width_mm`, so the recess ends before the
+  corners.
+- `recess_depth_mm`: at most a quarter of the smaller of `width_mm` and
+  `height_mm`.
+- Half `seam_width_mm` plus `recess_height_mm`: less than half `depth_mm`
+  minus `lip_height_mm` and `edge_radius_mm`, so the recess ends before the
+  back's rounding.
 
 A `shape` that is not an object, lacks a required key, or breaks a rule is
 ignored whole and the box is drawn flat. It never refuses the file: a wrong
@@ -150,6 +171,9 @@ class CaseShape:                 # core/case_types.py
     lip_height: float = 0.0
     seam_width: float = 0.0      # mm, as § 4.1 (d)
     seam_depth: float = 0.0
+    recess_length: float = 0.0   # mm, as § 4.1 (e)
+    recess_height: float = 0.0
+    recess_depth: float = 0.0
 
 CaseType.shape: CaseShape | None = None
 ```
@@ -166,11 +190,15 @@ published source gives any of them (research 2026-11-03):
 - `seam_width` 0.8 mm and `seam_depth` 0.4 mm, from the closed case photo
   labelled 10 mm deep, where the seam's line is about a twentieth of the
   depth (2026-11-03).
+- `recess_length` 90 mm, `recess_height` 4 mm and `recess_depth` 1.5 mm.
+  The length and height are from a closed-case photo, where the slot runs
+  about half the opening side and about two fifths of the depth
+  (2026-11-03). The depth is unsourced.
 
 The user's by-eye check sets them all.
 
 `write_box_file` writes `"shape"` when `case_type.shape` is set, with all
-six keys in mm, and leaves it out otherwise. `read_box_file` applies § 4.1's
+nine keys in mm, and leaves it out otherwise. `read_box_file` applies § 4.1's
 rules and puts the result on the `CaseType` it builds.
 
 ### 4.3 The painted lip gives way to the real one
@@ -205,12 +233,17 @@ Each side has a profile: the inset from the outline and the height of each
 ring on that side. The top, bottom and opening side share one, with the
 lip, its rounding and the groove; the spine side has its own, with neither.
 Round a corner, a ring's inset and height pass from one side's value to
-the other's. Quads join the rings; the two sheets are flat caps. Eight
+the other's. With a recess, the rings carry four more points on the
+opening side, where its ends lie: cut in for the rings bounding the
+recess, uncut for the rest. Quads join the rings; the two sheets are flat
+caps. Eight
 segments a corner and three an edge rounding are the starting figures.
 
 Each patch shows the picture of the face its outward direction is nearest
 to, at its region straight below it on that face's plane. A lip's inner
-wall shows the lip top beside it. Slipcase's viewer maps a picture onto the
+wall shows the lip top beside it. The groove's walls and the recess show
+plain plastic; on the spine side the seam's strip is flat, and shows the
+spine's picture. Slipcase's viewer maps a picture onto the
 flat parts and onto the long straight strips, and fills small patches with
 their region's average colour.
 
@@ -264,7 +297,8 @@ its painted lip.
   *Breaks when:* the version is raised, or a reader requires `shape`.
   *Amended 2026-11-03:* a `shape` with only `corner_radius_mm` and
   `edge_radius_mm` reads, with the lip and seam 0
-  (`::test_two_key_shape_reads`).
+  (`::test_two_key_shape_reads`). Amended again the same day: the recess
+  is 0 too.
 
 - **INV-5** — A `shape` that breaks § 4.1's rules is ignored whole and the
   rest of the file reads.
@@ -278,6 +312,9 @@ its painted lip.
   rule: a lip height and a seam width above an eighth of the depth, a seam
   depth above its width, a lip width above a quarter of the width, a lip
   narrower than the edge rounding, and `true` and −1 in a lip or seam key.
+  Amended again the same day: a recess reaching the corners, deeper than a
+  quarter of the width, reaching the back's rounding, and `true` in a
+  recess key.
 
 - **INV-6** — *Withdrawn 2026-11-03: the seam is shape, so the sides get no
   pictures (§ 4.3). INV-9 replaces it.* With a shape and `show_texture` set,
@@ -297,8 +334,8 @@ its painted lip.
   shared by exactly two patches, which cross it in opposite directions, and
   the volume they enclose is positive and below the outer box's.
   *Test:* `tests/test_box_shape.py::test_closed_and_wound_outward`, on the
-  PS5 case and on shapes with no lip, no seam, square corners, and corners
-  tighter than the lip.
+  PS5 case and on shapes with no lip, no seam, square corners, corners
+  tighter than the lip, and a recess with no seam.
   *Breaks when:* a ring is joined in the wrong order, so the viewer culls a
   side facing the camera; a gap is left between a cap and its ring; or a
   corner's passage from one side's profile to the other leaves a hole.
@@ -312,6 +349,17 @@ its painted lip.
   `::test_lip_width_is_rim_width`, over every case in `CASE_TYPES`.
   *Breaks when:* the wall is painted under a real lip, or a lip width
   drifts from the frame it should cover.
+
+- **INV-10** — The recess is cut where § 4.1 (e) puts it, in plain plastic,
+  and the spine's seam strip shows the spine's picture.
+  *Test:* `tests/test_box_shape.py::test_recess_is_cut_plain`: on the PS5
+  case, one patch lies `recess_depth` in from the opening side, spans
+  `recess_length` top to bottom and runs from the seam's back edge
+  `recess_height` back, with no picture; and
+  `::test_spine_shows_its_picture`: every patch flat on the spine shows the
+  spine's picture.
+  *Breaks when:* the recess is cut on the wrong half or at the wrong size,
+  takes a face's picture, or the seam strip on the spine is drawn plain.
 
 SLIP-0104's INV-7 (visible faces) and INV-12 (nothing outside the box) still
 bind the viewer, and their tests run unchanged.
@@ -334,7 +382,7 @@ bind the viewer, and their tests run unchanged.
 
 ## 7. Tests
 
-- INV-1, INV-2, INV-8 — `tests/test_box_shape.py`, a new file listed in
+- INV-1, INV-2, INV-8, INV-10 — `tests/test_box_shape.py`, a new file listed in
   `.indie-review/partition.json`.
 - INV-4, INV-5 — `tests/test_box_file.py`.
 - INV-9 — `tests/test_box_model.py`.
@@ -386,6 +434,7 @@ automated check: the user compares the viewer with their photos.
 | INV-7 | `tests/test_renderer.py::test_render_ignores_shape` |
 | INV-8 | `tests/test_box_shape.py::test_closed_and_wound_outward` |
 | INV-9 | `tests/test_box_model.py::test_lip_replaces_painted_wall`, `::test_lip_width_is_rim_width` |
+| INV-10 | `tests/test_box_shape.py::test_recess_is_cut_plain`, `::test_spine_shows_its_picture` |
 | § 4.4's draw order | **nothing** — the by-eye check (§ 6) |
 | § 4.2's working figures | **nothing** — no source exists; the user's by-eye check |
 | § 6 frame time | **nothing** — judged while auto-spin runs |
@@ -397,8 +446,9 @@ automated check: the user compares the viewer with their photos.
   a shaped box; INV-1 is annotated (§ 13).
 - `CHANGELOG.md`: Added, under Unreleased.
 - RetroDB: the session is sent this path; PASS-59-231 builds from § 4.1.
-  The amendment of 2026-11-03 adds the lip and seam keys, which RetroDB is
-  sent.
+  The amendment of 2026-11-03 adds the lip and seam keys; RetroDB accepted
+  them the same day. The second amendment adds the recess keys, which
+  RetroDB is sent.
 
 ## 12. Cold-eyes loop log
 
@@ -418,4 +468,6 @@ Rows live in `../reviews/SLIP-0125-keep-case-shape-loop-log.md`.
 ## 14. Open questions
 
 - The working figures in § 4.2, until the user's check.
-- Whether RetroDB takes the lip and seam keys as written in § 4.1.
+- Whether RetroDB takes the recess keys as written in § 4.1.
+- Which half the recess cuts. The photo shows the slot below the seam on a
+  case lying flat, assumed back down; the user's check confirms it.

@@ -17,6 +17,8 @@ SHAPES = {
     "lip, no edge rounding": CaseShape(3, 0, 2.5, 0.5, 0, 0),
     "seam only": CaseShape(0, 0, 0, 0, 0.8, 0.4),
     "flat": CaseShape(0, 0),
+    "recess, no seam": CaseShape(3, 1, 2.5, 0.5, 0, 0, 90, 4, 1.5),
+    "recess only": CaseShape(0, 0, 0, 0, 0, 0, 90, 4, 1.5),
 }
 
 
@@ -66,6 +68,31 @@ class TestBoxShape(unittest.TestCase):
             self.assertLessEqual(max(abs(v) for v in values), bound + 1e-9)
             self.assertAlmostEqual(max(values), bound)
             self.assertAlmostEqual(min(values), -bound)
+
+    def test_spine_shows_its_picture(self):
+        """§ 4.1 (d): the spine side has no groove, so every flat patch on it
+        shows the spine's picture, the seam's strip included."""
+        w = PS5.width / 2
+        on_spine = [p for p in box_patches(PS5)
+                    if all(abs(c[0] + w) < 1e-9 for c in p.corners)]
+        self.assertTrue(on_spine)
+        for patch in on_spine:
+            self.assertEqual(patch.face, "spine", patch.corners)
+
+    def test_recess_is_cut_plain(self):
+        """§ 4.1 (e): the recess's floor lies recess_depth in from the opening
+        side, behind the seam, recess_length long, in plain plastic."""
+        shape = PS5.shape
+        floor_x = PS5.width / 2 - shape.recess_depth
+        floor = [p for p in box_patches(PS5)
+                 if all(abs(c[0] - floor_x) < 1e-9 for c in p.corners)]
+        self.assertEqual(len(floor), 1)
+        ys = [c[1] for c in floor[0].corners]
+        zs = [c[2] for c in floor[0].corners]
+        self.assertAlmostEqual(max(ys) - min(ys), shape.recess_length)
+        self.assertAlmostEqual(max(zs), -shape.seam_width / 2)
+        self.assertAlmostEqual(min(zs), -shape.seam_width / 2 - shape.recess_height)
+        self.assertIsNone(floor[0].face)
 
     def test_closed_and_wound_outward(self):
         """INV-8."""

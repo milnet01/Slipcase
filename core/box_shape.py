@@ -112,9 +112,17 @@ def _source(face: str, corners: list[Vec],
     return result
 
 
-def _profiles(shape: CaseShape, d: float) -> list[tuple[tuple[float, float], tuple[float, float]]]:
-    """The rings' (inset, height) on the lip sides and on the spine side,
-    front sheet to back sheet, `d` being half the depth."""
+def _has_recess(shape: CaseShape) -> bool:
+    return shape.recess_length > 0 and shape.recess_height > 0 and shape.recess_depth > 0
+
+
+# One ring: its (inset, height) on the lip sides and on the spine side, and
+# whether it runs through the finger recess.
+Ring = tuple[tuple[float, float], tuple[float, float], bool]
+
+
+def _profiles(shape: CaseShape, d: float) -> list[Ring]:
+    """The rings, front sheet to back sheet, `d` being half the depth."""
     r, sw = shape.edge_radius, shape.seam_width
     lip = shape.lip_height > 0
     t = shape.lip_height if lip else 0.0
@@ -135,7 +143,17 @@ def _profiles(shape: CaseShape, d: float) -> list[tuple[tuple[float, float], tup
         front.append(((0.0, sw / 2), (0.0, sw / 2)))
         middle.append(((shape.seam_depth, 0.0), (0.0, 0.0)))
     back = [((li, -lz), (si, -sz)) for (li, lz), (si, sz) in reversed(front)]
-    return front + middle + back
+    rings = [(lip_side, spine_side, False) for lip_side, spine_side in front + middle + back]
+    if _has_recess(shape):
+        # The recess's top lies at the seam's back edge; with no seam that
+        # edge needs a ring of its own.
+        top, bottom = sw / 2, sw / 2 + shape.recess_height
+        at = len(front) + len(middle) + (1 if sw > 0 else 0)
+        cut = [] if sw > 0 else [((0.0, 0.0), (0.0, 0.0), False)]
+        cut += [((0.0, -top), (0.0, -top), True), ((0.0, -bottom), (0.0, -bottom), True),
+                ((0.0, -bottom), (0.0, -bottom), False)]
+        rings[at:at] = cut
+    return rings
 
 
 def _arc(j: int) -> tuple[float, float]:
@@ -149,12 +167,13 @@ def _arc(j: int) -> tuple[float, float]:
     return (math.cos(a), math.sin(a))
 
 
-def _ring(case_type: CaseType, lip_side: tuple[float, float],
-          spine_side: tuple[float, float]) -> list[Vec]:
+def _ring(case_type: CaseType, ring: Ring) -> list[Vec]:
     """One ring, anticlockwise as seen from the front, starting at the top
-    of the opening side."""
+    of the opening side; with a recess, its four points close the ring."""
+    lip_side, spine_side, recessed = ring
+    shape = case_type.shape
     w, h = case_type.width / 2, case_type.height / 2
-    radius = case_type.shape.corner_radius
+    radius = shape.corner_radius
     points: list[Vec] = []
     # (x sign, y sign, does the arc run from the x side to the y side?)
     for sx, sy, x_first in ((1, 1, True), (-1, 1, False), (-1, -1, True), (1, -1, False)):
@@ -168,6 +187,10 @@ def _ring(case_type: CaseType, lip_side: tuple[float, float],
             # c is 1 on the x side and 0 on the y side; c*c eases between.
             z = zx if zx == zy else zx * c * c + zy * (1 - c * c)
             points.append((cx + sx * rx * c, cy + sy * ry * s, z))
+    if _has_recess(shape):
+        x, z, half = w - lip_side[0], lip_side[1], shape.recess_length / 2
+        floor = x - shape.recess_depth if recessed else x
+        points += [(x, -half, z), (floor, -half, z), (floor, half, z), (x, half, z)]
     return points
 
 
@@ -192,30 +215,43 @@ def box_patches(case_type: CaseType) -> list[Patch]:
                 for face, corners in faces.items()]
 
     profiles = _profiles(shape, case_type.depth / 2)
-    rings = [_ring(case_type, lip, spine) for lip, spine in profiles]
-    # The lips' inner walls and the seam's two faces show plain plastic.
+    rings = [_ring(case_type, ring) for ring in profiles]
+    n = len(rings[0])
+    # The lips' inner walls and the seam's two faces show plain plastic,
+    # but on the spine side, where the seam runs flat, the picture.
     last = len(rings) - 2
     plain = {0, last} if shape.lip_height > 0 else set()
+    seam = set()
     if shape.seam_width > 0:
-        plain |= {last // 2, last // 2 + 1}
+        middle = next(i for i, (lip_side, _, _) in enumerate(profiles)
+                      if lip_side == (shape.seam_depth, 0.0))
+        seam = {middle - 1, middle}
+    # The recess's walls and floor: the three quads between its four points.
+    recess_quads = {n - 4, n - 3, n - 2} if _has_recess(shape) else set()
 
-    pieces: list[tuple[list[Vec], bool]] = [(list(reversed(rings[0])), False)]
+    pieces: list[tuple[list[Vec], str]] = [(list(reversed(rings[0])), "face")]
     for band, (a, b) in enumerate(zip(rings, rings[1:], strict=False)):
-        n = len(a)
+        in_recess = profiles[band][2] or profiles[band + 1][2]
         for k in range(n):
             quad = [a[k], a[(k + 1) % n], b[(k + 1) % n], b[k]]
-            pieces.append((quad, band in plain))
-    pieces.append((list(rings[-1]), False))
+            if band in plain or (in_recess and k in recess_quads):
+                kind = "plain"
+            else:
+                kind = "seam" if band in seam else "face"
+            pieces.append((quad, kind))
+    pieces.append((list(rings[-1]), "face"))
 
     patches = []
-    for raw, is_plain in pieces:
+    for raw, kind in pieces:
         corners = _clean(raw)
         if len(corners) < 3:
             continue
         normal = patch_normal(corners)
         face = None
-        if not is_plain and normal != (0.0, 0.0, 0.0):
+        if kind != "plain" and normal != (0.0, 0.0, 0.0):
             face = max(_FACE_NORMALS, key=lambda f: _dot(normal, _FACE_NORMALS[f]))
+            if kind == "seam" and _dot(normal, _FACE_NORMALS[face]) < 1 - _SAME_MM:
+                face = None
         source = _source(face, corners, faces) if face is not None else None
         patches.append(Patch(corners, face, source, _colour(face, normal)))
     return patches
