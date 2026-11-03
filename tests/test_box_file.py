@@ -303,7 +303,7 @@ class TestShape(unittest.TestCase):
                 "corner_radius_mm": 3.0, "edge_radius_mm": 1.0,
                 "lip_width_mm": 2.5, "lip_height_mm": 0.5,
                 "seam_width_mm": 0.8, "seam_depth_mm": 0.4,
-                "recess_length_mm": 90.0, "recess_height_mm": 4.0,
+                "recess_length_mm": 59.0, "recess_height_mm": 6.0,
                 "recess_depth_mm": 1.5,
             })
             model = read_box_file(os.path.join(d, "Game.box.json"))
@@ -362,8 +362,10 @@ class TestShape(unittest.TestCase):
             # 171.5 - 2 x 3 mm corners: the recess must end before them.
             "recess reaching the corners": shape(recess_length_mm=165.5),
             "recess deeper than a quarter of the width": shape(recess_depth_mm=33.76),
-            # 6.5 - 0.5 lip - 1 rounding - 0.4 half seam: 4.6 mm of straight side.
-            "recess reaching the back rounding": shape(recess_height_mm=4.6),
+            # 6.5 - 0.5 lip - 1 rounding: 5 mm of straight side each way.
+            "recess reaching the roundings": shape(recess_height_mm=10),
+            "recess no longer than its height": shape(recess_length_mm=6),
+            "recess no taller than the seam": shape(recess_height_mm=0.8),
             "true in a recess key": shape(recess_length_mm=True),
         }
         for label, mutate in fixtures.items():

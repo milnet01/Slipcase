@@ -14,6 +14,11 @@ back lip to the back sheet. Each ring gives every side an inset from the
 outline and a height: the top, bottom and opening side share one profile,
 with the lip and the seam; the spine side has its own, with neither.
 Round a corner a ring passes from one side's values to the other's.
+
+A finger recess cuts into the opening side across the seam: a slot with
+half-round ends. Every ring carries four more points on that side, where
+the slot's ends lie at that ring's height; rings above and below the slot
+carry them uncut, so every ring has as many points as the next.
 """
 
 import math
@@ -26,6 +31,7 @@ Vec = tuple[float, float, float]
 # Starting figures (SLIP-0125 § 4.4); § 6 lowers them if a frame is too slow.
 CORNER_SEGMENTS = 8
 EDGE_SEGMENTS = 3
+RECESS_SEGMENTS = 4             # per quarter of the slot's half-round ends
 _SAME_MM = 1e-9
 
 _FULL_PICTURE = [(0, 0), (1, 0), (1, 1), (0, 1)]
@@ -117,8 +123,9 @@ def _has_recess(shape: CaseShape) -> bool:
 
 
 # One ring: its (inset, height) on the lip sides and on the spine side, and
-# whether it runs through the finger recess.
-Ring = tuple[tuple[float, float], tuple[float, float], bool]
+# how far the finger recess's cut reaches each way from the middle at that
+# height, or None where the ring runs above or below the slot.
+Ring = tuple[tuple[float, float], tuple[float, float], float | None]
 
 
 def _profiles(shape: CaseShape, d: float) -> list[Ring]:
@@ -138,22 +145,31 @@ def _profiles(shape: CaseShape, d: float) -> list[Ring]:
         inset = r * (1 - math.cos(theta)) if k != steps else r
         rise = r * math.sin(theta) if k != steps else r
         front.append(((inset, d - r + rise), (inset, d - t - r + rise)))
-    middle = []
-    if sw > 0:
-        front.append(((0.0, sw / 2), (0.0, sw / 2)))
-        middle.append(((shape.seam_depth, 0.0), (0.0, 0.0)))
     back = [((li, -lz), (si, -sz)) for (li, lz), (si, sz) in reversed(front)]
-    rings = [(lip_side, spine_side, False) for lip_side, spine_side in front + middle + back]
-    if _has_recess(shape):
-        # The recess's top lies at the seam's back edge; with no seam that
-        # edge needs a ring of its own.
-        top, bottom = sw / 2, sw / 2 + shape.recess_height
-        at = len(front) + len(middle) + (1 if sw > 0 else 0)
-        cut = [] if sw > 0 else [((0.0, 0.0), (0.0, 0.0), False)]
-        cut += [((0.0, -top), (0.0, -top), True), ((0.0, -bottom), (0.0, -bottom), True),
-                ((0.0, -bottom), (0.0, -bottom), False)]
-        rings[at:at] = cut
-    return rings
+    # The straight run between the two roundings: the seam, and the slot.
+    seam = []
+    if sw > 0:
+        seam = [((0.0, sw / 2), (0.0, sw / 2)), ((shape.seam_depth, 0.0), (0.0, 0.0)),
+                ((0.0, -sw / 2), (0.0, -sw / 2))]
+    if not _has_recess(shape):
+        straight: list[Ring] = [(lip_side, spine_side, None) for lip_side, spine_side in seam]
+    else:
+        end = shape.recess_height / 2
+
+        def reach(z: float) -> float:
+            return shape.recess_length / 2 - end + math.sqrt(max(0.0, end * end - z * z))
+
+        levels = [end * math.cos(math.pi * j / (2 * RECESS_SEGMENTS))
+                  for j in range(2 * RECESS_SEGMENTS + 1)]
+        # Levels inside the seam would cut its V; the seam's own rings stand in.
+        cut = [((0.0, z), (0.0, z)) for z in levels if sw == 0 or abs(z) > sw / 2 + _SAME_MM]
+        inside = sorted(cut + seam, key=lambda ring: -ring[0][1])
+        straight = ([((0.0, end), (0.0, end), None)]
+                    + [(lip, spine, reach(lip[1])) for lip, spine in inside]
+                    + [((0.0, -end), (0.0, -end), None)])
+    return ([(lip_side, spine_side, None) for lip_side, spine_side in front]
+            + straight
+            + [(lip_side, spine_side, None) for lip_side, spine_side in back])
 
 
 def _arc(j: int) -> tuple[float, float]:
@@ -170,7 +186,7 @@ def _arc(j: int) -> tuple[float, float]:
 def _ring(case_type: CaseType, ring: Ring) -> list[Vec]:
     """One ring, anticlockwise as seen from the front, starting at the top
     of the opening side; with a recess, its four points close the ring."""
-    lip_side, spine_side, recessed = ring
+    lip_side, spine_side, reach = ring
     shape = case_type.shape
     w, h = case_type.width / 2, case_type.height / 2
     radius = shape.corner_radius
@@ -188,9 +204,13 @@ def _ring(case_type: CaseType, ring: Ring) -> list[Vec]:
             z = zx if zx == zy else zx * c * c + zy * (1 - c * c)
             points.append((cx + sx * rx * c, cy + sy * ry * s, z))
     if _has_recess(shape):
-        x, z, half = w - lip_side[0], lip_side[1], shape.recess_length / 2
-        floor = x - shape.recess_depth if recessed else x
-        points += [(x, -half, z), (floor, -half, z), (floor, half, z), (x, half, z)]
+        x, z = w - lip_side[0], lip_side[1]
+        if reach is None:
+            # Uncut: the points sit where the slot's straight edges end.
+            reach, floor = shape.recess_length / 2 - shape.recess_height / 2, x
+        else:
+            floor = x - shape.recess_depth
+        points += [(x, -reach, z), (floor, -reach, z), (floor, reach, z), (x, reach, z)]
     return points
 
 
@@ -231,7 +251,7 @@ def box_patches(case_type: CaseType) -> list[Patch]:
 
     pieces: list[tuple[list[Vec], str]] = [(list(reversed(rings[0])), "face")]
     for band, (a, b) in enumerate(zip(rings, rings[1:], strict=False)):
-        in_recess = profiles[band][2] or profiles[band + 1][2]
+        in_recess = profiles[band][2] is not None or profiles[band + 1][2] is not None
         for k in range(n):
             quad = [a[k], a[(k + 1) % n], b[(k + 1) % n], b[k]]
             if band in plain or (in_recess and k in recess_quads):

@@ -156,5 +156,40 @@ class TestBackgroundTransparent(_ViewerTest):
         self.assertGreater(centre(pictured), 120)
 
 
+class TestShapedSpine(_ViewerTest):
+
+    def test_flat_spine_drawn_whole(self):
+        """SLIP-0125 § 4.4: the PS5 spine's flat strips draw as one picture,
+        so no seam line crosses it. The picture runs dark to light across
+        the spine; a row across the drawn spine must do the same, with no
+        dip where two strips meet."""
+        from dataclasses import replace
+
+        from PyQt6.QtCore import QPoint
+        from PyQt6.QtGui import QColor, QImage, QRegion
+        from PyQt6.QtWidgets import QWidget
+
+        ramp = Image.new("RGB", (130, 400))
+        ramp.putdata([(x * 2, x * 2, x * 2) for _ in range(400) for x in range(130)])
+        model = replace(_model(), case_type=CASE_TYPES["PS5 Blu-ray Case"], spine=ramp)
+        viewer = self._viewer(model)
+        viewer.set_view(90, 0)
+        viewer.zoom_by(8)
+        image = QImage(300, 300, QImage.Format.Format_ARGB32_Premultiplied)
+        image.fill(QColor(0, 0, 0, 0))
+        viewer.render(image, QPoint(), QRegion(), QWidget.RenderFlag(0))
+        row = [image.pixelColor(x, 150) for x in range(300)]
+        drawn = [x for x, colour in enumerate(row) if colour.alpha() == 255]
+        # The flat middle of the spine, clear of its rounded edges.
+        width = drawn[-1] - drawn[0]
+        reds = [row[x].red() for x in range(drawn[0] + width // 5, drawn[-1] - width // 5)]
+        if reds[0] > reds[-1]:
+            reds.reverse()
+        steps = zip(reds, reds[1:], strict=False)
+        dips = [(i, a, b) for i, (a, b) in enumerate(steps) if b < a - 2]
+        self.assertGreater(reds[-1] - reds[0], 30, "the ramp is not across the row")
+        self.assertEqual(dips, [], reds)
+
+
 if __name__ == "__main__":
     unittest.main()

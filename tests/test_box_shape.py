@@ -17,8 +17,8 @@ SHAPES = {
     "lip, no edge rounding": CaseShape(3, 0, 2.5, 0.5, 0, 0),
     "seam only": CaseShape(0, 0, 0, 0, 0.8, 0.4),
     "flat": CaseShape(0, 0),
-    "recess, no seam": CaseShape(3, 1, 2.5, 0.5, 0, 0, 90, 4, 1.5),
-    "recess only": CaseShape(0, 0, 0, 0, 0, 0, 90, 4, 1.5),
+    "recess, no seam": CaseShape(3, 1, 2.5, 0.5, 0, 0, 59, 6, 1.5),
+    "recess only": CaseShape(0, 0, 0, 0, 0, 0, 59, 6, 1.5),
 }
 
 
@@ -80,19 +80,26 @@ class TestBoxShape(unittest.TestCase):
             self.assertEqual(patch.face, "spine", patch.corners)
 
     def test_recess_is_cut_plain(self):
-        """§ 4.1 (e): the recess's floor lies recess_depth in from the opening
-        side, behind the seam, recess_length long, in plain plastic."""
+        """§ 4.1 (e): the slot is cut recess_depth into the opening side,
+        recess_length long and recess_height high, centred on the case and
+        the seam, with the seam's V along its floor, all in plain plastic."""
         shape = PS5.shape
-        floor_x = PS5.width / 2 - shape.recess_depth
-        floor = [p for p in box_patches(PS5)
-                 if all(abs(c[0] - floor_x) < 1e-9 for c in p.corners)]
-        self.assertEqual(len(floor), 1)
-        ys = [c[1] for c in floor[0].corners]
-        zs = [c[2] for c in floor[0].corners]
-        self.assertAlmostEqual(max(ys) - min(ys), shape.recess_length)
-        self.assertAlmostEqual(max(zs), -shape.seam_width / 2)
-        self.assertAlmostEqual(min(zs), -shape.seam_width / 2 - shape.recess_height)
-        self.assertIsNone(floor[0].face)
+        w = PS5.width / 2
+        floor_x = w - shape.recess_depth
+        # The side's straight run, between the front and back roundings.
+        straight = PS5.depth / 2 - shape.lip_height - shape.edge_radius
+        cut = [p for p in box_patches(PS5)
+               if all(c[0] < w - 1e-9 and abs(c[1]) <= shape.recess_length / 2 + 1e-9
+                      and abs(c[2]) < straight for c in p.corners)]
+        corners = [c for p in cut for c in p.corners]
+        self.assertAlmostEqual(max(c[1] for c in corners), shape.recess_length / 2)
+        self.assertAlmostEqual(min(c[1] for c in corners), -shape.recess_length / 2)
+        self.assertAlmostEqual(max(c[2] for c in corners), shape.recess_height / 2)
+        self.assertAlmostEqual(min(c[2] for c in corners), -shape.recess_height / 2)
+        self.assertAlmostEqual(min(c[0] for c in corners), floor_x - shape.seam_depth)
+        self.assertTrue(any(abs(c[0] - floor_x) < 1e-9 for c in corners))
+        for patch in cut:
+            self.assertIsNone(patch.face, patch.corners)
 
     def test_closed_and_wound_outward(self):
         """INV-8."""

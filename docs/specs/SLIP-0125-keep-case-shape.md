@@ -3,7 +3,8 @@
 
 **Status:** spec draft (2026-11-03); amended 2026-11-03, before any build,
 to make the lip and the seam real shape; amended again 2026-11-03, after
-the user's first look, to add the finger recess.
+the user's first look, to add the finger recess, and again after their
+photo of the opening side, to centre it on the seam with round ends.
 **Kind:** implement.
 **Source:** ROADMAP SLIP-0125 (user request 2026-11-03; shape format agreed
 with the RetroDB session the same day).
@@ -48,7 +49,9 @@ behaves exactly as today.
   visible in real life" (the user), and shows as a clear line on the closed
   case in the reference photos.
 - **The opening side has its finger recess.** The user, 2026-11-03, after
-  the first look: the real case has it.
+  the first look: the real case has it. Their photo of the opening side
+  shows a slot with round ends across the seam, and they confirmed it sits
+  in the middle of the side.
 - **The tray and disc stay out.** The user, 2026-11-03, agreed: with a game
   in the case, the cover hides them.
 - **PS5 first.** The user, 2026-11-03: "Let's test PS5 for now", then other
@@ -74,7 +77,7 @@ behaves exactly as today.
 "shape": {"corner_radius_mm": 3, "edge_radius_mm": 1,
           "lip_width_mm": 2.5, "lip_height_mm": 0.5,
           "seam_width_mm": 0.8, "seam_depth_mm": 0.4,
-          "recess_length_mm": 90, "recess_height_mm": 4,
+          "recess_length_mm": 59, "recess_height_mm": 6,
           "recess_depth_mm": 1.5}
 ```
 
@@ -119,11 +122,11 @@ behaves exactly as today.
   `seam_width_mm` wide at the surface, its deepest line `seam_depth_mm`
   in. The spine side has none.
 - **(e) `recess_length_mm`, `recess_height_mm` and `recess_depth_mm`.** A
-  finger recess cut into the opening side, centred top to bottom and
-  `recess_length_mm` long. It runs from the seam's back edge
-  `recess_height_mm` towards the back, and its flat floor lies
-  `recess_depth_mm` in. Its ends and walls are square. The back half is cut
-  away there so a finger reaches the front half's edge. With any of the
+  finger slot cut into the opening side, centred top to bottom and on the
+  seam. It is `recess_length_mm` long end to end and `recess_height_mm`
+  high, and its ends are half-rounds of half that height. Its floor lies
+  `recess_depth_mm` in from the side's surface, and the seam's groove runs
+  on along the floor. Its walls are square to the side. With any of the
   three 0 there is no recess.
 - **The outer size stays `case`'s.** Rounding and grooves take material
   away; the lip's top is the case's face. Nothing stands outside the box.
@@ -152,9 +155,11 @@ limits:
   corners.
 - `recess_depth_mm`: at most a quarter of the smaller of `width_mm` and
   `height_mm`.
-- Half `seam_width_mm` plus `recess_height_mm`: less than half `depth_mm`
-  minus `lip_height_mm` and `edge_radius_mm`, so the recess ends before the
-  back's rounding.
+- `recess_height_mm`: above 0 only when it is above `seam_width_mm` and
+  below `recess_length_mm`, so the slot is taller than the seam and its
+  round ends fit.
+- Half `recess_height_mm`: less than half `depth_mm` minus `lip_height_mm`
+  and `edge_radius_mm`, so the slot ends before the roundings.
 
 A `shape` that is not an object, lacks a required key, or breaks a rule is
 ignored whole and the box is drawn flat. It never refuses the file: a wrong
@@ -190,10 +195,10 @@ published source gives any of them (research 2026-11-03):
 - `seam_width` 0.8 mm and `seam_depth` 0.4 mm, from the closed case photo
   labelled 10 mm deep, where the seam's line is about a twentieth of the
   depth (2026-11-03).
-- `recess_length` 90 mm, `recess_height` 4 mm and `recess_depth` 1.5 mm.
-  The length and height are from a closed-case photo, where the slot runs
-  about half the opening side and about two fifths of the depth
-  (2026-11-03). The depth is unsourced.
+- `recess_length` 59 mm, `recess_height` 6 mm and `recess_depth` 1.5 mm.
+  The length and height are measured from the user's photo of their case's
+  opening side, against its 13 mm depth (2026-11-03). The depth is
+  unsourced.
 
 The user's by-eye check sets them all.
 
@@ -234,8 +239,10 @@ ring on that side. The top, bottom and opening side share one, with the
 lip, its rounding and the groove; the spine side has its own, with neither.
 Round a corner, a ring's inset and height pass from one side's value to
 the other's. With a recess, the rings carry four more points on the
-opening side, where its ends lie: cut in for the rings bounding the
-recess, uncut for the rest. Quads join the rings; the two sheets are flat
+opening side, where the slot's ends lie at that ring's height: cut in for
+the rings across the slot, uncut for the rest. Rings at four steps a
+quarter turn shape the slot's round ends; the seam's own rings stand in
+for those that would fall inside the seam. Quads join the rings; the two sheets are flat
 caps. Eight
 segments a corner and three an edge rounding are the starting figures.
 
@@ -243,7 +250,9 @@ Each patch shows the picture of the face its outward direction is nearest
 to, at its region straight below it on that face's plane. A lip's inner
 wall shows the lip top beside it. The groove's walls and the recess show
 plain plastic; on the spine side the seam's strip is flat, and shows the
-spine's picture. Slipcase's viewer maps a picture onto the
+spine's picture. The viewer joins the strips lying flat on one face's
+plane and draws that face's picture once over them, so no line shows where
+two strips meet. Slipcase's viewer maps a picture onto the
 flat parts and onto the long straight strips, and fills small patches with
 their region's average colour.
 
@@ -313,8 +322,8 @@ its painted lip.
   depth above its width, a lip width above a quarter of the width, a lip
   narrower than the edge rounding, and `true` and −1 in a lip or seam key.
   Amended again the same day: a recess reaching the corners, deeper than a
-  quarter of the width, reaching the back's rounding, and `true` in a
-  recess key.
+  quarter of the width, reaching the roundings, no longer than its height,
+  no taller than the seam, and `true` in a recess key.
 
 - **INV-6** — *Withdrawn 2026-11-03: the seam is shape, so the sides get no
   pictures (§ 4.3). INV-9 replaces it.* With a shape and `show_texture` set,
@@ -351,15 +360,19 @@ its painted lip.
   drifts from the frame it should cover.
 
 - **INV-10** — The recess is cut where § 4.1 (e) puts it, in plain plastic,
-  and the spine's seam strip shows the spine's picture.
+  and the spine shows its picture whole.
   *Test:* `tests/test_box_shape.py::test_recess_is_cut_plain`: on the PS5
-  case, one patch lies `recess_depth` in from the opening side, spans
-  `recess_length` top to bottom and runs from the seam's back edge
-  `recess_height` back, with no picture; and
+  case, the patches cut into the side's straight run span
+  `recess_length` top to bottom and `recess_height` centred on the seam,
+  reach `recess_depth` in plus the seam's depth, and show no picture;
   `::test_spine_shows_its_picture`: every patch flat on the spine shows the
-  spine's picture.
-  *Breaks when:* the recess is cut on the wrong half or at the wrong size,
-  takes a face's picture, or the seam strip on the spine is drawn plain.
+  spine's picture; and
+  `tests/test_box_viewer.py::test_flat_spine_drawn_whole`: a picture
+  running dark to light across the spine draws with no dip where two
+  strips meet.
+  *Breaks when:* the recess is cut off centre or at the wrong size, takes a
+  face's picture, the seam strip on the spine is drawn plain, or the
+  spine's strips are drawn apart.
 
 SLIP-0104's INV-7 (visible faces) and INV-12 (nothing outside the box) still
 bind the viewer, and their tests run unchanged.
@@ -382,7 +395,8 @@ bind the viewer, and their tests run unchanged.
 
 ## 7. Tests
 
-- INV-1, INV-2, INV-8, INV-10 — `tests/test_box_shape.py`, a new file listed in
+- INV-1, INV-2, INV-8, INV-10 — `tests/test_box_shape.py`; INV-10 also
+  `tests/test_box_viewer.py`, a new file listed in
   `.indie-review/partition.json`.
 - INV-4, INV-5 — `tests/test_box_file.py`.
 - INV-9 — `tests/test_box_model.py`.
@@ -434,7 +448,7 @@ automated check: the user compares the viewer with their photos.
 | INV-7 | `tests/test_renderer.py::test_render_ignores_shape` |
 | INV-8 | `tests/test_box_shape.py::test_closed_and_wound_outward` |
 | INV-9 | `tests/test_box_model.py::test_lip_replaces_painted_wall`, `::test_lip_width_is_rim_width` |
-| INV-10 | `tests/test_box_shape.py::test_recess_is_cut_plain`, `::test_spine_shows_its_picture` |
+| INV-10 | `tests/test_box_shape.py::test_recess_is_cut_plain`, `::test_spine_shows_its_picture`; `tests/test_box_viewer.py::test_flat_spine_drawn_whole` |
 | § 4.4's draw order | **nothing** — the by-eye check (§ 6) |
 | § 4.2's working figures | **nothing** — no source exists; the user's by-eye check |
 | § 6 frame time | **nothing** — judged while auto-spin runs |
@@ -469,5 +483,3 @@ Rows live in `../reviews/SLIP-0125-keep-case-shape-loop-log.md`.
 
 - The working figures in § 4.2, until the user's check.
 - Whether RetroDB takes the recess keys as written in § 4.1.
-- Which half the recess cuts. The photo shows the slot below the seam on a
-  case lying flat, assumed back down; the user's check confirms it.

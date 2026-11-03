@@ -88,7 +88,8 @@ class _Piece:
     `mode` is "plane" for a face, or a sheet, drawn by its face's picture
     mapped onto `plane` and clipped to the patch; "strip" for a patch drawn
     by the region `rect` of its picture, whose corners are `source`; and
-    "fill" for a patch filled with `colour` alone.
+    "fill" for a patch filled with `colour` alone. `parts`, when set, holds
+    the patches a "plane" piece joins; it is drawn as their union.
     """
     corners: list[Vec]
     normal: Vec
@@ -100,6 +101,7 @@ class _Piece:
     plane: list[Vec] | None = None
     source: QPolygonF | None = None
     rect: QRectF | None = None
+    parts: list[list[Vec]] | None = None
 
 
 def _piece(patch: Patch, pictures: dict[str, np.ndarray],
@@ -147,6 +149,38 @@ def _piece(patch: Patch, pictures: dict[str, np.ndarray],
         piece.rect = QRectF(x0, y0, x1 - x0, y1 - y0)
         piece.mode, piece.face = "strip", patch.face
     return piece
+
+
+def _join_flat(pieces: list[_Piece], faces: dict[str, list[Vec]]) -> list[_Piece]:
+    """`pieces` with the strips lying flat on one face's plane joined into
+    one piece that draws that face's picture once. Drawn apart, each strip's
+    outline shows as a line across the picture."""
+    groups: dict[tuple[str, float], list[_Piece]] = {}
+    kept = []
+    for piece in pieces:
+        if piece.mode == "strip":
+            outer = faces[piece.face]
+            normal = patch_normal(outer)
+            if _dot(piece.normal, normal) > 1 - 1e-9:
+                offset = round(_dot(normal, _sub(piece.corners[0], outer[0])), 6)
+                groups.setdefault((piece.face, offset), []).append(piece)
+                continue
+        kept.append(piece)
+    for (face, offset), group in groups.items():
+        if len(group) == 1:
+            kept.extend(group)
+            continue
+        corners = [c for piece in group for c in piece.corners]
+        normal = patch_normal(faces[face])
+        kept.append(_Piece(
+            corners, group[0].normal,
+            tuple(sum(c[i] for c in corners) / len(corners) for i in range(3)),
+            tuple(round(sum(p.colour[i] for p in group) / len(group)) for i in range(3)),
+            face, "plane", False,
+            plane=[tuple(c + offset * f for c, f in zip(corner, normal, strict=True))
+                   for corner in faces[face]],
+            parts=[piece.corners for piece in group]))
+    return kept
 
 
 def _to_qimage(image: Image.Image) -> QImage:
@@ -219,6 +253,8 @@ class BoxViewer(QWidget):
         pieces = (_piece(patch, arrays, plain, self._corners, self._shaped)
                   for patch in box_patches(ct))
         self._pieces = [piece for piece in pieces if piece is not None]
+        if self._shaped:
+            self._pieces = _join_flat(self._pieces, self._corners)
         del arrays
         self._radius = math.sqrt(ct.width ** 2 + ct.height ** 2 + ct.depth ** 2) / 2
         self._angle = angle
@@ -333,7 +369,12 @@ class BoxViewer(QWidget):
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         painter.setPen(Qt.PenStyle.NoPen)
         for piece in visible:
-            polygon = project(piece.corners)
+            path = QPainterPath()
+            for part in piece.parts or [piece.corners]:
+                path.addPolygon(project(part))
+                path.closeSubpath()
+            if piece.parts:
+                path = path.simplified()  # their union, outlined only outside
             brightness = _AMBIENT + _DIFFUSE * max(0.0, _dot(piece.normal, light))
             if self._shaped or piece.mode == "fill":
                 colour = QColor(*(round(c * brightness) for c in piece.colour))
@@ -341,7 +382,7 @@ class BoxViewer(QWidget):
                     # Outlined in its own colour, so no gap shows between patches.
                     painter.setPen(QPen(colour, 1))
                 painter.setBrush(colour)
-                painter.drawPolygon(polygon)
+                painter.drawPath(path)
             if piece.mode == "fill":
                 continue
             image = self._images[piece.face]
@@ -354,14 +395,11 @@ class BoxViewer(QWidget):
                 if not QTransform.quadToQuad(source, project(piece.plane), transform):
                     continue
                 if self._shaped:
-                    path = QPainterPath()
-                    path.addPolygon(polygon)
-                    path.closeSubpath()
                     painter.setClipPath(path)
                 painter.setTransform(transform)
                 painter.drawImage(0, 0, image)
             else:
-                if not QTransform.quadToQuad(piece.source, polygon, transform):
+                if not QTransform.quadToQuad(piece.source, project(piece.corners), transform):
                     continue
                 rect = piece.rect
                 painter.setTransform(transform)

@@ -180,7 +180,10 @@ def _shape(data: dict, width: float, height: float, depth: float) -> CaseShape |
             or result.recess_length >= height - 2 * max(result.corner_radius,
                                                          result.lip_width)
             or result.recess_depth > side
-            or (result.seam_width / 2 + result.recess_height
+            or (result.recess_height > 0
+                and (result.recess_length <= result.recess_height
+                     or result.recess_height <= result.seam_width))
+            or (result.recess_height / 2
                 >= depth / 2 - result.lip_height - result.edge_radius)):
         return None
     if not any(values.values()):
