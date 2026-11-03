@@ -1145,7 +1145,7 @@ building.
   Kind: feature.
   Source: user-request-2026-10-21.
 
-- 🚧 [SLIP-0108] **Give cartridge boxes their real size and shape, per region.**
+- ✅ [SLIP-0108] **Give cartridge boxes their real size and shape, per region.**
   Phase 3 of SLIP-0106, split out for its own spec. Sourced in
   docs/research/SLIP-0106-real-cases.md: US SNES and N64 boxes are
   landscape, Super Famicom and N64 JP portrait; JP Game Boy and GBA boxes
@@ -1193,6 +1193,7 @@ building.
   the 3D View tab and box files keep the title on the short left spine
   with a plain bottom. Animation and batch export ignore the back view
   on every case, as before this change.
+  Approved by the user 2026-11-03; they may revisit the sizes later.
   **Layman:** Cartridge game boxes (NES, SNES, N64, Game Boy and others) get the right size and shape for each region.
   Kind: feature.
   Source: user-request-2026-10-21.
@@ -1425,7 +1426,7 @@ building.
   Kind: enhancement.
   Source: user-request-2026-10-21.
 
-- 🚧 [SLIP-0118] **Draw generated spines the way real printed spines look.**
+- ✅ [SLIP-0118] **Draw generated spines the way real printed spines look.**
   Seen 2026-10-29 comparing Slipcase against RetroDB's ScreenScraper
   and ES-DE 3D renders (PS1, PS2, Dreamcast, GameCube, Xbox 360).
   Their spines come from real scans: platform logo at the top, title in
@@ -1439,12 +1440,16 @@ building.
   already supplies the real spine.
   Built 2026-11-02, compared with RetroDB's 3D boxes: title in bold capitals at half the spine's width; console's name spelled out ("PlayStation 2", "GAMECUBE"); serial bold, nearly opaque, one size fitted to its widest part; PS1 and GameCube spine black. Text too long for its zone on a very small render is scaled down. A back scan's spine is untouched.
   Not as the item asked: no console logo, as none ships with the app, so the top is text. The serial shows only if typed in the Serial box; RetroDB's games.disc_serial is not read. The item's "ridges over the whole spine" no longer holds: jewel spines draw only end caps and rims, so nothing changed there. Left: Dreamcast's orange strip and white spine, PS3 and PSP grey, Game Boy Color purple, as the item named none of them; Georgian titles may lose glyphs in capitals, unverified. One review lane, 2026-11-02; findings fixed. Tests: tests/test_renderer.py. Samples: /mnt/Games/.slipcase-scratch/spines/after.png and render.png. Next: the user's eye.
+  Approved by the user 2026-11-03, on condition each spine matches its
+  case's size. Checked: _compute_box_dimensions in core/renderer.py
+  sizes the spine from the case depth at the same scale as the front
+  height.
   **Layman:** When there is no spine picture, the spine Slipcase draws looks like a real one: console logo at the top, the title in bold white capitals, the serial at the bottom.
   Kind: enhancement.
   Source: retrodb-comparison-2026-10-29.
   Lanes: core.
 
-- 🚧 [SLIP-0119] **Tell a cover's region from its artwork, not only its file name.**
+- ✅ [SLIP-0119] **Tell a cover's region from its artwork, not only its file name.**
   core/region.py detect_region reads the file name only and falls
   back to NTSC-U. Scraped files rarely carry a region in their name
   (RetroDB's are "<id>_ss_boxart.webp"), so every PAL cover there gets
@@ -1457,6 +1462,8 @@ building.
   Built 2026-11-02: core/region.py region_from_artwork, used when a file name declares no region; the name still wins. Two marks, both PAL: the PS1 black footer with the PlayStation wordmark, and the Dreamcast blue head band with wordmark and swirl box. Each compares a column profile of the wordmark, so no OCR and no logo image ships. A wrong override is no better than the default, so thresholds sit above every US and Japanese cover sampled.
   Tested on libretro covers, whose file names label the region, sampled evenly (RetroDB's stored region and serial are unreliable: most "USA" covers there are PAL art). PS1: PAL on 52 of 60 Europe, 0 of 60 USA, 0 of 60 Japan. Dreamcast: 36 of 60, 0 of 60, 0 of 60. Europe misses have no mark, or carry US art. On RetroDB, every hit read by eye: PS1 116 of 225, Dreamcast 21 of 36. One PS1 hit, Darklight Conflict, has no wordmark but is PAL. Time Crisis, Shenmue and Spider-Man now get PAL.
   Not built, by decision: PS2, as European covers share no one mark and each country's rating badge differs; Japanese marks, as the PS1 corner logo fired on 3 of 60; DS, not looked at. These keep the file name or the NTSC-U default. Images outside width/height 0.5 to 1.4 are not read, so a wrap keeps the default. Batch reads marks in the worker thread. One review lane, 2026-11-02; its findings fixed. Tests: tests/test_region.py TestRegionFromArtwork, tests/test_jewel.py. Evidence sheets: /mnt/Games/.slipcase-scratch/region/. Next: the user's eye on a real load.
+  Approved by the user 2026-11-03 from region/ps1_final.png and
+  dc_scored.png.
   **Layman:** A European cover gets the European case even when its file name does not say "Europe".
   Kind: feature.
   Source: retrodb-comparison-2026-10-29.
@@ -1495,7 +1502,7 @@ building.
   Source: user-request-2026-10-29.
   Lanes: core, ui.
 
-- 🚧 [SLIP-0124] **Give Saturn and Sega CD their own cases, and add the consoles that have none.**
+- ✅ [SLIP-0124] **Give Saturn and Sega CD their own cases, and add the consoles that have none.**
   The user, 2026-10-30: "Let's get all of these sorted." Saturn still uses
   the generic CD Jewel Case; LaunchBox shows a wide hinge strip, and a tall
   black PAL case. Sega CD has no entry and uses a similar jewel style, PAL
@@ -1527,6 +1534,7 @@ building.
   TestSegaDiscCases. Sample:
   /mnt/Games/.slipcase-scratch/sizes/longbox.png. Next: the user's eye
   on these cases, then flip to shipped.
+  Approved by the user 2026-11-03 from sega/sega_cases.png.
   **Layman:** Saturn and Sega CD games get cases that look like theirs, and consoles with no case yet get one.
   Kind: feature.
   Source: user-request-2026-10-30.
