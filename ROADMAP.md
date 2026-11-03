@@ -1542,7 +1542,7 @@ building.
   Source: user-request-2026-10-30.
   Lanes: core.
 
-- 🚧 [SLIP-0125] **Give the PS5 case a real case's small details in the 3D viewer: its shape and its painted detail.**
+- ✅ [SLIP-0125] **Give the PS5 case a real case's small details in the 3D viewer: its shape and its painted detail.**
   The user, 2026-11-03: "when viewing it in 3D you must be able to see all
   the little details of a real case." Today the viewer draws a plain
   six-sided box (ui/box_viewer.py, core/box_model.py): a thin rim round
@@ -1584,6 +1584,9 @@ building.
   shape in the box file, the viewer draws the shaped PS5 case. Tray and
   disc stay out (user agreed); other cases follow the PS5 check. Waiting
   on the user's by-eye check of the working figures.
+  Shipped 2026-11-03 in 80fa277, 95bee0b and 52dbd6f. The user checked
+  the PS5 case in the viewer by eye and approved it the same day. The
+  finger slot was measured from their photo of their own case.
   **Layman:** Turn a PS5 case in the 3D viewer and it looks like the real one: rounded corners, the plastic lip, the seam and the tray seen through the plastic.
   Kind: feature.
   Source: user-request-2026-11-03.

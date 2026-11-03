@@ -1,7 +1,8 @@
 <!-- ants-spec-format: 1 -->
 # SLIP-0125 — Give the PS5 case its real shape in the 3D viewer
 
-**Status:** spec draft (2026-11-03); amended 2026-11-03, before any build,
+**Status:** shipped (2026-11-03; the user approved the PS5 case by eye).
+Spec draft 2026-11-03; amended 2026-11-03, before any build,
 to make the lip and the seam real shape; amended again 2026-11-03, after
 the user's first look, to add the finger recess, and again after their
 photo of the opening side, to centre it on the seam with round ends.
@@ -200,7 +201,7 @@ published source gives any of them (research 2026-11-03):
   opening side, against its 13 mm depth (2026-11-03). The depth is
   unsourced.
 
-The user's by-eye check sets them all.
+The user approved them by eye, 2026-11-03.
 
 `write_box_file` writes `"shape"` when `case_type.shape` is set, with all
 nine keys in mm, and leaves it out otherwise. `read_box_file` applies § 4.1's
@@ -481,5 +482,5 @@ Rows live in `../reviews/SLIP-0125-keep-case-shape-loop-log.md`.
 
 ## 14. Open questions
 
-- The working figures in § 4.2, until the user's check.
-- Whether RetroDB takes the recess keys as written in § 4.1.
+- Whether RetroDB takes the recess keys as written in § 4.1 (sent
+  2026-11-03).
