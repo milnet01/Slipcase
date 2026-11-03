@@ -86,12 +86,15 @@ today.
   back meet the four sides, the two hinge edges included.
 - **The outer size stays `case`'s.** Rounding takes material away; nothing
   stands outside the box.
-- **Pictures.** Every flat part shows its face's picture at its own
-  position. Each viewer decides how much detail the rounded parts get;
-  plain plastic in `colours` is always allowed.
+- **Pictures.** Each face's picture still spans its face's full outer
+  rectangle, `case`'s size. Every flat part shows the region of that
+  picture lying on it, cropped, never rescaled. Each viewer decides how
+  much detail the rounded parts get; plain plastic in `colours` is always
+  allowed.
 
 **Reading rules for `shape`**, added to SLIP-0104 § 4.1's: a missing `shape`
-means flat. Each value must be a number, at least 0. `corner_radius_mm` is
+means flat. Each value must be a number, not `true` or `false`, at least 0.
+A value of 0 means that rounding is absent; both 0 is a flat box. `corner_radius_mm` is
 at most a quarter of the smaller of `width_mm` and `height_mm`;
 `edge_radius_mm` at most a quarter of `depth_mm`. A `shape` that is not an
 object, lacks a key, or breaks a limit is ignored whole and the box is drawn
@@ -137,6 +140,10 @@ New in `core/case_texture.py`:
 def generate_keep_side(case_type: CaseType, plastic: tuple[int, int, int],
                        length: int, depth: int) -> Image.Image: ...
 ```
+
+It returns one side, `length` px long and `depth` px deep, laid as the
+top's picture is: the front half along its lower edge. The caller turns or
+flips each side into SLIP-0104 § 4.1's orientation for that face.
 
 ### 4.4 Drawing the shape
 
@@ -190,9 +197,11 @@ The still render (`BoxRenderer.render`) does not use the shape.
 - **INV-3** — The shaped solid is closed and convex, wound outward: every
   patch's normal points away from the box's centre, and every edge is
   shared by exactly two patches.
-  *Test:* `tests/test_box_shape.py::test_closed_and_outward`.
+  *Test:* `tests/test_box_shape.py::test_closed_and_outward`, which also
+  checks that no patch corner lies in front of another patch's plane.
   *Breaks when:* a ring is joined in the wrong order, so the viewer culls
-  a side facing the camera; or a gap is left between a cap and its ring.
+  a side facing the camera; a gap is left between a cap and its ring; or
+  the rings' insets are out of order, so the solid is concave.
 
 - **INV-4** — A written box file is still version 1 with SLIP-0104's keys,
   plus `shape` exactly when the case has one; with `shape` deleted from the
@@ -204,9 +213,9 @@ The still render (`BoxRenderer.render`) does not use the shape.
 - **INV-5** — A `shape` that breaks § 4.1's rules is ignored whole and the
   rest of the file reads.
   *Test:* `tests/test_box_file.py::test_bad_shape_ignored`, one fixture per
-  rule: not an object, a missing key, a string value, −1, and a corner
-  radius above a quarter of the width. Each reads, with `case_type.shape`
-  None.
+  rule: not an object, a missing key, a string value, `true`, −1, a corner
+  radius above a quarter of the width, and an edge radius above a quarter
+  of the depth. Each reads, with `case_type.shape` None.
   *Breaks when:* a bad shape refuses the file, or a value over its limit is
   clamped instead of ignored.
 
