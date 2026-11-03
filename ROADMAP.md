@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: SLIP=124 -->
+<!-- ants-roadmap-id-high-water: SLIP=126 -->
 
 # Slipcase — Roadmap
 
@@ -1541,6 +1541,39 @@ building.
   Kind: feature.
   Source: user-request-2026-10-30.
   Lanes: core.
+
+- 🚧 [SLIP-0125] **Give the PS5 case a real case's small details in the 3D viewer: its shape and its painted detail.**
+  The user, 2026-11-03: "when viewing it in 3D you must be able to see all
+  the little details of a real case." Today the viewer draws a plain
+  six-sided box (ui/box_viewer.py, core/box_model.py): a thin rim round
+  the cover, flat plastic edges. Missing against the user's PS5 photos
+  (2026-11-03, ~/Pictures/ClaudePaste paste_20261103_1329* to _1332*):
+  rounded corners, the raised lip round the cover, the seam where the two
+  halves meet, clear-plastic edges, and the tray and hub seen through the
+  plastic. The user chose both a real shape and painted detail at once,
+  worked out with the RetroDB session, whose viewer reads the box file
+  (SLIP-0104). PS5 first; other cases after reference photos or research.
+  Size stays 135 x 171.5 x 13 mm (the user, 2026-11-03; a seller photo's
+  170 x 135 x 10 is not adopted). Needs write-spec: the box file changes.
+  The user added PS4 case photos, 2026-11-03. Outside, PS4 and PS5 cases
+  look alike; inside, PS4 holds the disc with four arc clips, PS5 with a
+  full round dish. Reference photos (seller pictures, not for the repo)
+  copied to /mnt/Games/.slipcase-scratch/ps5/refs/ps5 and refs/ps4.
+  Asked the RetroDB session what its viewer draws (2026-11-03); online
+  research of PS5 case details running.
+  **Layman:** Turn a PS5 case in the 3D viewer and it looks like the real one: rounded corners, the plastic lip, the seam and the tray seen through the plastic.
+  Kind: feature.
+  Source: user-request-2026-11-03.
+
+- 📋 [SLIP-0126] **Add the two-disc PS5 case once a case can open in the 3D viewer.**
+  The user's photos, 2026-11-03, show a two-disc PS5 case: two trays,
+  the same outside as the one-disc case. Closed, the two look almost the
+  same, so the user chose, 2026-11-03, to add it with the open case
+  (SLIP-0109), where the trays show.
+  **Layman:** Pick a two-disc PS5 case, and see both discs when you open it in the 3D viewer.
+  Kind: feature.
+  Source: user-request-2026-11-03.
+  Blocked-by: SLIP-0109.
 
 ## Project record
 
