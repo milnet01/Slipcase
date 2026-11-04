@@ -129,10 +129,12 @@ _STANDARD_PAPER = JewelGeometry(booklet=(120, 120), back_card=(150, 118), strip=
 # from the user's straight-on photo, edges and lip height judged by eye, the
 # seam from a closed-case photo, the finger recess's length and height from
 # the user's photo of their case; the lip covers the pictures' plastic frame.
+# The recess's depth is measured from a real-scale model: "PS5 Dvd cd
+# whatever... Case" by Diablo on Sketchfab, CC-BY-4.0 (2026-11-04).
 _PS5_SHAPE = CaseShape(corner_radius=3.0, edge_radius=1.0,
                        lip_width=KEEP_RIM_MM, lip_height=0.5,
                        seam_width=0.8, seam_depth=0.4,
-                       recess_length=59.0, recess_height=6.0, recess_depth=1.5)
+                       recess_length=59.0, recess_height=6.0, recess_depth=2.8)
 # The PS3 case has the PS5's corners, lip and seam in seller photos. Its
 # finger recess is a long channel: length and height measured from the
 # user's photos of their own case, depth the user's figure (SLIP-0127).

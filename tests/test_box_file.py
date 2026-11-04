@@ -305,7 +305,7 @@ class TestShape(unittest.TestCase):
                 "lip_width_mm": 2.5, "lip_height_mm": 0.5,
                 "seam_width_mm": 0.8, "seam_depth_mm": 0.4,
                 "recess_length_mm": 59.0, "recess_height_mm": 6.0,
-                "recess_depth_mm": 1.5,
+                "recess_depth_mm": 2.8,
             })
             model = read_box_file(os.path.join(d, "Game.box.json"))
             self.assertEqual(model.case_type.shape,
