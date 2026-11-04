@@ -7,6 +7,8 @@ to make the lip and the seam real shape; amended again 2026-11-03, after
 the user's first look, to add the finger recess, and again after their
 photo of the opening side, to centre it on the seam with round ends.
 Amended 2026-11-03 for SLIP-0127: the PS3 case takes the same shape.
+Amended 2026-11-04 for SLIP-0130: the recess's ends may be square and it
+may sit off the side's middle.
 **Kind:** implement.
 **Source:** ROADMAP SLIP-0125 (user request 2026-11-03; shape format agreed
 with the RetroDB session the same day).
@@ -80,7 +82,8 @@ behaves exactly as today.
           "lip_width_mm": 2.5, "lip_height_mm": 0.5,
           "seam_width_mm": 0.8, "seam_depth_mm": 0.4,
           "recess_length_mm": 59, "recess_height_mm": 6,
-          "recess_depth_mm": 1.5}
+          "recess_depth_mm": 1.5, "recess_end_radius_mm": 3,
+          "recess_offset_mm": 0}
 ```
 
 ```
@@ -124,9 +127,12 @@ behaves exactly as today.
   `seam_width_mm` wide at the surface, its deepest line `seam_depth_mm`
   in. The spine side has none.
 - **(e) `recess_length_mm`, `recess_height_mm` and `recess_depth_mm`.** A
-  finger slot cut into the opening side, centred top to bottom and on the
-  seam. It is `recess_length_mm` long end to end and `recess_height_mm`
-  high, and its ends are half-rounds of half that height. Its floor lies
+  finger slot cut into the opening side, centred on the seam. It is
+  `recess_length_mm` long end to end and `recess_height_mm` high.
+  `recess_end_radius_mm` rounds the four corners of its ends: 0 makes them
+  square, half `recess_height_mm` makes each end a half-round.
+  `recess_offset_mm` moves its middle that far above the side's middle;
+  below 0 moves it down. Its floor lies
   `recess_depth_mm` in from the side's surface, and the seam's groove runs
   on along the floor. Its walls are square to the side. With any of the
   three 0 there is no recess.
@@ -140,8 +146,11 @@ behaves exactly as today.
 
 **Reading rules for `shape`**, added to SLIP-0104 § 4.1's: a missing `shape`
 means flat. `corner_radius_mm` and `edge_radius_mm` are required; a missing
-`lip_*`, `seam_*` or `recess_*` key means 0, so a shape written before
-those features reads. Each value must be a number, not `true` or `false`, at least 0. A
+`lip_*`, `seam_*` or `recess_*` key means 0, except a missing
+`recess_end_radius_mm`, which means half `recess_height_mm`; so a shape
+written before those features reads as it did. Each value must be a
+number, not `true` or `false`, at least 0; only `recess_offset_mm` may be
+below 0. A
 value of 0 means that feature is absent; every value 0 is a flat box. The
 limits:
 
@@ -152,9 +161,10 @@ limits:
 - `seam_depth_mm`: at most `seam_width_mm`.
 - With `lip_height_mm` above 0, `lip_width_mm` is above 0 and at least
   `edge_radius_mm`, so the rounding fits on the lip.
-- `recess_length_mm`: less than `height_mm` minus twice the larger of
-  `corner_radius_mm` and `lip_width_mm`, so the recess ends before the
-  corners.
+- `recess_length_mm` plus twice `recess_offset_mm` without its sign: less
+  than `height_mm` minus twice the larger of `corner_radius_mm` and
+  `lip_width_mm`, so the recess ends before the corners.
+- `recess_end_radius_mm`: at most half `recess_height_mm`.
 - `recess_depth_mm`: at most a quarter of the smaller of `width_mm` and
   `height_mm`.
 - `recess_height_mm`: above 0 only when it is above `seam_width_mm` and
@@ -329,6 +339,11 @@ its painted lip.
   Amended again the same day: a recess reaching the corners, deeper than a
   quarter of the width, reaching the roundings, no longer than its height,
   no taller than the seam, and `true` in a recess key.
+  Amended 2026-11-04 (SLIP-0130): an end radius above half the recess
+  height, −1 as an end radius, an offset carrying the recess into the top
+  or the bottom corners, and `true` as the offset. Also
+  `::test_recess_without_end_keys_reads_round_and_centred`: a shape with
+  neither key reads half-round ends, centred.
 
 - **INV-6** — *Withdrawn 2026-11-03: the seam is shape, so the sides get no
   pictures (§ 4.3). INV-9 replaces it.* With a shape and `show_texture` set,
@@ -370,6 +385,9 @@ its painted lip.
   case, the patches cut into the side's straight run span
   `recess_length` top to bottom and `recess_height` centred on the seam,
   reach `recess_depth` in plus the seam's depth, and show no picture;
+  `::test_square_recess_off_centre`: with an end radius of 0 and an offset
+  of 20 mm, the floor runs the slot's full length at its top and bottom,
+  20 mm above the middle;
   `::test_spine_shows_its_picture`: every patch flat on the spine shows the
   spine's picture; and
   `tests/test_box_viewer.py::test_flat_spine_drawn_whole`: a picture
@@ -432,8 +450,8 @@ automated check: the user compares the viewer with their photos.
 
 - Opening the case — tracked by SLIP-0109.
 - The two-disc PS5 case — tracked by SLIP-0126.
-- PS4, PS3, Xbox One and the other cases — deferred; not yet queued. They
-  follow the user's check of the PS5 case and reference photos.
+- The PS3 case — SLIP-0127. Xbox One / Series and the DVD-size cases —
+  SLIP-0130. PS4 and the rest — deferred; not yet queued.
 - The tray and disc seen through the plastic — deferred; not yet queued.
   With a game in the case, the cover hides them (the user agreed,
   2026-11-03).

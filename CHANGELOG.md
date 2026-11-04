@@ -19,7 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   long finger slot in the opening side: 85 mm long, 7 mm across, 3 mm deep,
   measured from a real case. The PS3 case is now 14 mm deep instead of 13, so
   PS3 renders are a little thicker. The Greatest Hits and Platinum cases
-  change with it.
+  change with it. Its finger slot has square ends, like the real one.
+- **The Xbox One and Xbox Series X cases have their real shape in the 3D view** (SLIP-0130)
+  The same rounded corners, lip and groove as the PS5 case, and the Xbox
+  case's finger slot: 74 mm long, 6 mm across, 3 mm deep, with square ends,
+  measured from a 3D model of the case. The box file can now say whether a
+  slot's ends are square or round, and move the slot up or down the side.
 - **Front, Spine and Back buttons in the 3D view** (SLIP-0128)
   Each turns the case to look straight at that side, so you can check the
   margins of the pictures.

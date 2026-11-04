@@ -305,7 +305,8 @@ class TestShape(unittest.TestCase):
                 "lip_width_mm": 2.5, "lip_height_mm": 0.5,
                 "seam_width_mm": 0.8, "seam_depth_mm": 0.4,
                 "recess_length_mm": 59.0, "recess_height_mm": 6.0,
-                "recess_depth_mm": 2.8,
+                "recess_depth_mm": 2.8, "recess_end_radius_mm": 3.0,
+                "recess_offset_mm": 0.0,
             })
             model = read_box_file(os.path.join(d, "Game.box.json"))
             self.assertEqual(model.case_type.shape,
@@ -348,6 +349,17 @@ class TestShape(unittest.TestCase):
                  shape.recess_length, shape.recess_height, shape.recess_depth),
                 (2, 0.5, 0, 0, 0, 0, 0, 0, 0))
 
+    def test_recess_without_end_keys_reads_round_and_centred(self):
+        """SLIP-0130: a shape written before the end radius and offset keys
+        keeps half-round ends, centred."""
+        with tempfile.TemporaryDirectory() as d:
+            def drop(data):
+                data["shape"].pop("recess_end_radius_mm")
+                data["shape"].pop("recess_offset_mm")
+            path = _rewritten(write_box_file(_ps5_model(), d, "Game"), drop)
+            shape = read_box_file(path).case_type.shape
+            self.assertEqual((shape.recess_end_radius, shape.recess_offset), (3.0, 0.0))
+
     def test_bad_shape_ignored(self):
         """INV-5: one fixture per rule; each reads, with no shape."""
         def shape(**changes):
@@ -381,6 +393,12 @@ class TestShape(unittest.TestCase):
             "recess no longer than its height": shape(recess_length_mm=6),
             "recess no taller than the seam": shape(recess_height_mm=0.8),
             "true in a recess key": shape(recess_length_mm=True),
+            "end radius above half the recess height": shape(recess_end_radius_mm=3.1),
+            "-1 end radius": shape(recess_end_radius_mm=-1),
+            # 59 + 2 x 53.3 = 165.6 mm: past the 165.5 mm between the corners.
+            "offset reaching the corners": shape(recess_offset_mm=53.3),
+            "offset reaching the bottom corners": shape(recess_offset_mm=-53.3),
+            "true in the offset": shape(recess_offset_mm=True),
         }
         for label, mutate in fixtures.items():
             with self.subTest(fixture=label), tempfile.TemporaryDirectory() as d:

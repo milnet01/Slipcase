@@ -1619,8 +1619,9 @@ building.
   it has a finger slot, a long channel in the opening side across the
   seam. Depth 3 mm (the user's figure); length 85 mm and height 7 mm
   measured from the straight side photo. The real channel's ends are
-  square and it sits a little above the middle; box_shape draws round
-  ends, centred. Figures set; waiting on the user's check by eye.
+    square and it sits a little above the middle. Figures set; waiting on
+    the user's check by eye. 2026-11-04 (SLIP-0130): ends drawn square;
+    still centred until the offset is measured.
   **Layman:** Turn a PS3 case in the 3D viewer and it looks like the real one: rounded corners, the plastic lip and the seam.
   Kind: feature.
   Source: user-request-2026-11-03.
@@ -1649,7 +1650,7 @@ building.
   Source: user-request-2026-11-03.
   Lanes: core, ui.
 
-- 📋 [SLIP-0130] **Give the DVD-size cases and the Xbox One / Series case their real shape in the 3D viewer, as SLIP-0125 did for the PS5.**
+- 🚧 [SLIP-0130] **Give the DVD-size cases and the Xbox One / Series case their real shape in the 3D viewer, as SLIP-0125 did for the PS5.**
   Starting figures, measured 2026-11-04 from Sketchfab models the user
   downloaded to /mnt/Games/3D Engine Assets/Models (each zip has a
   credit .txt; never commit them). The models are hobbyist work, so the
@@ -1666,7 +1667,12 @@ building.
     19 mm across inside a 34 mm ring; a 2 mm raised disc well; a 10 mm
     spine strip with hinge notches; no booklet clips.
   The two DVD models disagree on the slot; real DVD cases vary by maker.
-  Box_shape draws round, centred ends only.
+    Built 2026-11-04: the box file's shape gains recess_end_radius_mm (0
+    squares the slot's ends) and recess_offset_mm (moves it up or down the
+    side); SLIP-0125 § 4.1 amended. Xbox One and Series X cases shaped:
+    the PS5's corners, edges, lip and seam (the model's are too rough to
+    measure), the model's slot. Size stays 135 x 171.5 x 13. Waiting on
+    the user's check by eye; DVD cases wait on their case photo.
   **Layman:** Turn a PS2, Wii, GameCube, PC or Xbox One case in the 3D viewer and it shows the real case's finger slot and corners.
   Kind: feature.
   Source: user-request-2026-11-04.

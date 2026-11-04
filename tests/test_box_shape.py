@@ -21,6 +21,10 @@ SHAPES = {
     "flat": CaseShape(0, 0),
     "recess, no seam": CaseShape(3, 1, 2.5, 0.5, 0, 0, 59, 6, 1.5),
     "recess only": CaseShape(0, 0, 0, 0, 0, 0, 59, 6, 1.5),
+    "Xbox One": CASE_TYPES["Xbox One Case"].shape,
+    "square ends, off centre": CaseShape(3, 1, 2.5, 0.5, 0.8, 0.4, 59, 6, 2.8, 0, 20),
+    "square ends, no seam, below centre": CaseShape(3, 1, 2.5, 0.5, 0, 0, 59, 6, 2.8, 0, -20),
+    "ends partly rounded": CaseShape(3, 1, 2.5, 0.5, 0.8, 0.4, 59, 6, 2.8, 1.5),
 }
 
 
@@ -102,6 +106,20 @@ class TestBoxShape(unittest.TestCase):
         self.assertTrue(any(abs(c[0] - floor_x) < 1e-9 for c in corners))
         for patch in cut:
             self.assertIsNone(patch.face, patch.corners)
+
+    def test_square_recess_off_centre(self):
+        """§ 4.1 (e), SLIP-0130: with an end radius of 0 the slot's ends are
+        square, so its floor runs its full length at its top and bottom, and
+        the offset moves it up the side."""
+        shape = CaseShape(3, 1, 2.5, 0.5, 0.8, 0.4, 59, 6, 2.8, 0, 20)
+        ct = replace(PS5, shape=shape)
+        floor_x = ct.width / 2 - shape.recess_depth
+        floor = [c for p in box_patches(ct) for c in p.corners
+                 if abs(c[0] - floor_x) < 1e-9]
+        for z in (shape.recess_height / 2, -shape.recess_height / 2):
+            ys = [c[1] for c in floor if abs(c[2] - z) < 1e-9]
+            self.assertAlmostEqual(min(ys), 20 - shape.recess_length / 2)
+            self.assertAlmostEqual(max(ys), 20 + shape.recess_length / 2)
 
     def test_closed_and_wound_outward(self):
         """INV-8."""

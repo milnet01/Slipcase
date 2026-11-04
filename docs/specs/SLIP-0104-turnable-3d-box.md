@@ -357,7 +357,7 @@ and the shortcut Ctrl+3 (unused today; added to `STANDARDS.md` § 6).
 - **INV-11** — With `show_texture` set, every face carries § 4.2's overlay
   at the face's own size, the back's mirrored; with it clear, none does.
   *Test:* `tests/test_box_model.py::test_case_details_baked_in` builds a
-  Xbox One Case model from uniform grey (128) front and back covers, so the
+  PS4 Blu-ray Case model from uniform grey (128) front and back covers, so the
   overlay's faint lines change pixels, and compares each face with the
   overlay composited by hand. A Blu-ray front is not mirror-symmetric (its
   spine-edge groove), so only the mirroring rule passes the back.

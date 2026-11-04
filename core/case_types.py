@@ -44,6 +44,15 @@ class CaseShape:
     recess_length: float = 0.0  # the finger recess in the opening side, top to bottom
     recess_height: float = 0.0  # its height across the seam, which it is centred on
     recess_depth: float = 0.0   # how far in its floor lies
+    # The rounding of the recess's four end corners: 0 squares them, half
+    # recess_height makes each end a half-round. Left out, below 0, it is
+    # set to half-round.
+    recess_end_radius: float = -1.0
+    recess_offset: float = 0.0  # how far its middle sits above the side's; below it is negative
+
+    def __post_init__(self):
+        if self.recess_end_radius < 0:
+            object.__setattr__(self, "recess_end_radius", self.recess_height / 2)
 
 
 # A keep case's sheet sits under a clear sleeve inside a plastic lip. Width
@@ -139,7 +148,13 @@ _PS5_SHAPE = CaseShape(corner_radius=3.0, edge_radius=1.0,
 # finger recess is a long channel: length and height measured from the
 # user's photos of their own case, depth the user's figure (SLIP-0127).
 _PS3_SHAPE = replace(_PS5_SHAPE, recess_length=85.0, recess_height=7.0,
-                     recess_depth=3.0)
+                     recess_depth=3.0, recess_end_radius=0.0)
+# Xbox One / Series: the slot measured from a model of the case, "Xbox Game
+# case" by Tonino on Sketchfab, CC-BY (2026-11-04): 74 mm long, 6 mm high,
+# 3 mm deep, square ends, centred. The model's corners and edges are too
+# rough to measure, so they take the PS5's as working figures (SLIP-0130).
+_XBOX_ONE_SHAPE = replace(_PS5_SHAPE, recess_length=74.0, recess_height=6.0,
+                          recess_depth=3.0, recess_end_radius=0.0)
 _BLACK_TRAY = (0x10, 0x10, 0x10)
 _BLACK_KEEP = (0x14, 0x14, 0x14)
 _WHITE_KEEP = (0xEE, 0xEE, 0xEE)
@@ -247,12 +262,14 @@ CASE_TYPES: dict[str, CaseType] = {
         width=135, height=171.5, depth=13,
         platforms=("Xbox One",),
         plastic=_GREEN_TINT, clear=True, texture="bluray",
+        shape=_XBOX_ONE_SHAPE,
     ),
     "Xbox Series X Case": CaseType(
         name="Xbox Series X Case",
         width=135, height=171.5, depth=13,
         platforms=("Xbox Series X",),
         plastic=_GREEN_TINT, clear=True, texture="bluray",
+        shape=_XBOX_ONE_SHAPE,
     ),
     # Jewel cases stand landscape: the back card folds at the ends of its
     # long side, so the folds sit on the case's two 125 mm edges, one being

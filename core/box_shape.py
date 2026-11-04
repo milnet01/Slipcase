@@ -15,8 +15,9 @@ outline and a height: the top, bottom and opening side share one profile,
 with the lip and the seam; the spine side has its own, with neither.
 Round a corner a ring passes from one side's values to the other's.
 
-A finger recess cuts into the opening side across the seam: a slot with
-half-round ends. Every ring carries four more points on that side, where
+A finger recess cuts into the opening side across the seam: a slot whose
+ends are square, half-round or between, set above or below the side's
+middle by its offset. Every ring carries four more points on that side, where
 the slot's ends lie at that ring's height; rings above and below the slot
 carry them uncut, so every ring has as many points as the next.
 """
@@ -31,7 +32,7 @@ Vec = tuple[float, float, float]
 # Starting figures (SLIP-0125 § 4.4); § 6 lowers them if a frame is too slow.
 CORNER_SEGMENTS = 8
 EDGE_SEGMENTS = 3
-RECESS_SEGMENTS = 4             # per quarter of the slot's half-round ends
+RECESS_SEGMENTS = 4             # per rounded corner of the slot's ends
 _SAME_MM = 1e-9
 
 _FULL_PICTURE = [(0, 0), (1, 0), (1, 1), (0, 1)]
@@ -154,13 +155,21 @@ def _profiles(shape: CaseShape, d: float) -> list[Ring]:
     if not _has_recess(shape):
         straight: list[Ring] = [(lip_side, spine_side, None) for lip_side, spine_side in seam]
     else:
-        end = shape.recess_height / 2
+        end, rho = shape.recess_height / 2, shape.recess_end_radius
+        flat = end - rho    # the slot's ends run straight up to here each way
 
         def reach(z: float) -> float:
-            return shape.recess_length / 2 - end + math.sqrt(max(0.0, end * end - z * z))
+            past = max(0.0, abs(z) - flat)
+            return shape.recess_length / 2 - rho + math.sqrt(max(0.0, rho * rho - past * past))
 
-        levels = [end * math.cos(math.pi * j / (2 * RECESS_SEGMENTS))
-                  for j in range(2 * RECESS_SEGMENTS + 1)]
+        # Rings round each end's two rounded corners, top then bottom; a
+        # square end needs only its top and bottom rings.
+        arc = [flat + rho * math.cos(math.pi / 2 * j / RECESS_SEGMENTS)
+               for j in range(RECESS_SEGMENTS + 1)]
+        levels: list[float] = []
+        for z in arc + [-z for z in reversed(arc)]:
+            if not levels or levels[-1] - z > _SAME_MM:
+                levels.append(z)
         # Levels inside the seam would cut its V; the seam's own rings stand in.
         cut = [((0.0, z), (0.0, z)) for z in levels if sw == 0 or abs(z) > sw / 2 + _SAME_MM]
         inside = sorted(cut + seam, key=lambda ring: -ring[0][1])
@@ -207,10 +216,12 @@ def _ring(case_type: CaseType, ring: Ring) -> list[Vec]:
         x, z = w - lip_side[0], lip_side[1]
         if reach is None:
             # Uncut: the points sit where the slot's straight edges end.
-            reach, floor = shape.recess_length / 2 - shape.recess_height / 2, x
+            reach, floor = shape.recess_length / 2 - shape.recess_end_radius, x
         else:
             floor = x - shape.recess_depth
-        points += [(x, -reach, z), (floor, -reach, z), (floor, reach, z), (x, reach, z)]
+        mid = shape.recess_offset
+        points += [(x, mid - reach, z), (floor, mid - reach, z),
+                   (floor, mid + reach, z), (x, mid + reach, z)]
     return points
 
 

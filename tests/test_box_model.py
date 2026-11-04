@@ -119,9 +119,9 @@ class TestCaseDetails(unittest.TestCase):
     """INV-11: case details are baked into the faces, the back's mirrored."""
 
     def test_case_details_baked_in(self):
-        ct = CASE_TYPES["Xbox One Case"]
+        ct = CASE_TYPES["PS4 Blu-ray Case"]
         grey = Image.new("RGB", (270, 342), (128, 128, 128))
-        model = _build(grey, back=grey.copy(), case="Xbox One Case",
+        model = _build(grey, back=grey.copy(), case="PS4 Blu-ray Case",
                        full_cover=False, show_texture=True)
 
         w, h = model.front.size
@@ -154,7 +154,7 @@ class TestCaseDetails(unittest.TestCase):
                                        np.array(_on(expected_spine, model.edge))))
 
         # With show_texture clear, no face carries the overlay.
-        plain = _build(grey, back=grey.copy(), case="Xbox One Case",
+        plain = _build(grey, back=grey.copy(), case="PS4 Blu-ray Case",
                        full_cover=False, show_texture=False)
         self.assertTrue(np.array_equal(np.array(plain.front),
                                        np.array(framed_front.convert("RGB"))))
