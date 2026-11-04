@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: SLIP=129 -->
+<!-- ants-roadmap-id-high-water: SLIP=130 -->
 
 # Slipcase — Roadmap
 
@@ -1587,6 +1587,10 @@ building.
   Shipped 2026-11-03 in 80fa277, 95bee0b and 52dbd6f. The user checked
   the PS5 case in the viewer by eye and approved it the same day. The
   finger slot was measured from their photo of their own case.
+  2026-11-04: finger recess depth 1.5 -> 2.8 mm, measured from the
+  real-scale Sketchfab model "PS5 Dvd cd whatever... Case" (Diablo,
+  CC-BY-4.0). Length, height and corners stay from the user's photos.
+  Waiting on the user's check by eye.
   **Layman:** Turn a PS5 case in the 3D viewer and it looks like the real one: rounded corners, the plastic lip, the seam and the tray seen through the plastic.
   Kind: feature.
   Source: user-request-2026-11-03.
@@ -1644,6 +1648,29 @@ building.
   Kind: feature.
   Source: user-request-2026-11-03.
   Lanes: core, ui.
+
+- 📋 [SLIP-0130] **Give the DVD-size cases and the Xbox One / Series case their real shape in the 3D viewer, as SLIP-0125 did for the PS5.**
+  Starting figures, measured 2026-11-04 from Sketchfab models the user
+  downloaded to /mnt/Games/3D Engine Assets/Models (each zip has a
+  credit .txt; never commit them). The models are hobbyist work, so the
+  user's own cases settle any disagreement.
+  - "Boitier DVD de 14 mm" (Wazahole, CC-BY): 135 x 190 x 14.4 mm.
+    Slot 90 mm long, 9.5 mm tall, 2.5-2.9 mm deep, square ends, centred.
+    Corners about 1.5 mm.
+  - "DVD/PS2/Wii case" (MacDrawz, CC-BY): 135 x 194 x 14 mm (taller than
+    the standard 190). Slot about 63 mm long, 6 mm tall, up to 3.8 mm
+    deep, round ends. The mesh is messy; figures approximate.
+  - "Xbox Game case" (Tonino, CC-BY): Xbox One / Series size, 135 x 170
+    x 11.9 mm. Each half's opening wall dips 3 mm over 74 mm: a slot
+    about 74 mm long and 6 mm tall, square ends. Inside: disc hub about
+    19 mm across inside a 34 mm ring; a 2 mm raised disc well; a 10 mm
+    spine strip with hinge notches; no booklet clips.
+  The two DVD models disagree on the slot; real DVD cases vary by maker.
+  Box_shape draws round, centred ends only.
+  **Layman:** Turn a PS2, Wii, GameCube, PC or Xbox One case in the 3D viewer and it shows the real case's finger slot and corners.
+  Kind: feature.
+  Source: user-request-2026-11-04.
+  Lanes: core.
 
 ## Project record
 
