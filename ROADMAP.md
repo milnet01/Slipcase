@@ -1,6 +1,6 @@
 <!-- ants-roadmap-format: 1 -->
 <!-- Generated from the Ants Terminal roadmap store. Edit it with roadmap_log; hand edits are discarded by the next write. -->
-<!-- ants-roadmap-id-high-water: SLIP=130 -->
+<!-- ants-roadmap-id-high-water: SLIP=131 -->
 
 # Slipcase — Roadmap
 
@@ -959,6 +959,16 @@ making a build reproducible.
   **Layman:** Two GitHub recipes use different versions of the same building blocks; bring the older one up to date.
   Kind: chore.
   Source: in-session-2026-09-30.
+
+- 📋 [SLIP-0131] **Run the tests in parallel to stop the gate's slow creep.**
+  ci_report (2026-11-09): the CI "Run the gate" step rose from about
+  34 s to 56 s over recent runs, starting at 7c9f082. Fifteen-minute
+  budget, so advice only. Option: pytest-xdist with -n auto in
+  scripts/local-ci.sh (local-gate.md § 9). Needs a new pinned dev
+  dependency and a check that Qt offscreen tests tolerate workers.
+  **Layman:** The automatic checks before each push are getting slower as tests are added; running them side by side would cut the wait.
+  Kind: perf.
+  Source: claude-config CI-tuning request, 2026-11-09.
 
 ## Feature ideas
 
