@@ -34,7 +34,11 @@ step() {
 
 if [[ $mode == full ]]; then
     step "ruff" ruff check .
-    step "pytest" python3 -m pytest tests/ -q
+    # -n auto: one worker process per core (pytest-xdist, SLIP-0131). Tests
+    # share no state -- each uses its own temporary folders and lock names --
+    # so a worker cannot disturb another. A test that starts sharing a fixed
+    # path or name must not run under -n.
+    step "pytest" python3 -m pytest tests/ -q -n auto
 fi
 step "doc links" python3 scripts/check-doc-links.py
 

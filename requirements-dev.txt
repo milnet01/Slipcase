@@ -5,3 +5,5 @@
 # These are the versions the gate is known to pass with.
 ruff==0.16.4
 pytest==9.1.1
+# Runs the tests side by side, one worker per core (SLIP-0131).
+pytest-xdist==3.8.0

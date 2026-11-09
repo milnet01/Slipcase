@@ -960,12 +960,18 @@ making a build reproducible.
   Kind: chore.
   Source: in-session-2026-09-30.
 
-- 📋 [SLIP-0131] **Run the tests in parallel to stop the gate's slow creep.**
+- ✅ [SLIP-0131] **Run the tests in parallel to stop the gate's slow creep.**
   ci_report (2026-11-09): the CI "Run the gate" step rose from about
   34 s to 56 s over recent runs, starting at 7c9f082. Fifteen-minute
   budget, so advice only. Option: pytest-xdist with -n auto in
   scripts/local-ci.sh (local-gate.md § 9). Needs a new pinned dev
   dependency and a check that Qt offscreen tests tolerate workers.
+  Shipped 2026-11-09: pytest-xdist 3.8.0 pinned, the gate runs pytest
+  with -n auto. Measured on this 12-core machine: the gate took about
+  88 s serial and 16 s parallel; five parallel runs all green. Tests
+  checked for shared paths and names: none. The Windows and macOS CI
+  job still runs serially, unmeasured. No per-test timeout exists yet
+  (local-gate.md § 9's test-parallelism row asks for one).
   **Layman:** The automatic checks before each push are getting slower as tests are added; running them side by side would cut the wait.
   Kind: perf.
   Source: claude-config CI-tuning request, 2026-11-09.
@@ -1632,6 +1638,10 @@ building.
     square and it sits a little above the middle. Figures set; waiting on
     the user's check by eye. 2026-11-04 (SLIP-0130): ends drawn square;
     still centred until the offset is measured.
+  Web search 2026-11-09: no published figure for the PS3 slot's offset,
+  length or height. Replacement-case listings disagree on the outer size
+  (167 x 133 x 14, 172 x 135 x 15). The offset must come from the
+  user's case.
   **Layman:** Turn a PS3 case in the 3D viewer and it looks like the real one: rounded corners, the plastic lip and the seam.
   Kind: feature.
   Source: user-request-2026-11-03.
@@ -1683,6 +1693,10 @@ building.
     the PS5's corners, edges, lip and seam (the model's are too rough to
     measure), the model's slot. Size stays 135 x 171.5 x 13. Waiting on
     the user's check by eye; DVD cases wait on their case photo.
+  The user, 2026-11-09: keep the app's Xbox size, 171.5 x 13 mm. Web
+  search 2026-11-09: retailers and Wikipedia give DVD cases (PS2, Wii
+  included) as 190 x 135 x 14 mm; no source found for the corner radius
+  or the finger slot. The slot figures must come from a real case.
   **Layman:** Turn a PS2, Wii, GameCube, PC or Xbox One case in the 3D viewer and it shows the real case's finger slot and corners.
   Kind: feature.
   Source: user-request-2026-11-04.
